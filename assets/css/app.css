@@ -1,0 +1,147 @@
+/* ================================
+   BUNCA — App UI Theme (no libs)
+   File: /assets/css/app.css
+   ================================ */
+
+:root{
+  --bunca-green:#1f7a3a;
+  --bunca-green-600:#16612e;
+  --bunca-green-700:#0f4922;
+  --bunca-cream:#f7faf7;
+  --surface:#ffffff;
+  --text:#0e0f0f;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --ring:#b3e6c5;
+  --danger:#dc2626;
+  --warning:#f59e0b;
+  --ok:#10b981;
+  --shadow:0 6px 20px rgba(0,0,0,.08);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+  color:var(--text);
+  background:var(--bunca-cream);
+}
+
+/* ---------------- Header / Navbar ---------------- */
+.app-header{
+  position:sticky;
+  top:0; z-index:50;
+  background:var(--bunca-green);
+  color:#fff;
+  box-shadow:var(--shadow);
+}
+.navbar{
+  max-width:1200px; margin:0 auto; padding:12px 20px;
+  display:flex; align-items:center; gap:14px;
+}
+.brand{
+  display:flex; align-items:center; gap:10px; text-decoration:none; color:#fff;
+  font-weight:800; letter-spacing:.3px;
+}
+.brand img{height:28px; width:auto}
+.spacer{flex:1}
+
+.nav{
+  display:flex; align-items:center; gap:8px;
+}
+.nav a{
+  color:#e8ffef; text-decoration:none; font-weight:600;
+  padding:8px 12px; border-radius:10px;
+}
+.nav a.active, .nav a:hover{
+  background:rgba(255,255,255,.16);
+}
+
+.select--shop{
+  appearance:none;
+  border:1px solid rgba(255,255,255,.35);
+  background:#fff; color:#0f172a;
+  border-radius:10px; padding:8px 34px 8px 12px;
+  font-weight:600;
+  background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23101010' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 10px center;
+}
+
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  padding:8px 14px; border-radius:10px; border:1px solid transparent;
+  font-weight:700; cursor:pointer; text-decoration:none; white-space:nowrap;
+  transition:all .15s ease;
+}
+.btn--light{ background:#f3f4f6; color:#0f172a; }
+.btn--light:hover{ background:#e5e7eb; }
+.btn--ghost{ background:transparent; color:#fff; border-color:rgba(255,255,255,.35) }
+.btn--ghost:hover{ background:rgba(255,255,255,.14) }
+.btn--danger{ background:var(--danger); color:#fff; }
+.btn--success{ background:var(--ok); color:#fff; }
+
+/* ---------------- Layout ---------------- */
+.container{ max-width:1200px; margin:24px auto; padding:0 20px; }
+.cards{ display:grid; grid-template-columns:repeat(12,1fr); gap:16px; }
+.card{
+  grid-column: span 4;
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:16px; box-shadow:var(--shadow);
+}
+.card h4{ margin:0 0 8px 0; font-size:14px; color:var(--muted); font-weight:700; letter-spacing:.2px }
+.metric{ font-size:28px; font-weight:900; margin:6px 0 0 0 }
+
+/* ---------------- Checklist Form ---------------- */
+.panel{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:18px; padding:18px; box-shadow:var(--shadow);
+}
+.panel h3{ margin:0 0 14px 0; font-size:18px; }
+.grid{ display:grid; grid-template-columns:repeat(12,1fr); gap:14px; }
+.col-3{ grid-column:span 3 } .col-4{ grid-column:span 4 } .col-6{ grid-column:span 6 } .col-12{ grid-column:span 12 }
+
+.form-label{ font-size:12px; font-weight:800; color:#111827; margin-bottom:6px; display:block; }
+.input, .select, .textarea{
+  width:100%; padding:10px 12px; border:1px solid var(--border); background:#fff; border-radius:12px;
+  font-size:14px; outline:none;
+}
+.input:focus, .select:focus, .textarea:focus{ border-color:var(--bunca-green); box-shadow:0 0 0 4px var(--ring); }
+
+.help{
+  margin-top:6px; font-size:12px; color:var(--muted);
+}
+
+.actions{ display:flex; gap:10px; align-items:center; justify-content:flex-start }
+
+/* ---------------- Badges ---------------- */
+.badge{ display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:999px; font-weight:800; font-size:12px; }
+.badge--ok{ background:#ecfdf5; color:#065f46; }
+.badge--warn{ background:#fffbeb; color:#92400e; }
+.badge--muted{ background:#eef2ff; color:#3730a3; }
+
+/* ---------------- Tables (Admin) ---------------- */
+.table{
+  width:100%; border-collapse:separate; border-spacing:0; background:var(--surface); border-radius:14px; overflow:hidden; box-shadow:var(--shadow);
+  border:1px solid var(--border);
+}
+.table th, .table td{ padding:12px 14px; border-bottom:1px solid var(--border); text-align:left }
+.table tr:last-child td{ border-bottom:none }
+
+/* ---------------- Utilities ---------------- */
+.mt-16{margin-top:16px}
+.mt-24{margin-top:24px}
+.shadow-none{box-shadow:none}
+.center{ display:flex; align-items:center; justify-content:center }
+.hide{display:none}
+
+/* ---------------- Mobile ---------------- */
+@media (max-width: 900px){
+  .card{ grid-column:span 6 }
+}
+@media (max-width: 680px){
+  .nav .hide-sm{ display:none }
+  .cards{ grid-template-columns:repeat(6,1fr) }
+  .card{ grid-column:span 6 }
+  .col-3,.col-4,.col-6{ grid-column:span 12 }
+}
