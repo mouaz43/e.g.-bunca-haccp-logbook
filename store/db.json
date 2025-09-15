@@ -12,16 +12,96 @@
           "id": "item_n2v0w",
           "label": "Kühlschrank ",
           "type": "number",
-          "unit": "20°C",
+          "unit": "°C",
           "rule": {
             "kind": "range",
             "min": 2,
             "max": 7
           }
+        },
+        {
+          "id": "item_1wv8c",
+          "label": "Kühlschrank 2",
+          "type": "number",
+          "unit": "°C",
+          "rule": {
+            "kind": "range",
+            "min": 2,
+            "max": 7
+          }
+        },
+        {
+          "id": "item_1wien",
+          "label": "Tiefkühler ",
+          "type": "number",
+          "unit": "°C",
+          "rule": {
+            "kind": "range",
+            "min": -15,
+            "max": -18
+          }
+        },
+        {
+          "id": "item_ht8vf",
+          "label": "Spülmaschine Klarspültemp.",
+          "type": "number",
+          "unit": "°C",
+          "rule": {
+            "kind": "range",
+            "min": 78,
+            "max": 85
+          }
+        },
+        {
+          "id": "item_ve21x",
+          "label": "Backstation Betriebstemp.",
+          "type": "number",
+          "unit": "°C",
+          "rule": {
+            "kind": "range",
+            "min": 180,
+            "max": 0
+          }
+        },
+        {
+          "id": "item_wfaob",
+          "label": "Milch-Kühlschrank",
+          "type": "number",
+          "unit": "°C",
+          "rule": {
+            "kind": "range",
+            "min": 2,
+            "max": 5
+          }
+        },
+        {
+          "id": "item_m27h7",
+          "label": "Neues Item",
+          "type": "number",
+          "unit": "°C",
+          "rule": {
+            "kind": "range",
+            "min": 0,
+            "max": 7
+          }
         }
       ],
-      "cleaningPlan": [],
-      "createdAt": "2025-09-15T10:07:10.504Z"
+      "cleaningPlan": [
+        {
+          "id": "task_xom93",
+          "task": "Tresenflächen desinfizieren ",
+          "frequency": "täglich",
+          "area": "Theke"
+        },
+        {
+          "id": "task_nb5mr",
+          "task": "Kühlschranke ",
+          "frequency": "wöchentlich",
+          "area": "Theke"
+        }
+      ],
+      "createdAt": "2025-09-15T10:07:10.504Z",
+      "updatedAt": "2025-09-15T16:55:07.144Z"
     }
   ],
   "entries": {
