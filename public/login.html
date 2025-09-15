@@ -3,145 +3,156 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BUNCA HACCP · Login</title>
-  <!-- Uses only page-scoped styles so nothing else is affected -->
+  <title>BUNCA · Anmelden</title>
+  <meta name="color-scheme" content="light only" />
   <style>
     :root{
-      --green:#1f7a3a; --green-600:#16612e;
-      --bg:#f7faf7; --surface:#ffffff; --text:#0f172a;
-      --muted:#64748b; --border:#e5e7eb; --ring:#b3e6c5;
-      --danger:#dc2626; --shadow:0 10px 30px rgba(0,0,0,.08);
+      --green:#1f7a3a; --green-700:#0f4922; --ring:#b3e6c5;
+      --bg:#f7faf7; --card:#ffffff; --border:#e5e7eb; --muted:#6b7280; --text:#0f172a;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
     }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{margin:0;font-family: ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--text);background:var(--bg)}
-
-    /* Header (matches the app) */
-    .app-header{position:sticky;top:0;z-index:10;background:var(--green);color:#fff;box-shadow:var(--shadow)}
-    .navbar{max-width:1100px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px}
-    .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:900}
-    .brand img{height:26px}
-    .spacer{flex:1}
-
-    /* Login layout */
-    .wrap{max-width:1100px;margin:32px auto;padding:0 18px}
-    .login {max-width:480px;margin:40px auto;background:var(--surface);border:1px solid var(--border);
-            border-radius:18px;box-shadow:var(--shadow);padding:22px}
-    .login h1 {margin:0 0 4px;font-size:24px;font-weight:900}
-    .login p  {margin:0 0 18px;color:var(--muted);font-size:14px}
-
-    .field{margin-top:12px}
-    .label{font-size:12px;font-weight:800;margin-bottom:6px;display:block}
-    .input{
-      width:100%;padding:11px 12px;border:1px solid var(--border);border-radius:12px;background:#fff;
-      font-size:15px;outline:none
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
+      color:var(--text);
+      background:linear-gradient(160deg,#f2fbf5 0%,#ffffff 45%,#f2fbf5 100%);
     }
-    .input:focus{border-color:var(--green);box-shadow:0 0 0 4px var(--ring)}
-    .row{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:14px}
-
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
-         padding:10px 16px;border-radius:12px;border:1px solid transparent;
-         font-weight:900;cursor:pointer;transition:.15s}
-    .btn-primary{background:var(--green);color:#fff}
-    .btn-primary:hover{background:var(--green-600)}
-    .btn-link{background:transparent;color:var(--muted);text-decoration:none}
-    .error{display:none;margin-top:12px;color:#fff;background:var(--danger);border-radius:10px;padding:10px 12px;font-weight:700}
-    .note {margin-top:12px;color:var(--muted);font-size:12px}
-    .pw-wrap{position:relative}
-    .pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;user-select:none;font-size:14px;color:#475569}
-
-    @media (max-width:640px){ .login{margin:18px auto} }
+    .wrap{min-height:100%;display:grid;place-items:center;padding:24px}
+    .card{
+      width:100%;max-width:420px;background:var(--card);border:1px solid var(--border);
+      border-radius:18px;box-shadow:var(--shadow);padding:22px
+    }
+    .brand{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .brand img{height:28px;width:auto}
+    h1{font-size:20px;margin:8px 0 16px 0}
+    .muted{color:var(--muted);font-size:13px}
+    label{font-size:12px;font-weight:800;margin:12px 0 6px 0;display:block}
+    input{
+      width:100%;padding:12px;border:1px solid var(--border);border-radius:12px;font-size:15px;outline:none;
+      background:#fff;
+    }
+    input:focus{border-color:var(--green);box-shadow:0 0 0 4px var(--ring)}
+    .row{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+    .checkbox{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+    .btn{
+      width:100%;margin-top:16px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+      padding:12px 14px;border-radius:12px;border:1px solid transparent;font-weight:800;cursor:pointer;
+      background:var(--green);color:#fff;
+    }
+    .btn[disabled]{opacity:.6;cursor:not-allowed}
+    .error{margin-top:12px;background:#fef2f2;color:#7f1d1d;border:1px solid #fecaca;border-radius:12px;padding:10px;font-size:13px}
+    .footer{margin-top:18px;text-align:center;font-size:12px;color:var(--muted)}
   </style>
 </head>
 <body>
-  <header class="app-header">
-    <div class="navbar">
-      <a class="brand" href="index.html">
-        <img src="assets/img/bunca-logo.svg" alt="BUNCA" onerror="this.remove()">
-        <span>BUNCA HACCP</span>
-      </a>
-      <div class="spacer"></div>
-    </div>
-  </header>
-
-  <main class="wrap">
-    <section class="login" role="region" aria-labelledby="loginTitle">
-      <h1 id="loginTitle">Anmelden</h1>
-      <p>Bitte mit E-Mail und Passwort anmelden, um fortzufahren.</p>
+  <div class="wrap">
+    <div class="card" role="form" aria-labelledby="login-title">
+      <div class="brand">
+        <img src="assets/img/bunca-logo.svg" alt="BUNCA" onerror="this.remove()" />
+        <strong>BUNCA HACCP</strong>
+      </div>
+      <h1 id="login-title">Anmelden</h1>
+      <p class="muted">Bitte melden Sie sich an, um auf die BUNCA HACCP-Tools zuzugreifen.</p>
 
       <form id="loginForm" novalidate>
-        <div class="field">
-          <label class="label" for="email">E-Mail</label>
-          <input class="input" id="email" name="email" type="email" autocomplete="username" required placeholder="z. B. name@bunca.de">
-        </div>
+        <label for="email">E-Mail</label>
+        <input id="email" name="email" type="email" autocomplete="username" required />
 
-        <div class="field pw-wrap">
-          <label class="label" for="password">Passwort</label>
-          <input class="input" id="password" name="password" type="password" autocomplete="current-password" required placeholder="••••••••">
-          <span class="pw-toggle" id="pwToggle" aria-label="Passwort anzeigen">👁</span>
-        </div>
+        <label for="password">Passwort</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" required />
 
         <div class="row">
-          <a class="btn btn-link" href="index.html">Zurück</a>
-          <button class="btn btn-primary" id="btnLogin" type="submit">Login</button>
+          <label class="checkbox">
+            <input id="remember" type="checkbox" />
+            <span>Eingeloggt bleiben</span>
+          </label>
+          <a href="#" class="muted" id="forgot">Passwort vergessen?</a>
         </div>
 
-        <div class="error" id="errBox" role="alert"></div>
-        <p class="note">Tipp: Bei Problemen wende dich an die/den Admin deines Shops.</p>
+        <button class="btn" id="submitBtn" type="submit">Anmelden</button>
+        <div id="error" class="error" style="display:none"></div>
       </form>
-    </section>
-  </main>
+
+      <div class="footer">© BUNCA · HACCP</div>
+    </div>
+  </div>
 
   <script>
-    // If already logged in, go to dashboard
-    (function(){
-      if (localStorage.getItem('bunca_token')) {
-        location.replace('index.html');
-      }
-    })();
+  // If already logged in, go to start
+  (function(){
+    const token = localStorage.getItem('bunca_token');
+    if (token) { window.location.replace('index.html'); }
+  })();
 
-    // Show/Hide password
-    document.getElementById('pwToggle').addEventListener('click', () => {
-      const pw = document.getElementById('password');
-      pw.type = pw.type === 'password' ? 'text' : 'password';
-    });
+  const form = document.getElementById('loginForm');
+  const errorBox = document.getElementById('error');
+  const submitBtn = document.getElementById('submitBtn');
 
-    // Login handler
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const email = document.getElementById('email').value.trim();
-      const password = document.getElementById('password').value;
-      const errBox = document.getElementById('errBox');
-      errBox.style.display = 'none';
-
-      try {
-        const res = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({ email, password })
+  async function apiLogin(payload){
+    // Try two common endpoints to stay compatible with your server
+    const endpoints = ['/api/login','/api/auth/login'];
+    let lastErr;
+    for (const url of endpoints){
+      try{
+        const res = await fetch(url, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify(payload)
         });
-
-        // Handle non-JSON or server error gracefully
-        const isJson = res.headers.get('content-type')?.includes('application/json');
-        if (!isJson) throw new Error('Unerwartete Antwort vom Server');
-
-        const data = await res.json();
-        if (!res.ok || data.ok === false) {
-          throw new Error(data.error || 'Login fehlgeschlagen');
+        if (!res.ok){
+          lastErr = await res.text();
+          continue;
         }
+        return await res.json(); // expected: { token, user:{name,role,...} }
+      }catch(e){ lastErr = e.message; }
+    }
+    throw new Error(lastErr || 'Login fehlgeschlagen');
+  }
 
-        // Save session locally
-        if (data.token) localStorage.setItem('bunca_token', data.token);
-        if (data.role)  localStorage.setItem('bunca_role',  data.role);
-        localStorage.setItem('bunca_email', email);
+  form.addEventListener('submit', async (e)=>{
+    e.preventDefault();
+    errorBox.style.display = 'none';
+    submitBtn.disabled = true;
 
-        // Go to dashboard
-        location.href = 'index.html';
-      } catch (err) {
-        errBox.textContent = err.message || 'Login fehlgeschlagen';
-        errBox.style.display = 'block';
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    if (!email || !password){
+      errorBox.textContent = 'Bitte E-Mail und Passwort eingeben.';
+      errorBox.style.display = 'block';
+      submitBtn.disabled = false;
+      return;
+    }
+
+    try{
+      const data = await apiLogin({ email, password });
+      // Expect token + optional user payload from server
+      if (!data || !data.token){
+        throw new Error('Unerwartete Server-Antwort.');
       }
-    });
+      localStorage.setItem('bunca_token', data.token);
+      if (data.user) localStorage.setItem('bunca_user', JSON.stringify(data.user));
+      // Persist longer if "remember" checked (extend by re-saving later in app if you want)
+      if (document.getElementById('remember').checked){
+        localStorage.setItem('bunca_remember', '1');
+      } else {
+        localStorage.removeItem('bunca_remember');
+      }
+      window.location.replace('index.html');
+    }catch(err){
+      errorBox.textContent = (''+err.message || 'Login fehlgeschlagen');
+      errorBox.style.display = 'block';
+    }finally{
+      submitBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('forgot').addEventListener('click', (e)=>{
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    alert('Bitte wende dich an die Verwaltung, um das Passwort zurückzusetzen.' + (email ? `\nE-Mail: ${email}` : ''));
+  });
   </script>
 </body>
 </html>
