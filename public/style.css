@@ -1,39 +1,26 @@
 :root{
-  --brand:#1f7a3f;
-  --brand-600:#176034;
-  --bg:#f4f6f8;
-  --ok:#198754;
-  --warn:#fd7e14;
-  --bad:#dc3545;
-  --muted:#6c757d;
-  --radius:14px;
+  --bunca-green:#1f7a3a;
+  --bunca-green-dark:#16602d;
 }
-*{accent-color:var(--brand)}
-body{background:var(--bg)}
-.brandbar{background:var(--brand)}
-.card-shadow{box-shadow:0 10px 24px rgba(0,0,0,.06); border-radius:var(--radius)}
-.login-card{max-width:480px}
-.metric{font-weight:700;font-size:28px}
-.smallmuted{color:var(--muted);font-size:.92rem}
-.sticky-actions{position:sticky;bottom:0;z-index:2;background:#fff;border-top:1px solid #e9ecef;border-bottom-left-radius:var(--radius);border-bottom-right-radius:var(--radius)}
-.rule-hint{font-size:.8rem;color:var(--muted)}
-.input-valid{border-color:var(--ok)!important; box-shadow:0 0 0 .2rem rgba(25,135,84,.15)!important}
-.input-warn{border-color:var(--warn)!important; box-shadow:0 0 0 .2rem rgba(253,126,20,.15)!important}
-.input-bad{ border-color:var(--bad)!important;  box-shadow:0 0 0 .2rem rgba(220,53,69,.15)!important}
-.progress.thin{height:.55rem;border-radius:999px}
-.badge-dot{display:inline-flex;align-items:center;gap:.4rem}
-.badge-dot::before{content:"";width:.55rem;height:.55rem;border-radius:50%}
-.badge-dot.ok::before{background:var(--ok)}
-.badge-dot.warn::before{background:var(--warn)}
-.badge-dot.bad::before{background:var(--bad)}
-.btn-brand{background:var(--brand);border-color:var(--brand)}
-.btn-brand:hover{background:var(--brand-600);border-color:var(--brand-600)}
-.rounded-xl{border-radius:var(--radius)}
-/* dark mode */
-:root.dark{
-  --bg:#0f1113; --muted:#9aa3ad;
+.navbar{
+  background: var(--bunca-green);
 }
-:root.dark body{background:var(--bg);color:#e9ecef}
-:root.dark .navbar{background:linear-gradient(0deg, var(--brand-600), var(--brand))}
-:root.dark .card{background:#14181c;color:#e9ecef;border-color:#1f2328}
-:root.dark .sticky-actions{background:#14181c;border-top-color:#1f2328}
+.navbar-brand, .nav-link, .navbar-text{
+  color:#fff !important;
+}
+.card{
+  border:0;
+  box-shadow: 0 10px 18px rgba(0,0,0,.06);
+  border-radius: 14px;
+}
+.btn-bunca{
+  background: var(--bunca-green);
+  color:#fff;
+  border:0;
+}
+.btn-bunca:hover{
+  background: var(--bunca-green-dark);
+  color:#fff;
+}
+.small-muted{ font-size:.9rem; color:#6c757d;}
+footer{ color:#8aa; font-size:.85rem; }
