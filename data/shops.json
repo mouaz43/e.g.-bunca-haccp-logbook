@@ -1,24 +1,11 @@
-[
-  {
-    "id": "bunca-city",
-    "name": "BUNCA · City",
-    "city": "",
-    "address": "",
-    "active": false,
-    "items": [],
-    "cleaningPlan": [
-      {
-        "id": "task_pb3xq7",
-        "name": "",
-        "freq": "daily",
-        "area": ""
-      },
-      {
-        "id": "task_u4dfgs",
-        "name": "",
-        "freq": "daily",
-        "area": ""
-      }
-    ]
-  }
-]
+{
+  "shops": [
+    {
+      "id": "shop_city",
+      "name": "BUNCA · City",
+      "city": "",
+      "address": "",
+      "active": true
+    }
+  ]
+}
