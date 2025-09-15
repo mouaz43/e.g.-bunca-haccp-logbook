@@ -5,325 +5,348 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BUNCA HACCP • Admin</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>body{background:#f4f6f8}.brandbar{background:#1f7a3f} .smallmuted{font-size:.9rem;color:#666}</style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="/style.css" rel="stylesheet">
 </head>
 <body>
 <nav class="navbar navbar-dark brandbar">
   <div class="container">
-    <a class="navbar-brand fw-bold" href="/index.html">BUNCA HACCP</a>
+    <a class="navbar-brand fw-bold" href="/index.html"><i class="bi bi-shield-check me-2"></i>BUNCA HACCP</a>
     <div class="ms-auto d-flex gap-2">
-      <a class="btn btn-outline-light btn-sm" href="/index.html">Übersicht</a>
+      <a class="btn btn-outline-light btn-sm" href="/index.html"><i class="bi bi-house"></i> Übersicht</a>
+      <button id="btnLogout" class="btn btn-light btn-sm">Abmelden</button>
     </div>
   </div>
 </nav>
 
 <main class="container my-4">
-  <h1 class="h4 mb-3">Adminbereich</h1>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Adminbereich</h1>
+    <button id="btnNewShop" class="btn btn-brand"><i class="bi bi-plus-lg"></i> Neuer Shop</button>
+  </div>
 
-  <ul class="nav nav-pills mb-3" id="tabs">
-    <li class="nav-item"><button class="nav-link active" data-tab="shops">Shops</button></li>
-    <li class="nav-item"><button class="nav-link" data-tab="users">Mitarbeiter</button></li>
-  </ul>
-
-  <!-- Shops -->
-  <section id="tab-shops">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h2 class="h6 mb-0">Shops</h2>
-      <button id="btnNewShop" class="btn btn-success btn-sm">Neuer Shop</button>
+  <div class="card card-shadow">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0" id="shopsTable">
+        <thead class="table-light"><tr>
+          <th>Name</th><th>Stadt</th><th>Adresse</th><th>Aktiv</th><th class="text-end">Aktion</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
     </div>
-    <div class="card">
-      <div class="table-responsive">
-        <table class="table align-middle mb-0" id="shopsTable">
-          <thead class="table-light"><tr>
-            <th>Name</th><th>Stadt</th><th>Adresse</th><th>Aktiv</th><th class="text-end">Aktion</th>
-          </tr></thead><tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- Users -->
-  <section id="tab-users" class="d-none">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h2 class="h6 mb-0">Mitarbeiter</h2>
-      <button id="btnNewUser" class="btn btn-success btn-sm">Mitarbeiter hinzufügen</button>
-    </div>
-    <div class="card">
-      <div class="table-responsive">
-        <table class="table align-middle mb-0" id="usersTable">
-          <thead class="table-light"><tr>
-            <th>Name</th><th>E-Mail</th><th>Rolle</th><th>Shops</th><th class="text-end">Aktion</th>
-          </tr></thead><tbody></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
+  </div>
 </main>
 
-<!-- modal -->
-<div class="modal fade" id="modalBox" tabindex="-1">
-  <div class="modal-dialog modal-lg"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title" id="modalTitle"></h5>
-      <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body" id="modalBody"></div>
-    <div class="modal-footer">
-      <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
-      <button id="modalSave" class="btn btn-success">Speichern</button>
+<!-- Modal -->
+<div class="modal fade" id="shopModal" tabindex="-1">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shopModalTitle">Shop bearbeiten</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Schließen"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="shopForm" class="needs-validation" novalidate>
+          <input type="hidden" id="shopId">
+
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">Name</label>
+              <input id="shopName" class="form-control" required>
+              <div class="invalid-feedback">Name erforderlich.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Stadt</label>
+              <input id="shopCity" class="form-control">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Adresse</label>
+              <input id="shopAddress" class="form-control">
+            </div>
+            <div class="col-12">
+              <div class="form-check mt-1">
+                <input class="form-check-input" type="checkbox" id="shopActive">
+                <label class="form-check-label" for="shopActive">Aktiv</label>
+              </div>
+            </div>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-2">Checkliste (Items)</h6>
+            <button id="btnAddItem" type="button" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus-lg"></i> Item</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle" id="itemsTable">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:170px">ID</th>
+                  <th>Label</th>
+                  <th style="width:150px">Typ</th>
+                  <th style="width:110px">Einheit</th>
+                  <th style="width:130px">Regel</th>
+                  <th style="width:110px">Min</th>
+                  <th style="width:110px">Max</th>
+                  <th class="text-end" style="width:70px">—</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-2">Cleaning Plan</h6>
+            <button id="btnAddTask" type="button" class="btn btn-sm btn-outline-secondary"><i class="bi bi-plus-lg"></i> Aufgabe</button>
+          </div>
+          <div class="table-responsive">
+            <table class="table align-middle" id="tasksTable">
+              <thead class="table-light">
+                <tr>
+                  <th style="width:170px">ID</th>
+                  <th>Aufgabe</th>
+                  <th style="width:160px">Frequenz</th>
+                  <th style="width:200px">Bereich</th>
+                  <th class="text-end" style="width:70px">—</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button id="btnSaveShop" type="button" class="btn btn-brand"><i class="bi bi-save"></i> Speichern</button>
+      </div>
     </div>
-  </div></div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  const token = localStorage.getItem('token');
-  const role  = localStorage.getItem('role');
-  if (!token || role !== 'admin') { alert('Nur für Admins.'); location.href = '/index.html'; }
+/* ========= helpers ========= */
+const $ = s => document.querySelector(s);
+const rnd = (p='id') => p + '_' + Math.random().toString(36).slice(2,8);
 
-  async function authFetch(url, opts={}) {
-    const h = opts.headers || {};
-    h['Authorization'] = 'Bearer ' + token;
-    if (!h['Content-Type'] && opts.method && opts.method !== 'GET') h['Content-Type'] = 'application/json';
-    const r = await fetch(url, { ...opts, headers: h });
-    if (r.status === 401 || r.status === 403) { alert('Zugriff verweigert'); location.href='/index.html'; }
-    return r;
-  }
+function authHeaders(){
+  const t = localStorage.getItem('token');
+  if(!t){ alert('Bitte neu anmelden'); location.href='/index.html'; return; }
+  return { 'Authorization':'Bearer '+t, 'Content-Type':'application/json' };
+}
+async function authFetch(url, opts={}){
+  const headers = { ...(opts.headers||{}), ...authHeaders() };
+  const r = await fetch(url, { ...opts, headers });
+  if(r.status===401){ alert('Sitzung abgelaufen. Bitte anmelden.'); location.href='/index.html'; }
+  return r;
+}
 
-  // tabs
-  document.querySelectorAll('#tabs .nav-link').forEach(btn=>{
-    btn.onclick=()=>{
-      document.querySelectorAll('#tabs .nav-link').forEach(b=>b.classList.remove('active'));
-      btn.classList.add('active');
-      document.getElementById('tab-shops').classList.toggle('d-none', btn.dataset.tab!=='shops');
-      document.getElementById('tab-users').classList.toggle('d-none', btn.dataset.tab!=='users');
-    };
+/* ========= state ========= */
+let SHOPS = [];         // full shop objects for editing
+let editingShop = null; // object or null
+const shopModal = new bootstrap.Modal('#shopModal');
+
+/* ========= load & render ========= */
+async function loadShops(){
+  // Admin endpoint returns full objects incl. items & cleaningPlan
+  const r = await authFetch('/api/admin/shops');
+  const data = await r.json();
+  if(!r.ok){ alert(data.error || 'Fehler beim Laden der Shops'); return; }
+  SHOPS = data;
+  renderList();
+}
+
+function renderList(){
+  const tbody = $('#shopsTable tbody');
+  tbody.innerHTML = SHOPS.map(s=>`
+    <tr>
+      <td class="fw-semibold">${s.name||'-'}</td>
+      <td>${s.city||'-'}</td>
+      <td>${s.address||'-'}</td>
+      <td>${s.active?'<span class="badge text-bg-success">aktiv</span>':'<span class="badge text-bg-secondary">inaktiv</span>'}</td>
+      <td class="text-end">
+        <div class="btn-group">
+          <button class="btn btn-sm btn-outline-secondary" data-edit="${s.id}"><i class="bi bi-pencil-square"></i></button>
+          <button class="btn btn-sm btn-outline-danger" data-del="${s.id}"><i class="bi bi-trash"></i></button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+
+  tbody.querySelectorAll('[data-edit]').forEach(b=>{
+    b.onclick = () => openEdit(b.dataset.edit);
   });
+  tbody.querySelectorAll('[data-del]').forEach(b=>{
+    b.onclick = () => delShop(b.dataset.del);
+  });
+}
 
-  // ----- shops -----
-  const shopsBody = document.querySelector('#shopsTable tbody');
-  let _shops = [];
-  async function loadShops(){
-    const r = await authFetch('/api/admin/shops'); _shops = await r.json();
-    shopsBody.innerHTML = _shops.map(s=>`
-      <tr>
-        <td>${s.name}</td><td>${s.city||''}</td><td>${s.address||''}</td>
-        <td>${s.isActive?'<span class="badge text-bg-success">aktiv</span>':'<span class="badge text-bg-secondary">inaktiv</span>'}</td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-outline-primary" data-edit="${s.id}">Bearbeiten</button>
-          <button class="btn btn-sm btn-outline-danger ms-2" data-del="${s.id}">Löschen</button>
-        </td>
-      </tr>`).join('');
-    shopsBody.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editShop(b.dataset.edit));
-    shopsBody.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delShop(b.dataset.del));
-  }
-  document.getElementById('btnNewShop').onclick = ()=>editShop(null);
+/* ========= modal edit/new ========= */
+function emptyShop(){
+  return {
+    id: rnd('shop'),
+    name: '',
+    city: '',
+    address: '',
+    active: true,
+    items: [],
+    cleaningPlan: []
+  };
+}
 
-  function itemRow(i, idx){
-    const ruleOpts = `
-      <option value="range" ${i.rule==='range'?'selected':''}>0–X</option>
-      <option value="max" ${i.rule==='max'?'selected':''}>≤ max</option>
-      <option value="min" ${i.rule==='min'?'selected':''}>≥ min</option>`;
-    return `<tr data-idx="${idx}">
-      <td><input class="form-control form-control-sm it-id" value="${i.id||''}"></td>
-      <td><input class="form-control form-control-sm it-label" value="${i.label||''}"></td>
-      <td>
-        <select class="form-select form-select-sm it-type">
-          <option value="number" ${i.type==='number'?'selected':''}>Zahl</option>
-          <option value="boolean" ${i.type==='boolean'?'selected':''}>Ja/Nein</option>
-        </select>
-      </td>
-      <td><input class="form-control form-control-sm it-unit" value="${i.unit||''}" placeholder="°C"></td>
-      <td><select class="form-select form-select-sm it-rule">${ruleOpts}</select></td>
-      <td><input class="form-control form-control-sm it-min" type="number" value="${i.min??''}"></td>
-      <td><input class="form-control form-control-sm it-max" type="number" value="${i.max??''}"></td>
-      <td><button class="btn btn-sm btn-outline-danger it-del">×</button></td>
-    </tr>`;
-  }
-  function taskRow(t, idx){
-    return `<tr data-idx="${idx}">
-      <td><input class="form-control form-control-sm tk-id" value="${t.id||''}"></td>
-      <td><input class="form-control form-control-sm tk-name" value="${t.name||''}"></td>
-      <td>
-        <select class="form-select form-select-sm tk-freq">
-          <option value="daily" ${t.freq==='daily'?'selected':''}>täglich</option>
-          <option value="weekly" ${t.freq==='weekly'?'selected':''}>wöchentlich</option>
-          <option value="monthly" ${t.freq==='monthly'?'selected':''}>monatlich</option>
-        </select>
-      </td>
-      <td><input class="form-control form-control-sm tk-area" value="${t.area||''}"></td>
-      <td><button class="btn btn-sm btn-outline-danger tk-del">×</button></td>
-    </tr>`;
-  }
+function openEdit(id){
+  editingShop = id ? SHOPS.find(s=>s.id===id) : emptyShop();
 
-  function shopForm(s){
-    const items = (s.checkItems||[]).map((i,k)=>itemRow(i,k)).join('');
-    const tasks = (s.cleaningPlan||[]).map((t,k)=>taskRow(t,k)).join('');
-    return `
-    <div class="row g-2">
-      <div class="col-6"><label class="form-label">Name</label><input id="s-name" class="form-control" value="${s.name||''}"></div>
-      <div class="col-3"><label class="form-label">Stadt</label><input id="s-city" class="form-control" value="${s.city||''}"></div>
-      <div class="col-3"><label class="form-label">Adresse</label><input id="s-address" class="form-control" value="${s.address||''}"></div>
-      <div class="col-12 form-check mt-2 ms-2"><input id="s-active" class="form-check-input" type="checkbox" ${s.isActive!==false?'checked':''}><label class="form-check-label">Aktiv</label></div>
-      <div class="col-12"><hr></div>
-      <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-0">Checkliste (Items)</h6>
-          <button id="it-add" class="btn btn-sm btn-outline-primary">+ Item</button>
-        </div>
-        <div class="smallmuted mb-2">Zahl mit Grenzwerten oder Ja/Nein. Passe Einheiten/Grenzen an.</div>
-        <div class="table-responsive"><table class="table table-sm align-middle" id="itemsTbl">
-          <thead class="table-light"><tr><th>ID</th><th>Label</th><th>Typ</th><th>Einheit</th><th>Regel</th><th>Min</th><th>Max</th><th></th></tr></thead>
-          <tbody>${items}</tbody></table></div>
-      </div>
-      <div class="col-12"><hr></div>
-      <div class="col-12">
-        <div class="d-flex justify-content-between align-items-center">
-          <h6 class="mb-0">Cleaning Plan</h6>
-          <button id="tk-add" class="btn btn-sm btn-outline-primary">+ Aufgabe</button>
-        </div>
-        <div class="table-responsive"><table class="table table-sm align-middle" id="tasksTbl">
-          <thead class="table-light"><tr><th>ID</th><th>Aufgabe</th><th>Frequenz</th><th>Bereich</th><th></th></tr></thead>
-          <tbody>${tasks}</tbody></table></div>
-      </div>
-    </div>`;
-  }
+  $('#shopModalTitle').textContent = id ? 'Shop bearbeiten' : 'Neuer Shop';
+  $('#shopId').value = editingShop.id;
+  $('#shopName').value = editingShop.name || '';
+  $('#shopCity').value = editingShop.city || '';
+  $('#shopAddress').value = editingShop.address || '';
+  $('#shopActive').checked = !!editingShop.active;
 
-  function collectShopForm(){
-    const items = Array.from(document.querySelectorAll('#itemsTbl tbody tr')).map(tr=>({
-      id: tr.querySelector('.it-id').value.trim(),
-      label: tr.querySelector('.it-label').value.trim(),
-      type: tr.querySelector('.it-type').value,
-      unit: tr.querySelector('.it-unit').value.trim(),
-      rule: tr.querySelector('.it-rule').value,
-      min: tr.querySelector('.it-min').value===''?undefined:Number(tr.querySelector('.it-min').value),
-      max: tr.querySelector('.it-max').value===''?undefined:Number(tr.querySelector('.it-max').value)
-    })).filter(x=>x.id && x.label);
-    const tasks = Array.from(document.querySelectorAll('#tasksTbl tbody tr')).map(tr=>({
-      id: tr.querySelector('.tk-id').value.trim(),
-      name: tr.querySelector('.tk-name').value.trim(),
-      freq: tr.querySelector('.tk-freq').value,
-      area: tr.querySelector('.tk-area').value.trim()
-    })).filter(x=>x.id && x.name);
-    return {
-      name: document.getElementById('s-name').value.trim(),
-      city: document.getElementById('s-city').value.trim(),
-      address: document.getElementById('s-address').value.trim(),
-      isActive: document.getElementById('s-active').checked,
-      checkItems: items,
-      cleaningPlan: tasks
-    };
-  }
+  // items
+  const itBody = $('#itemsTable tbody');
+  itBody.innerHTML = '';
+  (editingShop.items||[]).forEach(addItemRow);
+  if(!editingShop.items || editingShop.items.length===0) addItemRow();
 
-  function wireShopEditor(){
-    document.getElementById('it-add').onclick = ()=>{
-      const tb = document.querySelector('#itemsTbl tbody');
-      tb.insertAdjacentHTML('beforeend', `<?xml version="1.0"?><tr>${itemRow({id:'item_'+Date.now().toString(36), label:'Neues Item', type:'number', unit:'°C', rule:'range', min:0, max:10},0)}</tr>`.replace(/<\?xml.*?\?>/,''));
-      tb.querySelectorAll('.it-del').forEach(b=>b.onclick=()=>b.closest('tr').remove());
-    };
-    document.querySelectorAll('.it-del').forEach(b=>b.onclick=()=>b.closest('tr').remove());
+  // tasks
+  const tkBody = $('#tasksTable tbody');
+  tkBody.innerHTML = '';
+  (editingShop.cleaningPlan||[]).forEach(addTaskRow);
+  if(!editingShop.cleaningPlan || editingShop.cleaningPlan.length===0) addTaskRow();
 
-    document.getElementById('tk-add').onclick = ()=>{
-      const tb = document.querySelector('#tasksTbl tbody');
-      tb.insertAdjacentHTML('beforeend', `<?xml version="1.0"?><tr>${taskRow({id:'task_'+Date.now().toString(36), name:'Neue Aufgabe', freq:'daily', area:''},0)}</tr>`.replace(/<\?xml.*?\?>/,''));
-      tb.querySelectorAll('.tk-del').forEach(b=>b.onclick=()=>b.closest('tr').remove());
-    };
-    document.querySelectorAll('.tk-del').forEach(b=>b.onclick=()=>b.closest('tr').remove());
-  }
+  shopModal.show();
+}
 
-  async function editShop(id){
-    const s = id ? _shops.find(x=>x.id===id) : { isActive: true, checkItems: [], cleaningPlan: [] };
-    const modal = new bootstrap.Modal('#modalBox');
-    document.getElementById('modalTitle').textContent = id ? 'Shop bearbeiten' : 'Neuer Shop';
-    document.getElementById('modalBody').innerHTML = shopForm(s);
-    wireShopEditor();
-    document.getElementById('modalSave').onclick = async ()=>{
-      const body = collectShopForm();
-      const url = id ? '/api/admin/shops/'+id : '/api/admin/shops';
-      const method = id ? 'PUT' : 'POST';
-      await authFetch(url, { method, body: JSON.stringify(body) });
-      modal.hide(); loadShops();
-    };
-    modal.show();
-  }
-  async function delShop(id){
-    if (!confirm('Diesen Shop löschen?')) return;
-    await authFetch('/api/admin/shops/'+id, { method:'DELETE' });
-    loadShops();
-  }
+function addItemRow(item){
+  const row = document.createElement('tr');
+  const it = item || { id: rnd('item'), label:'', type:'number', unit:'°C', rule:'range', min:0, max:10 };
+  row.innerHTML = `
+    <td><input class="form-control form-control-sm" data-field="id" value="${it.id}"></td>
+    <td><input class="form-control form-control-sm" data-field="label" value="${it.label||''}" placeholder="Bezeichnung"></td>
+    <td>
+      <select class="form-select form-select-sm" data-field="type">
+        <option value="number" ${it.type==='number'?'selected':''}>Zahl</option>
+        <option value="boolean" ${it.type==='boolean'?'selected':''}>Ja/Nein</option>
+      </select>
+    </td>
+    <td><input class="form-control form-control-sm" data-field="unit" value="${it.unit||''}" placeholder="z. B. °C"></td>
+    <td>
+      <select class="form-select form-select-sm" data-field="rule">
+        <option value="range" ${it.rule==='range'?'selected':''}>↔︎ Bereich</option>
+        <option value="max" ${it.rule==='max'?'selected':''}>≤ Max</option>
+        <option value="min" ${it.rule==='min'?'selected':''}>≥ Min</option>
+      </select>
+    </td>
+    <td><input type="number" step="0.1" class="form-control form-control-sm" data-field="min" value="${it.min ?? ''}"></td>
+    <td><input type="number" step="0.1" class="form-control form-control-sm" data-field="max" value="${it.max ?? ''}"></td>
+    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row><i class="bi bi-x"></i></button></td>
+  `;
+  row.querySelector('[data-remove-row]').onclick = () => row.remove();
+  // Disable unit/rule/min/max when boolean
+  const typeSel = row.querySelector('[data-field="type"]');
+  const toggleForType = () => {
+    const on = typeSel.value==='number';
+    row.querySelector('[data-field="unit"]').disabled = !on;
+    row.querySelector('[data-field="rule"]').disabled = !on;
+    row.querySelector('[data-field="min"]').disabled  = !on;
+    row.querySelector('[data-field="max"]').disabled  = !on;
+  };
+  typeSel.onchange = toggleForType; toggleForType();
+  $('#itemsTable tbody').appendChild(row);
+}
 
-  // ----- users -----
-  const usersBody = document.querySelector('#usersTable tbody');
-  document.getElementById('btnNewUser').onclick = ()=>editUser(null);
-  async function loadUsers(){
-    const [shopsRes, usersRes] = await Promise.all([authFetch('/api/admin/shops'), authFetch('/api/admin/users')]);
-    const shops = await shopsRes.json(); const users = await usersRes.json();
-    usersBody.innerHTML = users.map(u=>`
-      <tr>
-        <td>${u.name||''}</td>
-        <td>${u.email}</td>
-        <td><span class="badge text-bg-info">${u.role}</span></td>
-        <td>${(u.shops||[]).map(id => shops.find(s=>s.id===id)?.name || id).join(', ')}</td>
-        <td class="text-end">
-          <button class="btn btn-sm btn-outline-primary" data-edit="${u.id}">Bearbeiten</button>
-          <button class="btn btn-sm btn-outline-warning ms-2" data-reset="${u.id}">Passwort reset</button>
-          <button class="btn btn-sm btn-outline-danger ms-2" data-del="${u.id}">Löschen</button>
-        </td>
-      </tr>`).join('');
-    usersBody.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editUser(b.dataset.edit));
-    usersBody.querySelectorAll('[data-reset]').forEach(b=>b.onclick=()=>resetPass(b.dataset.reset));
-    usersBody.querySelectorAll('[data-del]').forEach(b=>b.onclick=()=>delUser(b.dataset.del));
-    window._shopsCache = shops;
-  }
-  function userForm(u={}){
-    const shops = window._shopsCache||[];
-    const options = shops.map(s=>`<option value="${s.id}" ${u.shops&&u.shops.includes(s.id)?'selected':''}>${s.name}</option>`).join('');
-    return `
-      <div class="mb-2"><label class="form-label">Name</label><input id="u-name" class="form-control" value="${u.name||''}"></div>
-      <div class="mb-2"><label class="form-label">E-Mail</label><input id="u-email" class="form-control" value="${u.email||''}"></div>
-      <div class="mb-2"><label class="form-label">Rolle</label>
-        <select id="u-role" class="form-select">
-          <option value="staff" ${u.role==='staff'?'selected':''}>Mitarbeiter</option>
-          <option value="manager" ${u.role==='manager'?'selected':''}>Shop-Manager</option>
-          <option value="admin" ${u.role==='admin'?'selected':''}>Admin</option>
-        </select>
-      </div>
-      <div class="mb-2"><label class="form-label">Shops</label>
-        <select id="u-shops" class="form-select" multiple>${options}</select>
-      </div>
-      <div class="mb-2"><label class="form-label">Temp-Passwort (nur beim Anlegen)</label><input id="u-pass" class="form-control" placeholder="z. B. Bunca2025!"></div>`;
-  }
-  async function editUser(id){
-    const r = await authFetch('/api/admin/users'); const users = await r.json();
-    const u = id ? users.find(x=>x.id===id) : {};
-    const modal = new bootstrap.Modal('#modalBox');
-    document.getElementById('modalTitle').textContent = id ? 'Mitarbeiter bearbeiten' : 'Mitarbeiter hinzufügen';
-    document.getElementById('modalBody').innerHTML = userForm(u);
-    document.getElementById('modalSave').onclick = async ()=>{
-      const body = {
-        name: document.getElementById('u-name').value.trim(),
-        email: document.getElementById('u-email').value.trim(),
-        role: document.getElementById('u-role').value,
-        shops: Array.from(document.getElementById('u-shops').selectedOptions).map(o=>o.value)
-      };
-      if (!id) body.tempPassword = document.getElementById('u-pass').value.trim();
-      const url = id ? '/api/admin/users/'+id : '/api/admin/users';
-      const method = id ? 'PUT' : 'POST';
-      await authFetch(url, { method, body: JSON.stringify(body) });
-      modal.hide(); loadUsers();
-    };
-    modal.show();
-  }
-  async function resetPass(id){
-    const temp = prompt('Neues temporäres Passwort:'); if (!temp) return;
-    await authFetch('/api/admin/users/'+id+'/reset-password', { method:'POST', body: JSON.stringify({ tempPassword: temp }) });
-    alert('Passwort gesetzt.');
-  }
-  async function delUser(id){
-    if (!confirm('Diesen Benutzer löschen?')) return;
-    await authFetch('/api/admin/users/'+id, { method:'DELETE' }); loadUsers();
-  }
+function addTaskRow(task){
+  const row = document.createElement('tr');
+  const t = task || { id: rnd('task'), name:'', freq:'daily', area:'' };
+  row.innerHTML = `
+    <td><input class="form-control form-control-sm" data-field="id" value="${t.id}"></td>
+    <td><input class="form-control form-control-sm" data-field="name" value="${t.name||''}" placeholder="Aufgabe"></td>
+    <td>
+      <select class="form-select form-select-sm" data-field="freq">
+        <option value="daily" ${t.freq==='daily'?'selected':''}>täglich</option>
+        <option value="weekly" ${t.freq==='weekly'?'selected':''}>wöchentlich</option>
+        <option value="monthly" ${t.freq==='monthly'?'selected':''}>monatlich</option>
+      </select>
+    </td>
+    <td><input class="form-control form-control-sm" data-field="area" value="${t.area||''}" placeholder="Bereich (z. B. Küche)"></td>
+    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger" data-remove-row><i class="bi bi-x"></i></button></td>
+  `;
+  row.querySelector('[data-remove-row]').onclick = () => row.remove();
+  $('#tasksTable tbody').appendChild(row);
+}
 
-  // boot
-  (async function(){ await loadShops(); await loadUsers(); })();
+function collectRows(tbodySel){
+  const rows = Array.from(document.querySelectorAll(`${tbodySel} tr`));
+  return rows.map(tr=>{
+    const obj = {};
+    tr.querySelectorAll('[data-field]').forEach(inp=>{
+      let val = inp.value;
+      const name = inp.getAttribute('data-field');
+      if (name==='min' || name==='max') val = (val===''? null : Number(val));
+      obj[name] = val;
+    });
+    return obj;
+  }).filter(x => (x.id && x.label!=='' ) || (tbodySel==='#tasksTable tbody' && x.id && x.name!==''));
+}
+
+/* ========= actions ========= */
+$('#btnNewShop').onclick = () => openEdit(null);
+$('#btnAddItem').onclick = () => addItemRow();
+$('#btnAddTask').onclick = () => addTaskRow();
+
+$('#btnSaveShop').onclick = async () => {
+  // Validate basic fields
+  const form = $('#shopForm');
+  if(!form.checkValidity()){ form.classList.add('was-validated'); return; }
+
+  const payload = {
+    id: $('#shopId').value || rnd('shop'),
+    name: $('#shopName').value.trim(),
+    city: $('#shopCity').value.trim(),
+    address: $('#shopAddress').value.trim(),
+    active: $('#shopActive').checked,
+    items: collectRows('#itemsTable tbody').map(i=>{
+      if(i.type==='boolean'){ i.unit=''; i.rule=''; i.min=null; i.max=null; }
+      else { if(!i.rule) i.rule='range'; }
+      return i;
+    }),
+    cleaningPlan: collectRows('#tasksTable tbody')
+  };
+
+  const isEdit = SHOPS.some(s=>s.id===payload.id);
+  const url = isEdit ? `/api/admin/shops/${encodeURIComponent(payload.id)}` : '/api/admin/shops';
+  const method = isEdit ? 'PUT' : 'POST';
+
+  const r = await authFetch(url, { method, body: JSON.stringify(payload) });
+  const data = await r.json();
+  if(!r.ok){ alert(data.error || 'Speichern fehlgeschlagen'); return; }
+
+  await loadShops();
+  shopModal.hide();
+};
+
+async function delShop(id){
+  if(!confirm('Diesen Shop wirklich löschen?')) return;
+  const r = await authFetch(`/api/admin/shops/${encodeURIComponent(id)}`, { method:'DELETE' });
+  if(!r.ok){ const x = await r.json(); alert(x.error||'Löschen fehlgeschlagen'); return; }
+  await loadShops();
+}
+
+/* ========= boot ========= */
+$('#btnLogout').onclick = () => { localStorage.removeItem('token'); localStorage.removeItem('role'); location.href='/index.html'; };
+
+(async function(){
+  const role = localStorage.getItem('role');
+  if(role!=='admin'){ alert('Nur für Admins.'); location.href='/index.html'; return; }
+  await loadShops();
+})();
 </script>
 </body>
 </html>
