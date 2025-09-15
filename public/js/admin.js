@@ -1,144 +1,230 @@
-(async function(){
-  const user = await me();
-  if (!user || user.role !== 'admin') { location.href = 'index.html'; return; }
+// public/js/admin.js
+(async function () {
+  const $ = (s, r=document) => r.querySelector(s);
+  const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
-  const shopsTable = document.getElementById('shopsTable');
-  const newShopBtn = document.getElementById('newShopBtn');
-  const logoutBtn = document.getElementById('logoutBtn');
+  try { await API.me(); } catch { location.href = '/'; return; }
 
-  logoutBtn.onclick = async ()=> { await logout(); location.href='index.html'; };
-
-  const modalEl = document.getElementById('shopModal');
-  const shopModal = new bootstrap.Modal(modalEl);
-
-  let editing = null; // shop object while editing
-
-  function row(shop){
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${shop.name}</td><td>${shop.city||'-'}</td><td>${shop.address||'-'}</td>
-      <td><span class="badge ${shop.active?'bg-success':'bg-secondary'}">${shop.active?'aktiv':'inaktiv'}</span></td>
-      <td class="text-nowrap">
-        <button class="btn btn-sm btn-outline-secondary me-2 edit">Bearbeiten</button>
-        <button class="btn btn-sm btn-outline-danger del">Löschen</button>
-      </td>`;
-    tr.querySelector('.edit').onclick = () => openEditor(shop);
-    tr.querySelector('.del').onclick = async () => {
-      if (!confirm('Diesen Shop löschen?')) return;
-      await api(`/api/shops/${shop.id}`, { method:'DELETE' });
-      load();
-    };
-    return tr;
-  }
-
-  function itemRow(it){
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><input class="form-control form-control-sm label" value="${it.label||''}"></td>
-      <td>
-        <select class="form-select form-select-sm type">
-          <option value="number" ${it.type==='number'?'selected':''}>Zahl</option>
-          <option value="boolean" ${it.type==='boolean'?'selected':''}>Ja/Nein</option>
-        </select>
-      </td>
-      <td><input class="form-control form-control-sm unit" value="${it.unit||''}"></td>
-      <td>
-        <select class="form-select form-select-sm rule">
-          <option value="range" ${it.rule==='range'?'selected':''}>↔ Bereich</option>
-          <option value="min" ${it.rule==='min'?'selected':''}>≥ Min</option>
-          <option value="max" ${it.rule==='max'?'selected':''}>≤ Max</option>
-        </select>
-      </td>
-      <td><input type="number" class="form-control form-control-sm min" value="${it.min ?? ''}"></td>
-      <td><input type="number" class="form-control form-control-sm max" value="${it.max ?? ''}"></td>
-      <td><button class="btn btn-sm btn-outline-danger x">x</button></td>
+  // root container
+  let root = $('#adminApp');
+  if (!root) {
+    root = document.createElement('div');
+    root.id = 'adminApp';
+    root.style.maxWidth = '1000px';
+    root.style.margin = '24px auto';
+    root.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <h2>Adminbereich</h2>
+        <button id="btnNewShop">+ Neuer Shop</button>
+      </div>
+      <table style="width:100%;border-collapse:collapse" id="shopsTable">
+        <thead>
+          <tr>
+            <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px">Name</th>
+            <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px">Stadt</th>
+            <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px">Adresse</th>
+            <th style="text-align:left;border-bottom:1px solid #ddd;padding:8px">Aktiv</th>
+            <th style="text-align:right;border-bottom:1px solid #ddd;padding:8px">Aktion</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     `;
-    tr.querySelector('.x').onclick = () => tr.remove();
-    return tr;
+    (document.querySelector('main') || document.body).appendChild(root);
   }
-  function taskRow(t){
+
+  const tbody = $('#shopsTable tbody');
+
+  function row(shop) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input class="form-control form-control-sm task" value="${t.task||''}"></td>
-      <td>
-        <select class="form-select form-select-sm freq">
-          <option>täglich</option><option>woechentlich</option><option>monatlich</option>
-        </select>
-      </td>
-      <td><input class="form-control form-control-sm area" value="${t.area||''}" placeholder="Bereich (z. B. Küche)"></td>
-      <td><button class="btn btn-sm btn-outline-danger x">x</button></td>`;
-    tr.querySelector('.freq').value = t.freq || 'täglich';
-    tr.querySelector('.x').onclick = () => tr.remove();
+      <td style="padding:8px;border-bottom:1px solid #f1f1f1">${shop.name || shop.id}</td>
+      <td style="padding:8px;border-bottom:1px solid #f1f1f1">${shop.city || '—'}</td>
+      <td style="padding:8px;border-bottom:1px solid #f1f1f1">${shop.address || '—'}</td>
+      <td style="padding:8px;border-bottom:1px solid #f1f1f1">${shop.active ? 'aktiv' : 'inaktiv'}</td>
+      <td style="padding:8px;border-bottom:1px solid #f1f1f1;text-align:right">
+        <button data-act="edit" data-id="${shop.id}">Bearbeiten</button>
+        <button data-act="del" data-id="${shop.id}" style="margin-left:6px">Löschen</button>
+      </td>`;
     return tr;
   }
 
-  function openEditor(shop){
-    editing = shop || { name:'', city:'', address:'', active:true, items:[], cleaning:[] };
-    document.getElementById('m_name').value = editing.name || '';
-    document.getElementById('m_city').value = editing.city || '';
-    document.getElementById('m_addr').value = editing.address || '';
-    document.getElementById('m_active').checked = !!editing.active;
-
-    const itemsBody = document.getElementById('m_items'); itemsBody.innerHTML='';
-    (editing.items || []).forEach(it => itemsBody.appendChild(itemRow(it)));
-    const cleanBody = document.getElementById('m_clean'); cleanBody.innerHTML='';
-    (editing.cleaning || []).forEach(t => cleanBody.appendChild(taskRow(t)));
-
-    document.getElementById('addItem').onclick = ()=> itemsBody.appendChild(itemRow({ type:'number', rule:'range' }));
-    document.getElementById('addTask').onclick = ()=> cleanBody.appendChild(taskRow({ freq:'täglich' }));
-
-    document.getElementById('saveShop').onclick = saveEditor;
-
-    shopModal.show();
+  async function refresh() {
+    const shops = await API.listShops();
+    tbody.innerHTML = '';
+    shops.forEach(s => tbody.appendChild(row(s)));
   }
 
-  async function saveEditor(){
-    const payload = {
-      name: document.getElementById('m_name').value,
-      city: document.getElementById('m_city').value,
-      address: document.getElementById('m_addr').value,
-      active: document.getElementById('m_active').checked,
-      items: [],
-      cleaning: []
-    };
-    // collect items
-    document.querySelectorAll('#m_items tr').forEach(tr=>{
-      payload.items.push({
-        id: cryptoId(),
-        label: tr.querySelector('.label').value,
-        type: tr.querySelector('.type').value,
-        unit: tr.querySelector('.unit').value,
-        rule: tr.querySelector('.rule').value,
-        min: tr.querySelector('.min').value === '' ? null : Number(tr.querySelector('.min').value),
-        max: tr.querySelector('.max').value === '' ? null : Number(tr.querySelector('.max').value),
-      });
-    });
-    // collect cleaning tasks
-    document.querySelectorAll('#m_clean tr').forEach(tr=>{
-      payload.cleaning.push({
-        id: cryptoId(),
-        task: tr.querySelector('.task').value,
-        freq: tr.querySelector('.freq').value,
-        area: tr.querySelector('.area').value
-      });
-    });
+  // ------- Editor Modal -------
+  function openEditor(existing) {
+    const modal = document.createElement('div');
+    modal.style.position='fixed'; modal.style.inset='0'; modal.style.background='rgba(0,0,0,.3)';
+    modal.style.display='grid'; modal.style.placeItems='center'; modal.style.zIndex='9999';
 
-    if (editing.id) {
-      await api(`/api/shops/${editing.id}`, { method:'PUT', body: payload });
-    } else {
-      await api('/api/shops', { method:'POST', body: payload });
+    const data = existing || { id:'', name:'', city:'', address:'', active:true };
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:12px;max-width:920px;width:92vw;padding:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3>${existing ? 'Shop bearbeiten' : 'Neuer Shop'}</h3>
+          <button id="xClose">✕</button>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+          <input id="fName" placeholder="Name" value="${data.name || ''}">
+          <input id="fCity" placeholder="Stadt" value="${data.city || ''}">
+          <input id="fAddr" placeholder="Adresse" value="${data.address || ''}">
+        </div>
+        <label style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <input type="checkbox" id="fActive" ${data.active ? 'checked' : ''}> Aktiv
+        </label>
+
+        <h4 style="margin:8px 0">Checkliste (Items)</h4>
+        <table style="width:100%;border-collapse:collapse" id="itemsTbl">
+          <thead><tr>
+            <th>Label</th><th>Typ</th><th>Einheit</th><th>Regel</th><th>Min</th><th>Max</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+        <button id="addItem" style="margin:8px 0">+ Item</button>
+
+        <h4 style="margin:12px 0 8px">Cleaning Plan</h4>
+        <table style="width:100%;border-collapse:collapse" id="cleanTbl">
+          <thead><tr>
+            <th>Aufgabe</th><th>Frequenz</th><th>Bereich</th><th></th>
+          </tr></thead>
+          <tbody></tbody>
+        </table>
+        <button id="addTask" style="margin:8px 0">+ Aufgabe</button>
+
+        <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+          <button id="btnSaveShop" style="background:#16a34a;color:#fff;border:0;border-radius:6px;padding:8px 14px">Speichern</button>
+        </div>
+      </div>`;
+
+    function addItemRow(it = { label:'', type:'number', unit:'°C', rule:'range', min:0, max:7, id: crypto.randomUUID().slice(0,8) }) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input data-k="label" value="${it.label}"></td>
+        <td>
+          <select data-k="type">
+            <option value="number" ${it.type==='number'?'selected':''}>Zahl</option>
+            <option value="boolean" ${it.type==='boolean'?'selected':''}>Ja/Nein</option>
+          </select>
+        </td>
+        <td><input data-k="unit" value="${it.unit||''}"></td>
+        <td>
+          <select data-k="rule">
+            <option value="range" ${it.rule==='range'?'selected':''}>↔ Bereich</option>
+            <option value="min" ${it.rule==='min'?'selected':''}>min</option>
+            <option value="max" ${it.rule==='max'?'selected':''}>max</option>
+          </select>
+        </td>
+        <td><input data-k="min" type="number" step="0.1" value="${it.min ?? ''}" style="width:90px"></td>
+        <td><input data-k="max" type="number" step="0.1" value="${it.max ?? ''}" style="width:90px"></td>
+        <td><button data-act="rm">x</button></td>
+      `;
+      tr.dataset.id = it.id || crypto.randomUUID().slice(0,8);
+      $('#itemsTbl tbody', modal).appendChild(tr);
     }
-    shopModal.hide();
-    load();
+
+    function addTaskRow(t = { id: crypto.randomUUID().slice(0,8), task:'', freq:'täglich', area:'' }) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input data-k="task" value="${t.task}"></td>
+        <td>
+          <select data-k="freq">
+            <option value="täglich" ${t.freq==='täglich'?'selected':''}>täglich</option>
+            <option value="wöchentlich" ${t.freq==='wöchentlich'?'selected':''}>wöchentlich</option>
+            <option value="monatlich" ${t.freq==='monatlich'?'selected':''}>monatlich</option>
+          </select>
+        </td>
+        <td><input data-k="area" value="${t.area||''}"></td>
+        <td><button data-act="rm">x</button></td>
+      `;
+      tr.dataset.id = t.id || crypto.randomUUID().slice(0,8);
+      $('#cleanTbl tbody', modal).appendChild(tr);
+    }
+
+    (async () => {
+      if (data.id) {
+        const tpl = await API.getTemplate(data.id);
+        (tpl.items || []).forEach(addItemRow);
+        (tpl.cleaning || []).forEach(addTaskRow);
+      } else {
+        addItemRow(); addTaskRow();
+      }
+    })();
+
+    modal.addEventListener('click', (e) => {
+      if (e.target.id === 'xClose') modal.remove();
+      if (e.target.id === 'addItem') addItemRow();
+      if (e.target.id === 'addTask') addTaskRow();
+      if (e.target.dataset.act === 'rm') e.target.closest('tr')?.remove();
+    });
+
+    $('#btnSaveShop', modal).addEventListener('click', async () => {
+      const items = $$('#itemsTbl tbody tr', modal).map(tr => {
+        const get = (k) => $(`[data-k="${k}"]`, tr)?.value ?? '';
+        const type = get('type');
+        const rule = get('rule');
+        const parseMaybe = (v) => v === '' ? undefined : Number(v);
+        return {
+          id: tr.dataset.id,
+          label: get('label'),
+          type,
+          unit: get('unit'),
+          rule,
+          min: rule!=='max' ? parseMaybe(get('min')) : undefined,
+          max: rule!=='min' ? parseMaybe(get('max')) : undefined
+        };
+      });
+
+      const cleaning = $$('#cleanTbl tbody tr', modal).map(tr => {
+        const get = (k) => $(`[data-k="${k}"]`, tr)?.value ?? '';
+        return { id: tr.dataset.id, task: get('task'), freq: get('freq'), area: get('area') };
+      });
+
+      const payload = {
+        id: data.id || undefined,
+        name: $('#fName', modal).value.trim() || 'Neuer Shop',
+        city: $('#fCity', modal).value.trim(),
+        address: $('#fAddr', modal).value.trim(),
+        active: $('#fActive', modal).checked,
+        items, cleaning
+      };
+
+      try {
+        await API.saveShop(payload);   // saves shop
+        if (payload.id) {
+          await API.saveTemplate(payload.id, { items, cleaning }); // ensure template synced
+        }
+        modal.remove();
+        await refresh();
+        alert('Gespeichert');
+      } catch (err) {
+        alert('Fehler: ' + err.message);
+      }
+    });
+
+    document.body.appendChild(modal);
   }
 
-  function cryptoId(){ return 'id_'+Math.random().toString(16).slice(2,10); }
+  // events
+  $('#btnNewShop', root).addEventListener('click', () => openEditor(null));
+  tbody.addEventListener('click', async (e) => {
+    const id = e.target?.dataset?.id;
+    const act = e.target?.dataset?.act;
+    if (!id || !act) return;
+    if (act === 'edit') {
+      const shops = await API.listShops();
+      const shop = shops.find(s => s.id === id);
+      openEditor(shop || { id, name: id, active: true });
+    }
+    if (act === 'del') {
+      if (!confirm('Diesen Shop löschen?')) return;
+      await API.deleteShop(id);
+      await refresh();
+    }
+  });
 
-  async function load(){
-    const { shops } = await api('/api/shops');
-    shopsTable.innerHTML = '';
-    shops.forEach(s => shopsTable.appendChild(row(s)));
-  }
-
-  newShopBtn.onclick = ()=> openEditor(null);
-  load();
+  await refresh();
 })();
