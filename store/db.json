@@ -38,14 +38,14 @@
               "min": 2,
               "max": 7
             },
-            "value": "",
-            "ok": false
+            "value": "3",
+            "ok": true
           }
         ],
         "notes": "Kühlschrank ist defekt ",
         "issues": [],
-        "deviations": 1,
-        "savedAt": "2025-09-15T10:09:07.122Z"
+        "deviations": 0,
+        "savedAt": "2025-09-15T10:28:33.136Z"
       }
     }
   }
