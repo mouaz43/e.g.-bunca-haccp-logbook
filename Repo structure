@@ -1,0 +1,10 @@
+/ (repo root)
+  package.json
+  server.js
+  .env.example
+  public/
+    index.html
+    assets/
+      styles.css
+      app.js
+      logo.svg
