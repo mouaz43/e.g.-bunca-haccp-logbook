@@ -10,7 +10,7 @@
 <header class="topbar">
   <div class="brand">🛡️ BUNCA HACCP</div>
   <div class="grow"></div>
-  <button class="btn ghost" onclick="location.href='/'">Übersicht</button>
+  <a class="btn ghost" href="/">Übersicht</a>
 </header>
 
 <main class="container">
@@ -21,6 +21,7 @@
 
   <div id="shopsList" class="table"></div>
 
+  <!-- Edit shop dialog -->
   <dialog id="shopDlg" class="dialog">
     <form method="dialog" id="shopForm">
       <h2>Shop bearbeiten</h2>
@@ -43,6 +44,20 @@
         <button class="btn" value="cancel">Abbrechen</button>
         <button id="saveShop" class="btn solid" value="default">Speichern</button>
       </menu>
+    </form>
+  </dialog>
+
+  <!-- Admin login dialog -->
+  <dialog id="loginDlg" class="dialog">
+    <form method="dialog" id="loginForm">
+      <h2>Admin-Login</h2>
+      <label>E-Mail <input id="l_email" autocomplete="username"></label>
+      <label>Passwort <input id="l_pass" type="password" autocomplete="current-password"></label>
+      <menu class="row right gap">
+        <button class="btn" value="cancel">Abbrechen</button>
+        <button id="doLogin" class="btn solid" value="default">Login</button>
+      </menu>
+      <p class="muted small">Die Zugangsdaten kommen aus den Render-Variablen <code>ADMIN_EMAIL</code> &amp; <code>ADMIN_PASSWORD</code>.</p>
     </form>
   </dialog>
 </main>
