@@ -1,0 +1,6 @@
+<% layout('layouts/layout') %>
+<div class="card">
+  <h2>Oops – ein Fehler ist aufgetreten</h2>
+  <pre style="white-space:pre-wrap"><%= (error && error.message) ? error.message : '' %></pre>
+  <p><a class="btn btn-ghost" href="/">Zur Startseite</a></p>
+</div>
