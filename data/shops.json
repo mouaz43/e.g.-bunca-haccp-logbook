@@ -4,6 +4,8 @@
     "name": "BUNCA · City",
     "city": "",
     "address": "",
+    "active": false,
+    "items": [],
     "cleaningPlan": [
       {
         "id": "task_pb3xq7",
