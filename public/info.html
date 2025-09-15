@@ -5,6 +5,55 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BUNCA HACCP · Anleitung</title>
   <link rel="stylesheet" href="./css/style.css" />
+  <style>
+    /* ---- Page-specific polish (keeps global style.css intact) ---- */
+    .hero { display:flex; align-items:center; justify-content:space-between; gap:16px; margin:6px 0 18px }
+    .hero h1 { margin:0; font-size:28px }
+    .sub { color:#6b7280; margin-top:4px }
+    .tools { display:flex; gap:8px; flex-wrap:wrap }
+    .pillbar { display:flex; gap:8px; flex-wrap:wrap; margin:10px 0 6px }
+    .pill { border:1px solid var(--border); background:#fff; padding:6px 12px; border-radius:999px; cursor:pointer; font-weight:700 }
+    .pill.active { background:#ecfdf5; color:#065f46; border-color:#bbf7d0 }
+    .search { position:relative; margin:8px 0 16px }
+    .search input { width:100%; padding:12px 38px 12px 14px; border-radius:12px; border:1px solid var(--border) }
+    .search svg { position:absolute; right:12px; top:50%; transform:translateY(-50%); opacity:.55 }
+
+    .guides { display:grid; grid-template-columns:repeat(12,1fr); gap:16px }
+    .guide-card { grid-column:span 4; background:#fff; border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 6px 20px rgba(0,0,0,.08) }
+    .guide-card h3 { margin:0 0 8px 0 }
+    .tagrow { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px }
+    .tag { font-size:11px; background:#f3f4f6; padding:4px 8px; border-radius:999px; color:#374151; font-weight:700 }
+    .steps { margin:10px 0 0 0; padding-left:20px }
+    .steps li { margin:6px 0 }
+    .meta { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:8px; color:#6b7280; font-size:12px }
+    .quick { display:grid; grid-template-columns:repeat(12,1fr); gap:12px; margin-top:18px }
+    .quick > .card { grid-column:span 6 }
+    .sops { margin-top:18px }
+    .acc { background:#fff; border:1px solid var(--border); border-radius:14px; overflow:hidden }
+    .acc-item + .acc-item { border-top:1px solid var(--border) }
+    .acc-h { display:flex; justify-content:space-between; align-items:center; padding:14px 16px; cursor:pointer; font-weight:800 }
+    .acc-h:hover { background:#f9fafb }
+    .acc-c { display:none; padding:0 16px 14px 16px; }
+    .acc-item.open .acc-c { display:block }
+    .poster { display:flex; align-items:center; gap:10px; }
+    .poster svg { flex:0 0 auto; }
+    .muted { color:#6b7280 }
+    .print-note { font-size:12px; color:#6b7280; margin-top:6px }
+
+    @media (max-width: 1020px){ .guide-card{ grid-column:span 6 } }
+    @media (max-width: 680px){
+      .hero { flex-direction:column; align-items:flex-start }
+      .guide-card{ grid-column:span 12 }
+      .quick > .card { grid-column:span 12 }
+    }
+
+    /* Print view: hide nav, show clean content */
+    @media print {
+      header, .tools, .pillbar, .search, .footer { display:none !important }
+      .guide-card { break-inside:avoid; box-shadow:none; border-color:#ddd }
+      body { background:#fff }
+    }
+  </style>
 </head>
 <body>
 <header class="header">
@@ -20,17 +69,260 @@
 </header>
 
 <main class="container">
-  <h2 class="h">Kurzanleitungen</h2>
-  <div class="grid">
-    <div class="col-4"><div class="card"><div class="h">Händehygiene</div><p>Hände 20–30 Sek. einseifen, Zwischenräume/Daumen/Nägel, abspülen, Einmalhandtuch.</p></div></div>
-    <div class="col-4"><div class="card"><div class="h">Kühlkette</div><p>Eingangstemperatur messen, schnell einlagern, Türen nicht offen stehen lassen.</p></div></div>
-    <div class="col-4"><div class="card"><div class="h">Reinigung</div><p>Von sauber nach schmutzig, frische Tücher, Dosierung laut Etikett.</p></div></div>
+  <!-- Hero / actions -->
+  <div class="hero">
+    <div>
+      <h1>Anleitungen & Schulungen</h1>
+      <div class="sub">Kurze, visuelle Anweisungen für das tägliche Arbeiten nach HACCP.</div>
+    </div>
+    <div class="tools">
+      <button class="btn" id="printAll">🖨️ Drucken</button>
+      <button class="btn" id="expandAll">▾ Alles öffnen</button>
+      <button class="btn" id="collapseAll">▴ Alles schließen</button>
+    </div>
   </div>
+
+  <!-- Filters -->
+  <div class="pillbar" id="pillbar">
+    <div class="pill active" data-filter="all">Alle</div>
+    <div class="pill" data-filter="hygiene">Hygiene</div>
+    <div class="pill" data-filter="temperatur">Temperatur</div>
+    <div class="pill" data-filter="reinigung">Reinigung</div>
+    <div class="pill" data-filter="allergen">Allergene</div>
+    <div class="pill" data-filter="kreuzkontamination">Kreuzkontamination</div>
+    <div class="pill" data-filter="entsorgung">Entsorgung</div>
+  </div>
+
+  <div class="search">
+    <input id="search" class="input" placeholder="Suche: z. B. ‚Hände‘, ‚Ofen‘, ‚Allergen‘ …" />
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </div>
+
+  <!-- Guides grid -->
+  <section class="guides" id="guides">
+    <!-- Guide: Händehygiene -->
+    <article class="guide-card" data-tags="hygiene">
+      <h3>Händehygiene</h3>
+      <p class="muted">Vor Arbeitsbeginn, nach Pausen, nach Toilettenbesuch, nach Rohwarenkontakt.</p>
+      <ol class="steps">
+        <li>Hände anfeuchten</li>
+        <li>Seife 20–30 s einreiben (Daumen, Zwischenräume, Nägel)</li>
+        <li>Gründlich abspülen</li>
+        <li>Mit Einmalhandtuch trocknen</li>
+        <li>Optional: Desinfektion, vollständig trocknen lassen</li>
+      </ol>
+      <div class="tagrow"><span class="tag">Hygiene</span><span class="tag">Pflicht</span></div>
+      <div class="meta"><span>Poster-Code: HY01</span><button class="btn" data-expand="#sop_hygiene">SOP anzeigen</button></div>
+    </article>
+
+    <!-- Guide: Kühlkette -->
+    <article class="guide-card" data-tags="temperatur kreuzkontamination">
+      <h3>Kühlkette sichern</h3>
+      <p class="muted">Waren kalt halten, zügig einlagern, Türen nicht offen stehen lassen.</p>
+      <ol class="steps">
+        <li>Eingangstemp. prüfen & dokumentieren</li>
+        <li>FIFO einhalten, Rohes unter Fertigem lagern</li>
+        <li>Türen kurz öffnen, Dichtungen prüfen</li>
+      </ol>
+      <div class="tagrow"><span class="tag">Temperatur</span><span class="tag">Kreuzkontamination</span></div>
+      <div class="meta"><span>Poster-Code: TK02</span><button class="btn" data-expand="#sop_coldchain">SOP anzeigen</button></div>
+    </article>
+
+    <!-- Guide: Backstation -->
+    <article class="guide-card" data-tags="temperatur reinigung">
+      <h3>Backstation (Aufheizen/Bedienen)</h3>
+      <p class="muted">Nur sauber starten, Zieltemperatur abwarten, Kerntemp. beachten.</p>
+      <ol class="steps">
+        <li>Ofen vorheizen (≥ 180 °C)</li>
+        <li>Vor Produktstart Sichtkontrolle & Reinigungspunkte checken</li>
+        <li>Garbehälter / Bleche sauber und trocken</li>
+      </ol>
+      <div class="tagrow"><span class="tag">Temperatur</span><span class="tag">Reinigung</span></div>
+      <div class="meta"><span>Poster-Code: OF03</span><button class="btn" data-expand="#sop_oven">SOP anzeigen</button></div>
+    </article>
+
+    <!-- Guide: Reinigungschemie -->
+    <article class="guide-card" data-tags="reinigung">
+      <h3>Reinigung & Desinfektion</h3>
+      <p class="muted">Von sauber → schmutzig, Farb-/Tuchsystem, Dosierung beachten.</p>
+      <ol class="steps">
+        <li>Grobschmutz entfernen</li>
+        <li>Reiniger dosieren, Einwirkzeit beachten</li>
+        <li>Mit Frischwasser nachspülen, trocknen</li>
+        <li>Desinfizieren (falls vorgesehen) und ablüften lassen</li>
+      </ol>
+      <div class="tagrow"><span class="tag">Reinigung</span><span class="tag">Sicherheit</span></div>
+      <div class="meta"><span>Poster-Code: RC04</span><button class="btn" data-expand="#sop_cleaning">SOP anzeigen</button></div>
+    </article>
+
+    <!-- Guide: Allergene -->
+    <article class="guide-card" data-tags="allergen kreuzkontamination">
+      <h3>Allergene handhaben</h3>
+      <p class="muted">Kennzeichnung einhalten, Kontakt vermeiden, getrennte Werkzeuge.</p>
+      <ol class="steps">
+        <li>Allergene Zutaten getrennt lagern & beschriften</li>
+        <li>Eigene Zange/Brett/Messer nutzen</li>
+        <li>Flächen zwischen Produkten reinigen</li>
+      </ol>
+      <div class="tagrow"><span class="tag">Allergene</span><span class="tag">Kreuzkontamination</span></div>
+      <div class="meta"><span>Poster-Code: AL05</span><button class="btn" data-expand="#sop_allergen">SOP anzeigen</button></div>
+    </article>
+
+    <!-- Guide: Abfall -->
+    <article class="guide-card" data-tags="entsorgung hygiene">
+      <h3>Abfall & Entsorgung</h3>
+      <p class="muted">Behälter mit Deckel, regelmäßiges Entleeren, Hände waschen.</p>
+      <ol class="steps">
+        <li>Abfall trennen & beschriften</li>
+        <li>Volle Behälter zeitnah in Außencontainer</li>
+        <li>Innenbehälter reinigen & desinfizieren</li>
+      </ol>
+      <div class="tagrow"><span class="tag">Entsorgung</span><span class="tag">Hygiene</span></div>
+      <div class="meta"><span>Poster-Code: AB06</span><button class="btn" data-expand="#sop_waste">SOP anzeigen</button></div>
+    </article>
+  </section>
+
+  <!-- Quick references / mini posters -->
+  <section class="quick">
+    <div class="card">
+      <div class="poster">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M5 7h14M5 12h14M5 17h14" stroke="currentColor" stroke-width="2"/></svg>
+        <div>
+          <div class="h">Temperatur-Zielbereiche</div>
+          <div class="muted">Kühlschrank: 0–7 °C · TK: ≤ -18 °C · Ofen: ≥ 180 °C</div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="poster">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2"/><circle cx="7" cy="7" r="1" fill="currentColor"/><circle cx="7" cy="12" r="1" fill="currentColor"/><circle cx="7" cy="17" r="1" fill="currentColor"/></svg>
+        <div>
+          <div class="h">Farb-/Tuchsystem</div>
+          <div class="muted">Grün: Lebensmittel · Blau: Allgemein · Rot: Sanitär</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SOPs / accordion -->
+  <section class="sops">
+    <h2 class="h" style="margin:18px 0 10px">Standard-Arbeitsanweisungen (SOP)</h2>
+    <div class="acc" id="sop">
+      <div class="acc-item" id="sop_hygiene">
+        <div class="acc-h">SOP: Händehygiene <span class="muted">HY01</span></div>
+        <div class="acc-c">
+          <ul class="steps">
+            <li>Schmuck ablegen, Pflaster wasserdicht</li>
+            <li>Wasser: warm, Seife dosieren, 20–30 s</li>
+            <li>Einmalhandtuch, ggf. Desinfektion</li>
+            <li>Kontrolle: Seifenspender/Tücher gefüllt</li>
+          </ul>
+        </div>
+      </div>
+      <div class="acc-item" id="sop_coldchain">
+        <div class="acc-h">SOP: Kühlkette / Wareneingang <span class="muted">TK02</span></div>
+        <div class="acc-c">
+          <ul class="steps">
+            <li>Temperatur mit kalibriertem Thermometer erfassen</li>
+            <li>Dokumentation im Tages-Log</li>
+            <li>Sofort einlagern nach Zonenplan (FIFO)</li>
+          </ul>
+        </div>
+      </div>
+      <div class="acc-item" id="sop_oven">
+        <div class="acc-h">SOP: Backstation <span class="muted">OF03</span></div>
+        <div class="acc-c">
+          <ul class="steps">
+            <li>Vorheizen ≥ 180 °C, Anzeige abwarten</li>
+            <li>Zwischenreinigung bei Produktwechsel</li>
+            <li>Ende: Flächen/Griffe reinigen, Bleche spülen</li>
+          </ul>
+        </div>
+      </div>
+      <div class="acc-item" id="sop_cleaning">
+        <div class="acc-h">SOP: Reinigung & Desinfektion <span class="muted">RC04</span></div>
+        <div class="acc-c">
+          <ul class="steps">
+            <li>Dosierung lt. Etikett, Einwirkzeit beachten</li>
+            <li>Reihenfolge: Lebensmittelbereich → Allgemein → Sanitär</li>
+            <li>Dokumentation im Reinigungsplan</li>
+          </ul>
+        </div>
+      </div>
+      <div class="acc-item" id="sop_allergen">
+        <div class="acc-h">SOP: Allergene <span class="muted">AL05</span></div>
+        <div class="acc-c">
+          <ul class="steps">
+            <li>Trennung: Lager, Werkzeuge, Prozesse</li>
+            <li>Beschriftung, Rezepturpflege, Aushang</li>
+            <li>Reinigung vor/zwischen Herstellung</li>
+          </ul>
+        </div>
+      </div>
+      <div class="acc-item" id="sop_waste">
+        <div class="acc-h">SOP: Abfall/Entsorgung <span class="muted">AB06</span></div>
+        <div class="acc-c">
+          <ul class="steps">
+            <li>Deckel zu, regelmäßiges Entleeren</li>
+            <li>Innenbehälter reinigen/desinfizieren</li>
+            <li>Nach Entleerung: Hände waschen</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="print-note">Tipp: „Drucken“ erstellt ein sauberes A4-PDF für Schulungen und Aushänge.</div>
+  </section>
 </main>
 
 <footer class="footer">BUNCA HACCP · Anleitung</footer>
 
 <script src="./js/api.js"></script>
 <script src="./js/ui.js"></script>
+<script>
+  // Filter by pills / search
+  const pills = document.querySelectorAll('.pill');
+  const cards = Array.from(document.querySelectorAll('.guide-card'));
+  const search = document.getElementById('search');
+
+  function applyFilter(){
+    const active = document.querySelector('.pill.active')?.dataset.filter || 'all';
+    const q = (search.value || '').trim().toLowerCase();
+    cards.forEach(c => {
+      const tags = c.dataset.tags || '';
+      const text = c.textContent.toLowerCase();
+      const hitTag = (active==='all') || tags.includes(active);
+      const hitText = !q || text.includes(q);
+      c.style.display = (hitTag && hitText) ? '' : 'none';
+    });
+  }
+  pills.forEach(p => p.addEventListener('click', () => {
+    pills.forEach(x=>x.classList.remove('active'));
+    p.classList.add('active');
+    applyFilter();
+  }));
+  search.addEventListener('input', applyFilter);
+
+  // Accordion controls
+  const acc = document.getElementById('sop');
+  acc.addEventListener('click', e => {
+    const h = e.target.closest('.acc-h');
+    if (!h) return;
+    h.parentElement.classList.toggle('open');
+  });
+  // Open from card button
+  document.querySelectorAll('[data-expand]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const sel = btn.getAttribute('data-expand');
+      const el = document.querySelector(sel);
+      if (el && !el.classList.contains('open')) el.classList.add('open');
+      el?.scrollIntoView({ behavior:'smooth', block:'start' });
+    });
+  });
+
+  // Open/close all + print
+  document.getElementById('expandAll').onclick = () => document.querySelectorAll('.acc-item').forEach(i=>i.classList.add('open'));
+  document.getElementById('collapseAll').onclick = () => document.querySelectorAll('.acc-item').forEach(i=>i.classList.remove('open'));
+  document.getElementById('printAll').onclick = () => window.print();
+</script>
 </body>
 </html>
