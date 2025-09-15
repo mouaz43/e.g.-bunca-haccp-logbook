@@ -1,0 +1,11 @@
+{
+  "shops": [
+    {
+      "id": "shop_city",
+      "name": "BUNCA · City",
+      "city": "",
+      "address": "",
+      "active": true
+    }
+  ]
+}
