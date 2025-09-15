@@ -1,67 +1,84 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
   <title>Admin · BUNCA HACCP</title>
-  <link rel="stylesheet" href="/css/main.css" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="./styles.css" rel="stylesheet">
 </head>
-<body>
-<header class="topbar">
-  <div class="brand">🛡️ BUNCA HACCP</div>
-  <div class="grow"></div>
-  <a class="btn ghost" href="/">Übersicht</a>
-</header>
+<body class="bg-light">
+<nav class="navbar">
+  <div class="container">
+    <a class="navbar-brand">BUNCA HACCP</a>
+    <div class="ms-auto">
+      <a class="btn btn-sm btn-outline-light me-2" href="index.html">Übersicht</a>
+      <button class="btn btn-sm btn-dark" id="logoutBtn">Abmelden</button>
+    </div>
+  </div>
+</nav>
 
-<main class="container">
-  <div class="row between">
-    <h1>Adminbereich</h1>
-    <button id="newShopBtn" class="btn solid">+ Neuer Shop</button>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4>Adminbereich</h4>
+    <button class="btn btn-bunca" id="newShopBtn">+ Neuer Shop</button>
   </div>
 
-  <div id="shopsList" class="table"></div>
+  <div class="card p-3">
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead><tr><th>Name</th><th>Stadt</th><th>Adresse</th><th>Aktiv</th><th>Aktion</th></tr></thead>
+        <tbody id="shopsTable"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-  <!-- Edit shop dialog -->
-  <dialog id="shopDlg" class="dialog">
-    <form method="dialog" id="shopForm">
-      <h2>Shop bearbeiten</h2>
-      <div class="grid2">
-        <label>Name <input id="s_name" required></label>
-        <label>Stadt <input id="s_city"></label>
-        <label>Adresse <input id="s_addr"></label>
-        <label class="row center"><input type="checkbox" id="s_active"> Aktiv</label>
+<!-- modal -->
+<div class="modal" tabindex="-1" id="shopModal">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+      <div class="modal-header"><h5 class="modal-title">Shop bearbeiten</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
+      <div class="modal-body">
+        <div class="row g-2 mb-3">
+          <div class="col-md-4"><label class="form-label">Name</label><input id="m_name" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Stadt</label><input id="m_city" class="form-control"></div>
+          <div class="col-md-4"><label class="form-label">Adresse</label><input id="m_addr" class="form-control"></div>
+        </div>
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="m_active"><label class="form-check-label" for="m_active">Aktiv</label>
+        </div>
 
-      <h3>Checkliste (Items)</h3>
-      <div id="itemsTable"></div>
-      <button id="addItem" type="button" class="btn">+ Item</button>
+        <h6 class="mt-3">Checkliste (Items)</h6>
+        <div class="table-responsive mb-2">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Label</th><th>Typ</th><th>Einheit</th><th>Regel</th><th>Min</th><th>Max</th><th></th></tr></thead>
+            <tbody id="m_items"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" id="addItem">+ Item</button>
 
-      <h3>Cleaning Plan</h3>
-      <div id="tasksTable"></div>
-      <button id="addTask" type="button" class="btn">+ Aufgabe</button>
+        <h6 class="mt-4">Cleaning Plan</h6>
+        <div class="table-responsive mb-2">
+          <table class="table table-sm align-middle">
+            <thead><tr><th>Aufgabe</th><th>Frequenz</th><th>Bereich</th><th></th></tr></thead>
+            <tbody id="m_clean"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-outline-secondary btn-sm" id="addTask">+ Aufgabe</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
+        <button class="btn btn-bunca" id="saveShop">Speichern</button>
+      </div>
+    </div>
+  </div>
+</div>
 
-      <menu class="row right gap">
-        <button class="btn" value="cancel">Abbrechen</button>
-        <button id="saveShop" class="btn solid" value="default">Speichern</button>
-      </menu>
-    </form>
-  </dialog>
-
-  <!-- Admin login dialog -->
-  <dialog id="loginDlg" class="dialog">
-    <form method="dialog" id="loginForm">
-      <h2>Admin-Login</h2>
-      <label>E-Mail <input id="l_email" autocomplete="username"></label>
-      <label>Passwort <input id="l_pass" type="password" autocomplete="current-password"></label>
-      <menu class="row right gap">
-        <button class="btn" value="cancel">Abbrechen</button>
-        <button id="doLogin" class="btn solid" value="default">Login</button>
-      </menu>
-      <p class="muted small">Die Zugangsdaten kommen aus den Render-Variablen <code>ADMIN_EMAIL</code> &amp; <code>ADMIN_PASSWORD</code>.</p>
-    </form>
-  </dialog>
-</main>
-
-<script src="/js/admin.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script src="js/admin.js"></script>
 </body>
 </html>
