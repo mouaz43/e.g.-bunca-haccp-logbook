@@ -148,12 +148,15 @@ body{
   </div>
 </section>
 
-  </main>
   <footer class="footer">BUNCA HACCP · v1 · BUNCA HACCP · Anleitung</footer>
-  <script>
-// ===============================
-// BUNCA HACCP — Inline JS helpers
-// ===============================
+
+<!-- Load shared API helpers FIRST -->
+<script src="./js/api.js"></script>
+
+<!-- Page-specific script comes AFTER api.js -->
+<script>
+  // ===============================
+  // BUNCA HACCP — Inline JS helpers
 (function(){
   const path = location.pathname.split('/').pop() || 'index.html';
   document.querySelectorAll('[data-nav]').forEach(a => {
