@@ -1,0 +1,13 @@
+{
+  "users": [
+    {
+      "id": "user_b76fe95c",
+      "email": "mouazalmjarkesh@gmail.com",
+      "role": "admin",
+      "password": {
+        "salt": "f84f7c8ff8d13b961bbdb89b34378680",
+        "hash": "c43eac33165db36a77844d6095541e26156d4e8b877d642bf7d0afd65f5caaeaea564fb7c33c49e51e83c5ec30d2e99e5de74e034c1e8b6d2ae3080205986298"
+      }
+    }
+  ]
+}
