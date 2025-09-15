@@ -1,6 +1,16 @@
 [
   {
     "id": "bunca-city",
-    "name": "BUNCA · City"
+    "name": "BUNCA · City",
+    "city": "",
+    "address": "",
+    "cleaningPlan": [
+      {
+        "id": "task_pb3xq7",
+        "name": "",
+        "freq": "daily",
+        "area": ""
+      }
+    ]
   }
 ]
