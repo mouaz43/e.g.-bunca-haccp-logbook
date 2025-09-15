@@ -1,252 +1,285 @@
-// BUNCA HACCP — Render + GitHub JSON storage
-const express = require("express");
-const cookieParser = require("cookie-parser");
-const jwt = require("jsonwebtoken");
-const bcrypt = require("bcryptjs");
-const { Octokit } = require("@octokit/rest");
-const { stringify } = require("csv-stringify/sync");
-const path = require("path");
-const { v4: uuidv4 } = require("uuid");
+// BUNCA HACCP – GitHub-backed app (Render + GitHub only)
+const express = require('express');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const { Octokit } = require('octokit');
 
+// --- env ---
 const {
+  PORT = 10000,
+  ADMIN_EMAIL,
+  ADMIN_PASSWORD,
+  JWT_SECRET,
+  DEFAULT_SHOP = 'BUNCA · City',
   GITHUB_TOKEN,
-  GITHUB_REPO,
-  GITHUB_BRANCH = "main",
-  JWT_SECRET = "dev-secret",
-  DEFAULT_SHOP = "BUNCA · Hauptbahnhof",
-  REGISTRATION_CODE
+  GITHUB_REPO,            // e.g. "mouaz43/e-g-bunca-haccp-logbook"
+  GITHUB_BRANCH = 'main'
 } = process.env;
 
-if (!GITHUB_TOKEN || !GITHUB_REPO) {
-  console.error("Missing GITHUB_TOKEN or GITHUB_REPO env vars.");
+if (!GITHUB_TOKEN || !GITHUB_REPO || !JWT_SECRET) {
+  console.error('Missing env: GITHUB_TOKEN, GITHUB_REPO, JWT_SECRET are required.');
+  process.exit(1);
 }
 
+const [OWNER, REPO] = GITHUB_REPO.split('/');
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
-const [owner, repo] = (GITHUB_REPO || "").split("/");
 
 const app = express();
-app.use(express.json());
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, "public")));
-
-const slug = s =>
-  s.toLowerCase().normalize("NFKD").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "-");
+app.use(express.json({ limit: '2mb' }));
+app.use(express.static('public'));
 
 // ---------- GitHub helpers ----------
-async function getFile(filePath) {
-  try {
-    const { data } = await octokit.repos.getContent({
-      owner, repo, path: filePath, ref: GITHUB_BRANCH
-    });
-    if (Array.isArray(data)) throw new Error("Expected file, got directory");
-    const content = Buffer.from(data.content, "base64").toString("utf8");
-    return { content, sha: data.sha };
-  } catch (e) {
-    if (e.status === 404) return null;
-    throw e;
-  }
+async function ghGet(path) {
+  const res = await octokit.rest.repos.getContent({ owner: OWNER, repo: REPO, path, ref: GITHUB_BRANCH });
+  return res.data; // file: {content, sha,...} or array for dir
 }
-
-async function putFile(filePath, content, message, sha) {
-  return await octokit.repos.createOrUpdateFileContents({
-    owner, repo, path: filePath, branch: GITHUB_BRANCH, message,
-    content: Buffer.from(content).toString("base64"),
-    sha
+async function ghTryGet(path) { try { return await ghGet(path); } catch { return null; } }
+async function ghPut(path, contentBase64, message, sha) {
+  return octokit.rest.repos.createOrUpdateFileContents({
+    owner: OWNER, repo: REPO, path, branch: GITHUB_BRANCH,
+    message, content: contentBase64, sha
   });
 }
+async function readJson(path, fallback = null) {
+  const file = await ghTryGet(path);
+  if (!file || Array.isArray(file)) { return fallback; }
+  const buf = Buffer.from(file.content, 'base64').toString('utf8');
+  return JSON.parse(buf);
+}
+async function writeJson(path, obj, message) {
+  const existing = await ghTryGet(path);
+  const content = Buffer.from(JSON.stringify(obj, null, 2)).toString('base64');
+  await ghPut(path, content, message, existing && !Array.isArray(existing) ? existing.sha : undefined);
+}
+async function listDir(path) {
+  const res = await ghTryGet(path);
+  return Array.isArray(res) ? res : [];
+}
 
-async function ensureBootstrap() {
-  // Ensure data folders & base files
-  const shopsPath = "data/shops.json";
-  const usersPath = "data/users.json";
+// ---------- bootstrap data on first run ----------
+async function ensureFiles() {
+  const users = await readJson('data/users.json', null);
+  if (!users) await writeJson('data/users.json', [], 'init users.json');
 
-  let shops = await getJSON(shopsPath);
+  const shops = await readJson('data/shops.json', null);
   if (!shops) {
-    shops = [{ id: slug(DEFAULT_SHOP), name: DEFAULT_SHOP }];
-    await saveJSON(shopsPath, shops, "bootstrap: shops.json");
-  }
-
-  let users = await getJSON(usersPath);
-  if (!users) {
-    // default admin (password from env is optional; else 'admin1234')
-    const adminPass = process.env.ADMIN_PASSWORD || "admin1234";
-    const hash = await bcrypt.hash(adminPass, 10);
-    users = [{
-      id: uuidv4(),
-      email: process.env.ADMIN_EMAIL || "admin@bunca.local",
-      passwordHash: hash,
-      role: "admin",
-      shopId: shops[0].id
-    }];
-    await saveJSON(usersPath, users, "bootstrap: users.json (admin)");
-    console.log("Bootstrap admin created:",
-      (process.env.ADMIN_EMAIL || "admin@bunca.local"),
-      "pass:", adminPass);
+    const id = 'shop_default';
+    await writeJson('data/shops.json', [{
+      id,
+      name: DEFAULT_SHOP,
+      city: '',
+      address: '',
+      isActive: true,
+      targets: { fridge1Min: 0, fridge1Max: 7, fridge2Min: 0, fridge2Max: 7, freezerMax: -18, ovenMin: 180 }
+    }], 'init shops.json');
   }
 }
+ensureFiles();
 
-async function getJSON(filePath) {
-  const f = await getFile(filePath);
-  if (!f) return null;
-  try { return JSON.parse(f.content); } catch { return null; }
+// ---------- auth ----------
+function setUser(req, _res, next) {
+  const h = req.headers.authorization;
+  if (h && h.startsWith('Bearer ')) {
+    try {
+      req.user = jwt.verify(h.slice(7), JWT_SECRET);
+    } catch { /* ignore */ }
+  }
+  next();
 }
+app.use(setUser);
 
-async function saveJSON(filePath, obj, message) {
-  const existing = await getFile(filePath);
-  const json = JSON.stringify(obj, null, 2) + "\n";
-  await putFile(filePath, json, message || `update ${filePath}`, existing?.sha);
+function requireAuth(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Unauthenticated' });
+  next();
 }
-
-// ---------- Auth ----------
-function sign(user) {
-  return jwt.sign({ uid: user.id, role: user.role, shopId: user.shopId }, JWT_SECRET, { expiresIn: "14d" });
-}
-
-function authRequired(req, res, next) {
-  const token = req.cookies?.token;
-  if (!token) return res.status(401).json({ error: "Unauthorized" });
-  try {
-    req.user = jwt.verify(token, JWT_SECRET);
+function requireRole(role) {
+  return (req, res, next) => {
+    if (!req.user) return res.status(401).json({ error: 'Unauthenticated' });
+    const ok = Array.isArray(role) ? role.includes(req.user.role) : req.user.role === role;
+    if (!ok) return res.status(403).json({ error: 'Forbidden' });
     next();
-  } catch {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  };
 }
 
-// ---------- API ----------
-app.get("/api/me", async (req, res) => {
-  try {
-    const token = req.cookies?.token;
-    if (!token) return res.json({ user: null });
-    const payload = jwt.verify(token, JWT_SECRET);
-    const users = await getJSON("data/users.json");
-    const user = users.find(u => u.id === payload.uid);
-    if (!user) return res.json({ user: null });
-    const shops = await getJSON("data/shops.json");
-    const shop = shops.find(s => s.id === user.shopId);
-    res.json({ user: { id: user.id, email: user.email, role: user.role, shopId: user.shopId }, shop });
-  } catch {
-    res.json({ user: null });
-  }
-});
-
-app.get("/api/shops", async (req, res) => {
-  const shops = await getJSON("data/shops.json");
-  res.json({ shops: shops || [] });
-});
-
-app.post("/api/register", async (req, res) => {
-  try {
-    if (!REGISTRATION_CODE) return res.status(403).json({ error: "Registrierung deaktiviert" });
-    const { code, email, password, shopId } = req.body || {};
-    if (code !== REGISTRATION_CODE) return res.status(403).json({ error: "Falscher Registrierungscode" });
-    if (!email || !password || !shopId) return res.status(400).json({ error: "Missing fields" });
-
-    const shops = await getJSON("data/shops.json");
-    if (!shops.find(s => s.id === shopId)) return res.status(400).json({ error: "Unbekannter Shop" });
-
-    const usersPath = "data/users.json";
-    const users = (await getJSON(usersPath)) || [];
-    if (users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
-      return res.status(409).json({ error: "E-Mail bereits vorhanden" });
-    }
-    const hash = await bcrypt.hash(password, 10);
-    const newUser = { id: uuidv4(), email, passwordHash: hash, role: "shop", shopId };
-    users.push(newUser);
-    await saveJSON(usersPath, users, `user: register ${email}`);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: "Register failed" });
-  }
-});
-
-app.post("/api/login", async (req, res) => {
+// ---------- login ----------
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body || {};
-  const users = await getJSON("data/users.json");
-  const user = users.find(u => u.email.toLowerCase() === String(email).toLowerCase());
-  if (!user) return res.status(401).json({ error: "Login fehlgeschlagen" });
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) return res.status(401).json({ error: "Login fehlgeschlagen" });
+  if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-  res.cookie("token", sign(user), { httpOnly: true, sameSite: "lax", maxAge: 14 * 24 * 3600 * 1000 });
-  res.json({ ok: true });
-});
-
-app.post("/api/logout", (req, res) => {
-  res.clearCookie("token");
-  res.json({ ok: true });
-});
-
-// Read today’s checklist
-app.get("/api/checks/:shopId/:date", authRequired, async (req, res) => {
-  const { shopId, date } = req.params;
-  if (req.user.role !== "admin" && req.user.shopId !== shopId) return res.status(403).json({ error: "Forbidden" });
-  const fp = `data/checks/${shopId}/${date}.json`;
-  const row = await getJSON(fp);
-  res.json({ row: row || null });
-});
-
-// Save/Upsert today’s checklist
-app.post("/api/checks/:shopId/:date", authRequired, async (req, res) => {
-  const { shopId, date } = req.params;
-  if (req.user.role !== "admin" && req.user.shopId !== shopId) return res.status(403).json({ error: "Forbidden" });
-  const fp = `data/checks/${shopId}/${date}.json`;
-  await saveJSON(fp, req.body, `checklist: ${shopId} ${date}`);
-  res.json({ ok: true });
-});
-
-// Simple history list by directory scan
-app.get("/api/history/:shopId", authRequired, async (req, res) => {
-  const { shopId } = req.params;
-  if (req.user.role !== "admin" && req.user.shopId !== shopId) return res.status(403).json({ error: "Forbidden" });
-  try {
-    const { data } = await octokit.repos.getContent({ owner, repo, path: `data/checks/${shopId}`, ref: GITHUB_BRANCH });
-    const files = Array.isArray(data) ? data.filter(d => d.type === "file").map(d => d.name.replace(".json","")).sort().reverse() : [];
-    res.json({ dates: files });
-  } catch (e) {
-    if (e.status === 404) return res.json({ dates: [] });
-    throw e;
+  // Admin login (env-based)
+  if (ADMIN_EMAIL && ADMIN_PASSWORD &&
+      email.toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
+      password === ADMIN_PASSWORD) {
+    const token = jwt.sign({ sub: 'admin', email, role: 'admin', shops: 'all' }, JWT_SECRET, { expiresIn: '30d' });
+    return res.json({ token, role: 'admin', name: 'Admin' });
   }
+
+  // Users from repo
+  const users = await readJson('data/users.json', []);
+  const u = users.find(x => x.email.toLowerCase() === email.toLowerCase());
+  if (!u) return res.status(401).json({ error: 'Invalid credentials' });
+  const ok = await bcrypt.compare(password, u.passwordHash || '');
+  if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+  const token = jwt.sign({ sub: u.id, email: u.email, role: u.role || 'staff', shops: u.shops || [] }, JWT_SECRET, { expiresIn: '30d' });
+  res.json({ token, role: u.role || 'staff', name: u.name || u.email });
 });
 
-// CSV export (last 30 days)
-app.get("/api/export/:shopId.csv", authRequired, async (req, res) => {
-  const { shopId } = req.params;
-  if (req.user.role !== "admin" && req.user.shopId !== shopId) return res.status(403).end();
-  // list dir
-  let files = [];
-  try {
-    const { data } = await octokit.repos.getContent({ owner, repo, path: `data/checks/${shopId}`, ref: GITHUB_BRANCH });
-    files = Array.isArray(data) ? data.filter(d => d.type === "file").map(d => d.name).sort().slice(-30) : [];
-  } catch {}
-  const rows = [];
-  for (const f of files) {
-    const date = f.replace(".json","");
-    const obj = await getJSON(`data/checks/${shopId}/${f}`);
-    rows.push({
-      date,
-      fridge1_c: obj?.fridge1_c ?? "",
-      fridge2_c: obj?.fridge2_c ?? "",
-      freezer_c: obj?.freezer_c ?? "",
-      oven_c: obj?.oven_c ?? "",
-      dishwasher_rinse_c: obj?.dishwasher_rinse_c ?? "",
-      warm_water_available: obj?.warm_water_available ?? "",
-      cleaning_done: obj?.cleaning_done ?? "",
-      notes: obj?.notes ?? "",
-      issues: obj?.issues ?? ""
-    });
-  }
-  const csv = stringify(rows, { header: true });
-  res.setHeader("Content-Type", "text/csv; charset=utf-8");
-  res.setHeader("Content-Disposition", `attachment; filename="${shopId}-export.csv"`);
-  res.send(csv);
+// ---------- shops ----------
+app.get('/api/shops', requireAuth, async (_req, res) => {
+  const shops = await readJson('data/shops.json', []);
+  res.json(shops);
 });
 
-// Fallback
-app.get("/healthz", (_, res) => res.send("ok"));
+// ---------- checklist (today) ----------
+function todayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function defaultChecklist(date, shop) {
+  return {
+    date,
+    shopId: shop.id,
+    readings: {
+      fridge1: null, fridge2: null, freezer: null, oven: null,
+      dishwasherOver82C: false, handwashHot: false, cleaningDone: false
+    },
+    notes: '',
+    issues: [],
+    lastSavedBy: null,
+    lastSavedAt: null,
+    targets: shop.targets || { fridge1Min: 0, fridge1Max: 7, fridge2Min: 0, fridge2Max: 7, freezerMax: -18, ovenMin: 180 }
+  };
+}
 
-const port = process.env.PORT || 3000;
-app.listen(port, async () => {
-  await ensureBootstrap();
-  console.log("BUNCA HACCP running on :" + port);
+app.get('/api/today', requireAuth, async (req, res) => {
+  const date = (req.query.date || todayStr()).trim();
+  const shopId = (req.query.shopId || 'shop_default').trim();
+  const shops = await readJson('data/shops.json', []);
+  const shop = shops.find(s => s.id === shopId) || shops[0];
+
+  const path = `data/checklists/${shop.id}/${date}.json`;
+  const file = await ghTryGet(path);
+  if (!file) return res.json(defaultChecklist(date, shop));
+
+  const data = JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
+  res.json(data);
 });
+
+app.post('/api/today', requireAuth, async (req, res) => {
+  const body = req.body || {};
+  if (!body.date || !body.shopId) return res.status(400).json({ error: 'date and shopId required' });
+
+  body.lastSavedBy = req.user.email;
+  body.lastSavedAt = new Date().toISOString();
+
+  const path = `data/checklists/${body.shopId}/${body.date}.json`;
+  await writeJson(path, body, `checklist: ${body.shopId} ${body.date}`);
+  res.json({ ok: true });
+});
+
+// history list (dates only)
+app.get('/api/history', requireAuth, async (req, res) => {
+  const shopId = (req.query.shopId || 'shop_default').trim();
+  const dir = `data/checklists/${shopId}`;
+  const items = await listDir(dir);
+  const dates = items
+    .filter(x => x.type === 'file' && x.name.endsWith('.json'))
+    .map(x => x.name.replace('.json', ''))
+    .sort()
+    .reverse();
+  res.json(dates);
+});
+
+// ---------- ADMIN (shops & users stored in repo JSON) ----------
+app.get('/api/admin/shops', requireRole('admin'), async (_req, res) => {
+  res.json(await readJson('data/shops.json', []));
+});
+app.post('/api/admin/shops', requireRole('admin'), async (req, res) => {
+  const shops = await readJson('data/shops.json', []);
+  const id = 'shop_' + Date.now().toString(36);
+  const s = req.body || {};
+  const shop = {
+    id,
+    name: s.name || 'Shop',
+    city: s.city || '',
+    address: s.address || '',
+    isActive: s.isActive !== false,
+    targets: {
+      fridge1Min: 0, fridge1Max: 7,
+      fridge2Min: 0, fridge2Max: 7,
+      freezerMax: -18, ovenMin: 180,
+      ...(s.targets || {})
+    }
+  };
+  shops.push(shop);
+  await writeJson('data/shops.json', shops, `admin: add shop ${shop.name}`);
+  res.status(201).json(shop);
+});
+app.put('/api/admin/shops/:id', requireRole('admin'), async (req, res) => {
+  const shops = await readJson('data/shops.json', []);
+  const i = shops.findIndex(s => s.id === req.params.id);
+  if (i === -1) return res.status(404).json({ error: 'not found' });
+  shops[i] = { ...shops[i], ...req.body, id: shops[i].id };
+  await writeJson('data/shops.json', shops, `admin: update shop ${shops[i].name}`);
+  res.json(shops[i]);
+});
+app.delete('/api/admin/shops/:id', requireRole('admin'), async (req, res) => {
+  const shops = await readJson('data/shops.json', []);
+  const next = shops.filter(s => s.id !== req.params.id);
+  if (next.length === shops.length) return res.status(404).json({ error: 'not found' });
+  await writeJson('data/shops.json', next, `admin: delete shop ${req.params.id}`);
+  res.status(204).end();
+});
+
+// users
+app.get('/api/admin/users', requireRole('admin'), async (_req, res) => {
+  const users = await readJson('data/users.json', []);
+  res.json(users.map(u => ({ ...u, passwordHash: undefined })));
+});
+app.post('/api/admin/users', requireRole('admin'), async (req, res) => {
+  const users = await readJson('data/users.json', []);
+  const { email, name, role = 'staff', shops = [], tempPassword } = req.body || {};
+  if (!email || !tempPassword) return res.status(400).json({ error: 'email and tempPassword required' });
+  if (users.some(u => u.email.toLowerCase() === email.toLowerCase()))
+    return res.status(409).json({ error: 'email exists' });
+  const id = 'user_' + Date.now().toString(36);
+  const passwordHash = await bcrypt.hash(String(tempPassword), 10);
+  const user = { id, email, name: name || email.split('@')[0], role, shops, passwordHash };
+  users.push(user);
+  await writeJson('data/users.json', users, `admin: add user ${email}`);
+  res.status(201).json({ ...user, passwordHash: undefined });
+});
+app.put('/api/admin/users/:id', requireRole('admin'), async (req, res) => {
+  const users = await readJson('data/users.json', []);
+  const i = users.findIndex(u => u.id === req.params.id);
+  if (i === -1) return res.status(404).json({ error: 'not found' });
+  const { email, name, role, shops } = req.body || {};
+  users[i] = { ...users[i], ...(email ? { email } : {}), ...(name ? { name } : {}), ...(role ? { role } : {}), ...(shops ? { shops } : {}) };
+  await writeJson('data/users.json', users, `admin: update user ${users[i].email}`);
+  res.json({ ...users[i], passwordHash: undefined });
+});
+app.delete('/api/admin/users/:id', requireRole('admin'), async (req, res) => {
+  const users = await readJson('data/users.json', []);
+  const next = users.filter(u => u.id !== req.params.id);
+  if (next.length === users.length) return res.status(404).json({ error: 'not found' });
+  await writeJson('data/users.json', next, `admin: delete user ${req.params.id}`);
+  res.status(204).end();
+});
+app.post('/api/admin/users/:id/reset-password', requireRole('admin'), async (req, res) => {
+  const users = await readJson('data/users.json', []);
+  const i = users.findIndex(u => u.id === req.params.id);
+  if (i === -1) return res.status(404).json({ error: 'not found' });
+  const { tempPassword } = req.body || {};
+  if (!tempPassword) return res.status(400).json({ error: 'tempPassword required' });
+  users[i].passwordHash = await bcrypt.hash(String(tempPassword), 10);
+  await writeJson('data/users.json', users, `admin: reset password ${users[i].email}`);
+  res.json({ ok: true });
+});
+
+// ---------- server ----------
+app.get('*', (_req, res) => res.sendFile(__dirname + '/public/index.html'));
+app.listen(PORT, () => console.log(`BUNCA HACCP on :${PORT}`));
