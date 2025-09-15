@@ -2,83 +2,80 @@
 <html lang="de">
 <head>
   <meta charset="utf-8">
-  <title>Admin · BUNCA HACCP</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="./styles.css" rel="stylesheet">
+  <title>BUNCA HACCP · Admin</title>
+  <link rel="stylesheet" href="assets/css/app.css">
 </head>
-<body class="bg-light">
-<nav class="navbar">
-  <div class="container">
-    <a class="navbar-brand">BUNCA HACCP</a>
-    <div class="ms-auto">
-      <a class="btn btn-sm btn-outline-light me-2" href="index.html">Übersicht</a>
-      <button class="btn btn-sm btn-dark" id="logoutBtn">Abmelden</button>
+<body>
+
+  <!-- Shared Header -->
+  <header class="app-header">
+    <div class="navbar">
+      <a class="brand" href="index.html">
+        <img src="assets/img/bunca-logo.svg" alt="BUNCA" />
+        <span>BUNCA HACCP</span>
+      </a>
+      <div class="spacer"></div>
+      <select id="shopSelect" class="select--shop" aria-label="Shop auswählen">
+        <option value="BUNCA · City">BUNCA · City</option>
+        <option value="BUNCA · Hauptbahnhof">BUNCA · Hauptbahnhof</option>
+        <option value="BUNCA · West">BUNCA · West</option>
+      </select>
+      <nav class="nav">
+        <a data-nav href="index.html">Übersicht</a>
+        <a data-nav href="historie.html" class="hide-sm">Historie</a>
+        <a data-nav href="info.html" class="hide-sm">Anleitung</a>
+        <a data-nav data-admin-link href="admin.html">Admin</a>
+      </nav>
+      <a href="#" class="btn btn--ghost" data-logout>Abmelden</a>
     </div>
-  </div>
-</nav>
+  </header>
 
-<div class="container py-4">
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>Adminbereich</h4>
-    <button class="btn btn-bunca" id="newShopBtn">+ Neuer Shop</button>
-  </div>
-
-  <div class="card p-3">
-    <div class="table-responsive">
-      <table class="table align-middle">
-        <thead><tr><th>Name</th><th>Stadt</th><th>Adresse</th><th>Aktiv</th><th>Aktion</th></tr></thead>
-        <tbody id="shopsTable"></tbody>
-      </table>
+  <main class="container">
+    <div class="actions">
+      <a class="btn btn--success" href="#">+ Neuer Shop</a>
     </div>
-  </div>
-</div>
 
-<!-- modal -->
-<div class="modal" tabindex="-1" id="shopModal">
-  <div class="modal-dialog modal-xl">
-    <div class="modal-content">
-      <div class="modal-header"><h5 class="modal-title">Shop bearbeiten</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body">
-        <div class="row g-2 mb-3">
-          <div class="col-md-4"><label class="form-label">Name</label><input id="m_name" class="form-control"></div>
-          <div class="col-md-4"><label class="form-label">Stadt</label><input id="m_city" class="form-control"></div>
-          <div class="col-md-4"><label class="form-label">Adresse</label><input id="m_addr" class="form-control"></div>
-        </div>
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" id="m_active"><label class="form-check-label" for="m_active">Aktiv</label>
-        </div>
+    <table class="table mt-16">
+      <thead>
+        <tr><th>Name</th><th>Stadt</th><th>Adresse</th><th>Status</th><th>Aktion</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>BUNCA · City</td>
+          <td>—</td><td>—</td>
+          <td><span class="badge badge--muted">aktiv</span></td>
+          <td>
+            <a class="btn btn--light" href="#">Bearbeiten</a>
+            <a class="btn btn--danger" href="#">Löschen</a>
+          </td>
+        </tr>
+      </tbody>
+    </table>
 
-        <h6 class="mt-3">Checkliste (Items)</h6>
-        <div class="table-responsive mb-2">
-          <table class="table table-sm align-middle">
-            <thead><tr><th>Label</th><th>Typ</th><th>Einheit</th><th>Regel</th><th>Min</th><th>Max</th><th></th></tr></thead>
-            <tbody id="m_items"></tbody>
-          </table>
-        </div>
-        <button class="btn btn-outline-secondary btn-sm" id="addItem">+ Item</button>
+    <div class="panel mt-24">
+      <h3>Vorlagen</h3>
+      <p class="help">Hier kannst du Checklisten-Items & Reinigungsplan-Aufgaben definieren, die ein Shop übernimmt.</p>
 
-        <h6 class="mt-4">Cleaning Plan</h6>
-        <div class="table-responsive mb-2">
-          <table class="table table-sm align-middle">
-            <thead><tr><th>Aufgabe</th><th>Frequenz</th><th>Bereich</th><th></th></tr></thead>
-            <tbody id="m_clean"></tbody>
-          </table>
+      <div class="grid mt-16">
+        <div class="col-6">
+          <label class="form-label">Neues Checklist-Item</label>
+          <input class="input" placeholder="Label (z. B. Kühlschrank 1)">
+          <div class="actions mt-16">
+            <button class="btn btn--light">+ Hinzufügen</button>
+          </div>
         </div>
-        <button class="btn btn-outline-secondary btn-sm" id="addTask">+ Aufgabe</button>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Abbrechen</button>
-        <button class="btn btn-bunca" id="saveShop">Speichern</button>
+        <div class="col-6">
+          <label class="form-label">Neue Reinigungs-Aufgabe</label>
+          <input class="input" placeholder="Aufgabe (z. B. Arbeitsflächen desinf.)">
+          <div class="actions mt-16">
+            <button class="btn btn--light">+ Hinzufügen</button>
+          </div>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="js/api.js"></script>
-<script src="js/admin.js"></script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>
