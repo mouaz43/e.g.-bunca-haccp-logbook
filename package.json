@@ -1,10 +1,10 @@
 {
   "name": "bunca-haccp",
-  "version": "0.2.0",
-  "type": "module",
+  "version": "0.2.1",
+  "private": true,
   "scripts": {
     "start": "node server.js",
-    "render-build": "echo Build step done"
+    "render-build": "echo Build complete"
   },
   "engines": { "node": "20.x" },
   "dependencies": {
