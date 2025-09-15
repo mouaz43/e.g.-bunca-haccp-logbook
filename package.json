@@ -1,19 +1,16 @@
 {
   "name": "bunca-haccp",
   "version": "1.0.0",
-  "description": "BUNCA HACCP logbook (Render+GitHub JSON backend)",
-  "type": "commonjs",
-  "engines": {
-    "node": ">=18"
-  },
+  "private": true,
+  "engines": { "node": ">=18" },
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.6",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
-    "morgan": "^1.10.0",
-    "nanoid": "^5.0.7"
+    "jsonwebtoken": "^9.0.2"
   }
 }
