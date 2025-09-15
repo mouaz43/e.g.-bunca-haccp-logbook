@@ -1,15 +1,15 @@
 {
   "name": "bunca-haccp",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "scripts": {
-    "start": "node server.js",
+    "start": "node server.cjs",
     "render-build": "echo Build complete"
   },
   "engines": { "node": "20.x" },
   "dependencies": {
     "express": "^4.19.2",
-    "helmet": "^7.1.0",
+    "helmet": "^6.2.0",
     "cookie-session": "^2.0.0",
     "bcrypt": "^5.1.1",
     "better-sqlite3": "^9.6.0",
