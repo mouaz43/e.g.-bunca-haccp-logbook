@@ -4,180 +4,266 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BUNCA HACCP · Anleitung</title>
+
+  <!-- Uses your existing global styles; only minimal extras below -->
   <style>
-    :root{
-      --bunca:#1f7a3a; --ink:#0f172a; --muted:#6b7280;
-      --bg:#f5f7f5; --card:#fff; --border:#e7e9ec;
-      --shadow:0 10px 30px rgba(16,24,40,.08); --r:16px;
+    /* --- Page-only tweaks (safe, won't touch other pages) --- */
+    .page-header {display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 8px}
+    .page-actions {display:flex;gap:8px;flex-wrap:wrap}
+    .btn {display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:.55rem .9rem;background:#fff;cursor:pointer;font-weight:700}
+    .btn:hover {background:#f5f7f5}
+    .badge-pill {display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.35rem .7rem;background:#eef6f0;border:1px solid #dcefe4;font-weight:700}
+    .cards {display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:10px}
+    .card  {grid-column:span 4;background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+    .panel {background:#fff;border:1px solid #e8ecea;border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.06);margin-top:16px}
+    .grid  {display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+    .col-6 {grid-column:span 6}
+    .col-12{grid-column:span 12}
+    .muted {color:#64748b}
+    .table {width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #e8ecea;border-radius:12px;overflow:hidden}
+    .table th,.table td{padding:10px 12px;border-bottom:1px solid #eef2f1;text-align:left}
+    .table tr:last-child td{border-bottom:none}
+
+    /* Compact mode for printing one page */
+    body.print-compact .card,
+    body.print-compact .panel {box-shadow:none;border-color:#dfe7e4}
+    body.print-compact .card  {padding:12px}
+    body.print-compact .panel {padding:12px}
+    body.print-compact .cards {gap:10px}
+    body.print-compact h2 {margin:8px 0}
+    body.print-compact h3 {margin:8px 0}
+    body.print-compact .page-actions {display:none}
+
+    /* --- Print styles (A4 friendly) --- */
+    @media print {
+      header, nav, .page-actions, .site-footer {display:none !important}
+      main {margin:0 !important;padding:0 6mm !important}
+      body {background:#fff}
+      .card, .panel {box-shadow:none;border-color:#dcdcdc}
+      .cards {grid-template-columns:repeat(12,1fr)}
+      .card {grid-column:span 4}
+      .col-6 {grid-column:span 6}
+      .col-12{grid-column:span 12}
+      .avoid-break {page-break-inside:avoid}
     }
-    html,body{height:100%} body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    .hdr{position:sticky;top:0;z-index:40;background:var(--bunca);color:#fff;box-shadow:0 6px 18px rgba(16,24,40,.06)}
-    .nav{max-width:1200px;margin:0 auto;padding:12px 18px;display:flex;gap:10px;align-items:center}
-    .brand{display:flex;gap:10px;align-items:center;color:#fff;text-decoration:none;font-weight:800}
-    .brand img{height:26px;width:auto} .spacer{flex:1}
-    .shop{appearance:none;background:#fff;color:#0f172a;border:1px solid rgba(255,255,255,.45);border-radius:12px;padding:8px 38px 8px 12px;font-weight:700;background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2310141f' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
-    .links{display:flex;gap:6px;align-items:center}
-    .links a{color:#e8ffef;text-decoration:none;font-weight:800;padding:8px 12px;border-radius:10px}
-    .links a.active,.links a:hover{background:rgba(255,255,255,.18)}
-    .logout{display:inline-flex;align-items:center;padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.35);color:#fff;text-decoration:none;font-weight:800}
-    .logout:hover{background:rgba(255,255,255,.14)}
-    .container{max-width:1200px;margin:28px auto;padding:0 18px}
-    .h1{font-size:28px;margin:0 0 18px}
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
-    .col-4{grid-column:span 4}.col-6{grid-column:span 6}.col-12{grid-column:span 12}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);box-shadow:var(--shadow);padding:16px}
-    .card h3,.card h4{margin:0 0 10px}
-    .thumb{width:100%;height:140px;object-fit:cover;border-radius:12px;margin:6px 0 8px}
-    .section{margin-top:26px} .section h2{margin:0 0 10px}
-    .sub{color:var(--muted);font-size:14px;margin:0 0 8px}
-    @media (max-width: 900px){.col-4{grid-column:span 6}.col-6{grid-column:span 12}}
-    @media (max-width: 640px){.col-4{grid-column:span 12}}
+
+    /* Mobile */
+    @media (max-width: 820px){
+      .card {grid-column:span 12}
+      .col-6 {grid-column:span 12}
+    }
   </style>
 </head>
 <body>
 
-<header class="hdr">
-  <div class="nav">
-    <a class="brand" href="index.html"><img src="assets/img/bunca-logo.svg" alt="" onerror="this.remove()"><span>BUNCA HACCP</span></a>
-    <div class="spacer"></div>
-    <select id="shopSelect" class="shop" aria-label="Shop auswählen">
-      <option value="" disabled selected>– Shop wählen –</option>
-    </select>
-    <nav class="links" aria-label="Navigation">
-      <a href="index.html"   data-nav>Übersicht</a>
-      <a href="historie.html" data-nav>Historie</a>
-      <a href="info.html"     data-nav>Anleitung</a>
-      <a href="admin.html"    data-nav>Admin</a>
-      <a href="cleaning.html" data-nav>Reinigungsplan</a>
-    </nav>
-    <a href="#" class="logout" data-logout>Abmelden</a>
-  </div>
-</header>
+  <!-- ======= Global header (same structure as other pages) ======= -->
+  <header class="app-header">
+    <div class="navbar">
+      <a class="brand" href="index.html" style="text-decoration:none;color:#fff;font-weight:800;display:flex;align-items:center;gap:.6rem">
+        <img src="assets/img/bunca-logo.svg" alt="BUNCA" style="height:26px" onerror="this.remove()">
+        <span>BUNCA HACCP</span>
+      </a>
+      <div style="flex:1"></div>
 
-<main class="container">
-  <h1 class="h1">Anleitung &amp; Soforthilfe</h1>
+      <!-- Shop select (populated dynamically from API/localStorage) -->
+      <select id="shopSelect" aria-label="Shop wählen" class="select--shop" style="margin-right:8px"></select>
 
-  <section class="section">
-    <h2>Kurzanleitungen</h2>
-    <div class="grid">
-      <article class="card col-4">
-        <h4>Händehygiene</h4>
-        <img class="thumb" src="assets/img/hand-hygiene.jpg" alt="Hände waschen" onerror="this.style.display='none'">
-        <p>Hände 20–30&nbsp;Sek. einseifen, Zwischenräume/Daumen/Nägel, gründlich abspülen, Einmalhandtuch.</p>
-      </article>
-      <article class="card col-4">
-        <h4>Kühlkette</h4>
-        <img class="thumb" src="assets/img/cold-chain.jpg" alt="Kühlkette" onerror="this.style.display='none'">
-        <p>Eingangstemperatur messen, sofort einlagern, Türen nicht offen stehen lassen, FIFO beachten.</p>
-      </article>
-      <article class="card col-4">
-        <h4>Reinigung</h4>
-        <img class="thumb" src="assets/img/cleaning.jpg" alt="Reinigung" onerror="this.style.display='none'">
-        <p>Von sauber nach schmutzig, Farbcodierung, Dosierung lt. Etikett, Kontaktzeit einhalten, dokumentieren.</p>
-      </article>
+      <nav class="nav">
+        <a data-nav href="index.html">Übersicht</a>
+        <a data-nav href="historie.html">Historie</a>
+        <a data-nav href="info.html" class="active">Anleitung</a>
+        <a data-nav href="admin.html">Admin</a>
+        <a data-nav href="cleaning.html">Reinigungsplan</a>
+      </nav>
+      <a href="#" class="btn btn--ghost" data-logout style="color:#fff;border-color:rgba(255,255,255,.35)">Abmelden</a>
     </div>
-  </section>
+  </header>
 
-  <section class="section">
-    <h2>Bildliche Anleitungen</h2>
-    <div class="grid">
-      <article class="card col-6">
-        <h4>Hände waschen (5 Schritte)</h4>
-        <ol style="margin:8px 0 0 18px;line-height:1.6">
-          <li>Nass machen</li><li>Einseifen</li><li>Reiben (20–30&nbsp;s)</li><li>Abspülen</li><li>Trocknen</li>
-        </ol>
-      </article>
-      <article class="card col-6">
-        <h4>Backstation Aufheizen</h4>
-        <ol style="margin:8px 0 0 18px;line-height:1.6">
-          <li>Ofen einschalten</li><li>Auf <strong>180&nbsp;°C</strong> einstellen</li><li>Vorlaufzeit beachten</li>
-        </ol>
-      </article>
+  <main class="container">
+    <div class="page-header">
+      <h1 style="margin:10px 0 0 0">Anleitung & Soforthilfe</h1>
+      <div class="page-actions">
+        <span id="shopBadge" class="badge-pill">Shop: –</span>
+        <button class="btn" id="btnCompact">Kompakt drucken</button>
+        <button class="btn" id="btnPrint">Drucken</button>
+      </div>
     </div>
-  </section>
 
-  <div style="text-align:center;color:#64748b;margin:28px 0">BUNCA HACCP · v1 · Anleitung</div>
-</main>
+    <!-- ===== Kurzanleitungen ===== -->
+    <h2 style="margin:8px 0">Kurzanleitungen</h2>
+    <section class="cards avoid-break">
+      <article class="card">
+        <h3 style="margin:0 0 6px 0">Händehygiene</h3>
+        <ul class="muted" style="margin:0 0 4px 16px">
+          <li>Hände 20–30 s einseifen, Zwischenräume/Daumen/Nägel.</li>
+          <li>Gründlich abspülen, Einmalhandtuch benutzen.</li>
+          <li>Bei Arbeitswechsel/Toilette/rohem Fleisch immer waschen.</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3 style="margin:0 0 6px 0">Kühlkette</h3>
+        <ul class="muted" style="margin:0 0 4px 16px">
+          <li>Eingangstemperatur messen und dokumentieren.</li>
+          <li>Sofort einlagern, Türen nicht offen stehen lassen.</li>
+          <li>FIFO beachten (zuerst ablaufende Ware zuerst).</li>
+        </ul>
+      </article>
+      <article class="card">
+        <h3 style="margin:0 0 6px 0">Reinigung</h3>
+        <ul class="muted" style="margin:0 0 4px 16px">
+          <li>Von sauber ➝ schmutzig; farbcodierte Tücher verwenden.</li>
+          <li>Dosierung &amp; Einwirkzeit lt. Etikett; Klarspültemp. prüfen.</li>
+          <li>Checkliste täglich abhaken, Abweichungen melden.</li>
+        </ul>
+      </article>
+    </section>
 
-<script>
-  // Highlight current nav entry
-  (function(){
-    var path = location.pathname.split('/').pop() || 'index.html';
-    document.querySelectorAll('[data-nav]').forEach(function(a){
-      if (a.getAttribute('href') === path) a.classList.add('active');
-    });
-  })();
+    <!-- ===== Visual guides ===== -->
+    <section class="panel avoid-break">
+      <h2 style="margin:0 0 10px 0">Bildliche Anleitungen</h2>
+      <div class="grid">
+        <div class="col-6">
+          <div class="panel">
+            <h3 style="margin-top:0">Hände waschen (5 Schritte)</h3>
+            <ol class="muted" style="margin:6px 0 0 18px">
+              <li>Nass machen</li>
+              <li>Einseifen (auch Zwischenräume/Daumen/Nägel)</li>
+              <li>Reiben (20–30 s)</li>
+              <li>Abspülen</li>
+              <li>Trocknen</li>
+            </ol>
+          </div>
+        </div>
+        <div class="col-6">
+          <div class="panel">
+            <h3 style="margin-top:0">Backstation aufheizen</h3>
+            <ol class="muted" style="margin:6px 0 0 18px">
+              <li>Ofen einschalten</li>
+              <li>Auf <strong>180 °C</strong> einstellen</li>
+              <li>Vorlaufzeit beachten</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </section>
 
-  // Load shops from the same source as the rest of the app
-  (async function syncShops(){
-    var sel = document.getElementById('shopSelect');
+    <!-- ===== Critical limits quick table ===== -->
+    <section class="panel avoid-break">
+      <h2 style="margin:0 0 10px 0">Kritische Grenzwerte (Schnellübersicht)</h2>
+      <table class="table">
+        <thead>
+          <tr><th>Bereich</th><th>Grenzwert</th><th>Hinweis</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Kühlschrank</td><td>0–7 °C</td><td>Tür zügig schließen</td></tr>
+          <tr><td>Tiefkühler</td><td>≤ −18 °C</td><td>Ware beschriften/FIFO</td></tr>
+          <tr><td>Warmhalten</td><td>≥ 60 °C</td><td>Regelmäßig kontrollieren</td></tr>
+          <tr><td>Backen / Betrieb</td><td>≥ 180 °C</td><td>Vorlaufzeit beachten</td></tr>
+          <tr><td>Spülmaschine (Klarspül)</td><td>≥ 82 °C</td><td>Siebe/Tank sauber halten</td></tr>
+        </tbody>
+      </table>
+    </section>
 
-    // try API first (same route other pages use)
-    let names = [];
-    try {
-      const res = await fetch('/api/shops', {headers:{'accept':'application/json'}});
-      if (res.ok) {
-        const data = await res.json(); // expect [{id, name, active}] or ["BUNCA · City", ...]
-        names = Array.isArray(data)
-          ? data.map(s => typeof s === 'string' ? s : (s.name || s.title || s.label)).filter(Boolean)
-          : [];
+    <!-- ===== Deviation SOP ===== -->
+    <section class="panel avoid-break">
+      <h2 style="margin:0 0 10px 0">Soforthilfe bei Abweichungen</h2>
+      <ol class="muted" style="margin:6px 0 0 18px">
+        <li><strong>Stop:</strong> Ware sichern/kennzeichnen, nicht ausgeben.</li>
+        <li><strong>Ursache prüfen:</strong> Gerät, Tür, Thermometer, Ablauf?</li>
+        <li><strong>Maßnahme:</strong> Kühlen/Umräumen/Technik informieren.</li>
+        <li><strong>Dokumentieren:</strong> In Tages-Checkliste unter „Issues“.</li>
+        <li><strong>Nachkontrolle:</strong> Wert erneut messen und eintragen.</li>
+      </ol>
+    </section>
+
+  </main>
+
+  <footer class="site-footer" style="text-align:center;color:#94a3b8;font-size:12px;margin:22px 0">
+    BUNCA HACCP · v1 · Anleitung
+  </footer>
+
+  <!-- ====== Page script (nav highlight, shop sync, print) ====== -->
+  <script>
+    (function () {
+      // Active nav highlight
+      document.querySelectorAll('[data-nav]').forEach(a=>{
+        if (a.getAttribute('href') === (location.pathname.split('/').pop() || 'index.html')) {
+          a.classList.add('active');
+        }
+      });
+
+      // Logout (client-side session)
+      const logout = document.querySelector('[data-logout]');
+      if (logout) logout.addEventListener('click', (e)=>{
+        e.preventDefault();
+        localStorage.removeItem('bunca_role');
+        location.href = 'index.html';
+      });
+
+      const sel = document.getElementById('shopSelect');
+      const badge = document.getElementById('shopBadge');
+
+      function setSelectedShop(name){
+        if (!name) return;
+        localStorage.setItem('bunca_shop', name);
+        if (badge) badge.textContent = 'Shop: ' + name;
+        if (sel && sel.value !== name) sel.value = name;
       }
-    } catch (e) {
-      // ignore, will fall back below
-    }
 
-    // fallback to what the app already stored, but DO NOT invent defaults
-    if (names.length === 0) {
-      try {
-        const stored = JSON.parse(localStorage.getItem('bunca_shops') || '[]');
-        if (Array.isArray(stored)) names = stored;
-      } catch(e){}
-    }
-
-    // Populate (only real data; no hard-coded placeholders)
-    sel.innerHTML = '<option value="" disabled'+(names.length ? '' : ' selected')+'>– Shop wählen –</option>' +
-                    names.map(s => '<option value="'+s+'">'+s+'</option>').join('');
-
-    // Restore current selection
-    var current = localStorage.getItem('bunca_shop');
-    if (current && names.includes(current)) sel.value = current;
-
-    // Save selection so other pages pick it up
-    sel.addEventListener('change', function(){
-      localStorage.setItem('bunca_shop', sel.value);
-      // some pages may react to storage events; this guarantees consistency on next load anyway
-    });
-
-    // keep in sync if user switches shop on another tab/page
-    window.addEventListener('storage', function(ev){
-      if (ev.key === 'bunca_shop' && names.includes(ev.newValue)) {
-        sel.value = ev.newValue;
-      }
-      if (ev.key === 'bunca_shops') {
+      async function populateShops(){
+        let shops = [];
+        // 1) Try API
         try {
-          const updated = JSON.parse(ev.newValue||'[]');
-          if (Array.isArray(updated) && updated.length){
-            names = updated;
-            const cur = localStorage.getItem('bunca_shop');
-            sel.innerHTML = '<option value="" disabled>– Shop wählen –</option>' +
-                            names.map(s => '<option value="'+s+'">'+s+'</option>').join('');
-            if (cur && names.includes(cur)) sel.value = cur;
+          const res = await fetch('/api/shops',{credentials:'include'});
+          if (res.ok) {
+            const data = await res.json();
+            // Support both {shops:[...]} and [...]
+            shops = Array.isArray(data) ? data : (data.shops || []);
           }
-        } catch(e){}
-      }
-    });
-  })();
+        } catch (_) {}
 
-  // Logout identical to other pages
-  (function(){
-    var btn = document.querySelector('[data-logout]');
-    if (!btn) return;
-    btn.addEventListener('click', function(e){
-      e.preventDefault();
-      localStorage.removeItem('bunca_role');
-      window.location.href = 'index.html';
-    });
-  })();
-</script>
+        // 2) Fallback: locally stored shops array
+        if (!shops.length) {
+          try {
+            const ls = localStorage.getItem('bunca_shops');
+            if (ls) shops = JSON.parse(ls);
+          } catch (_) {}
+        }
+
+        // 3) Final fallback: single default
+        if (!shops.length) shops = [{name:'Bunca City', active:true}];
+
+        // filter only active truthy if field exists
+        shops = shops.filter(s => s && (s.active === undefined || s.active));
+
+        // Fill selector
+        sel.innerHTML = '';
+        shops.forEach(s=>{
+          const opt = document.createElement('option');
+          opt.value = s.name || s.label || String(s);
+          opt.textContent = opt.value;
+          sel.appendChild(opt);
+        });
+
+        // Select saved or first
+        const saved = localStorage.getItem('bunca_shop');
+        const toSelect = saved && Array.from(sel.options).some(o=>o.value===saved)
+          ? saved
+          : (sel.options[0] ? sel.options[0].value : '');
+        setSelectedShop(toSelect);
+      }
+
+      if (sel) {
+        sel.addEventListener('change', ()=> setSelectedShop(sel.value));
+        populateShops();
+      }
+
+      // Print helpers
+      document.getElementById('btnPrint')?.addEventListener('click', ()=> window.print());
+      document.getElementById('btnCompact')?.addEventListener('click', ()=>{
+        document.body.classList.toggle('print-compact');
+      });
+    })();
+  </script>
 </body>
 </html>
