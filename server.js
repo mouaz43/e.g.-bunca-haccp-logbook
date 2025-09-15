@@ -13,11 +13,6 @@
  * IMPORTANT:
  *  - Default admin is seeded: email: admin@bunca.de  password: Admin!123
  *  - SQLite DB file at ./data/bunca.db (created automatically)
- *
- * Next steps (optional):
- *  - File uploads for manuals (multer)
- *  - Per-item min/max + auto status calc (already included)
- *  - Email invites, password reset, etc.
  */
 
 'use strict';
@@ -54,7 +49,7 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 // ------------------------- DB ------------------------------
 const db = new sqlite3.Database(DB_PATH);
 
-// Run schema
+// Run schema + seed
 db.serialize(() => {
   db.run(`PRAGMA foreign_keys = ON;`);
 
@@ -83,7 +78,7 @@ db.serialize(() => {
     );
   `);
 
-  // User-<->Shop mapping (workers can be assigned to one or multiple)
+  // User-<->Shop mapping
   db.run(`
     CREATE TABLE IF NOT EXISTS user_shops (
       user_id INTEGER NOT NULL,
@@ -94,16 +89,16 @@ db.serialize(() => {
     );
   `);
 
-  // Check items per shop (admin-defined)
+  // Check items per shop
   db.run(`
     CREATE TABLE IF NOT EXISTS check_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       shop_id INTEGER NOT NULL,
-      name TEXT NOT NULL,            -- e.g., "Fridge", "Oven", "Espresso Machine"
-      unit TEXT,                     -- e.g., "°C", "OK/Not OK", ""
+      name TEXT NOT NULL,
+      unit TEXT,
       type TEXT NOT NULL DEFAULT 'number',  -- 'number' | 'text'
-      min_value REAL,                -- threshold min (nullable)
-      max_value REAL,                -- threshold max (nullable)
+      min_value REAL,
+      max_value REAL,
       sort_order INTEGER NOT NULL DEFAULT 0,
       active INTEGER NOT NULL DEFAULT 1,
       FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE
@@ -218,7 +213,6 @@ app.use(csrfProtection);
 app.use((req, res, next) => {
   res.locals.flash = req.session.flash || [];
   req.session.flash = [];
-  res.locals.csrfToken = req.csrfToken();
   res.locals.user = req.session.user || null;
   res.locals.APP_NAME = APP_NAME;
   next();
@@ -265,7 +259,6 @@ function evalStatus(value, min, max) {
   if (typeof value === 'number' && (min != null || max != null)) {
     if (min != null && value < min) return 'fail';
     if (max != null && value > max) return 'fail';
-    // Near edge? we could mark 'warn' but keep simple:
     return 'ok';
   }
   return 'ok';
@@ -273,7 +266,6 @@ function evalStatus(value, min, max) {
 
 // ------------------------- UI (CSS/JS) ---------------------
 const CSS = String.raw`
-/* Minimal design system (same as earlier, trimmed for brevity but complete) */
 :root{--bg:#0e0f12;--panel:#14161b;--soft:#1a1d23;--text:#e9eef7;--muted:#a8b0bf;--brand:#3E2723;--cream:#F5EDE3;--gold:#C6A15B;--ok:#38b000;--warn:#ffb703;--fail:#e63946;--radius:18px;--radius-lg:26px;--shadow:0 10px 30px rgba(0,0,0,.35);--maxw:1120px;--focus:0 0 0 3px rgba(198,161,91,.28)}
 *{box-sizing:border-box}html,body{height:100%}
 body{margin:0;background:linear-gradient(180deg,var(--bg) 0%, #121419 100%);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
@@ -318,13 +310,8 @@ dialog{border:none;border-radius:16px;max-width:720px;width:96vw;background:line
 dialog::backdrop{background:rgba(0,0,0,.55)}.dialog-header{padding:18px 18px 0;font-weight:800}.dialog-body{padding:12px 18px;color:var(--muted)}.dialog-actions{padding:0 18px 18px}
 `;
 
-// Client JS (small: menu, toasts)
-const JS = String.raw`
-(function(){
-  'use strict';
-  const t=document.querySelectorAll('[data-autosubmit]'); t.forEach(f=>f.addEventListener('change',()=>f.submit()));
-})();
-`;
+// Client JS (tiny)
+const JS = String.raw`(function(){'use strict';const t=document.querySelectorAll('[data-autosubmit]');t.forEach(f=>f.addEventListener('change',()=>f.submit()));})();`;
 
 // ------------------------- Templating ----------------------
 function shell({ title, user, csrfToken, content }) {
@@ -378,7 +365,6 @@ function shell({ title, user, csrfToken, content }) {
 }
 
 function renderFlash() {
-  // res.locals is not available here; we attach on global each request
   const arr = globalThis.__flash__ || [];
   if (!arr.length) return '';
   return arr.map(f => `<div class="flash ${f.type}">${escapeHtml(f.msg)}</div>`).join('');
@@ -390,8 +376,13 @@ app.use((req, res, next) => {
   next();
 });
 
+// Helper to generate a CSRF token on demand (fixed: no res usage)
+function resCsrf(req) {
+  return req.csrfToken();
+}
+
 // ------------------------- Views ---------------------------
-// Home (different for worker/admin)
+// Home
 function viewHome(req, shopsForUser = []) {
   const isAdminView = isAdmin(req);
   const intro = isAdminView
@@ -423,7 +414,9 @@ function viewHome(req, shopsForUser = []) {
     content: `
 <section class="hero">
   <div class="grid-2">
-    <div>${intro}</div>
+    <div>
+      ${intro}
+    </div>
     <div class="card">
       <div class="h2">HACCP in BUNCA</div>
       <p class="muted">Standardisierte tägliche Checks: Kühlschrank, Ofen, Espressomaschine, Espresso-Temperatur, Bohnenzustand, Spülmaschine – plus beliebige eigene Punkte pro Shop.</p>
@@ -439,8 +432,6 @@ ${shopCards}
     `
   });
 }
-
-function resCsrf(req) { return res.locals?.csrfToken ?? req.csrfToken(); } // fallback
 
 // Login
 function viewLogin(req) {
@@ -503,7 +494,6 @@ function viewInfo(req) {
 
 // Admin dashboard
 function viewAdmin(req, { shops = [], users = [], assignments = {} }) {
-  // assignments: { user_id: [shop_id,...] }
   const shopRows = shops.map(s => `
     <tr>
       <td>${escapeHtml(s.name)}</td>
@@ -774,9 +764,7 @@ app.post('/logout', requireAuth, (req,res)=>{req.session.destroy(()=>res.redirec
 
 // Home
 app.get('/', requireAuth, (req,res)=>{
-  // shops for user
   if (isAdmin(req)) {
-    // Show all shops in cards
     db.all(`SELECT * FROM shops WHERE active=1 ORDER BY name`, (err, shops)=>{
       if(err){console.error(err);flash(req,'fail','Fehler');return res.redirect('/login');}
       res.send(viewHome(req, shops));
@@ -861,7 +849,7 @@ app.get('/history.csv', requireAuth, (req,res)=>{
     const csv = header + rows.map(r => [
       r.date, r.shop, r.item,
       String(r.value ?? '').replaceAll('"','""'),
-      r.status, r.user || '', (r.note || '').replaceAll('"','""')
+      r.status, r.user || '', (r.note || '').replaceAll('"','"')
     ].map(x => `"${x}"`).join(',')).join('\n');
     res.setHeader('Content-Type','text/csv; charset=utf-8');
     res.setHeader('Content-Disposition','attachment; filename="history.csv"');
@@ -873,13 +861,11 @@ app.get('/history.csv', requireAuth, (req,res)=>{
 app.get('/shops/:id/daily', requireAuth, (req,res)=>{
   const shopId = Number(req.params.id);
   const uid = req.session.user.id;
-
-  // Authorization: worker must be assigned to this shop (admins can always)
   const authSql = isAdmin(req)
     ? `SELECT * FROM shops WHERE id=? AND active=1`
     : `SELECT s.* FROM shops s JOIN user_shops us ON us.shop_id=s.id WHERE s.id=? AND us.user_id=? AND s.active=1`;
-
   const authParams = isAdmin(req) ? [shopId] : [shopId, uid];
+
   db.get(authSql, authParams, (e1, shop)=>{
     if(e1 || !shop){ flash(req,'fail','Kein Zugriff auf diesen Shop'); return res.redirect('/'); }
     db.all(`SELECT * FROM check_items WHERE shop_id=? AND active=1 ORDER BY sort_order, id`, [shopId], (e2, items)=>{
