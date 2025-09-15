@@ -36,12 +36,14 @@
 </main>
 
 <footer class="footer">BUNCA HACCP · Historie</footer>
-
 <script src="./js/api.js"></script>
 <script src="./js/ui.js"></script>
 <script>
 (async function(){
-  if (!API.token()) { const e=prompt('E-Mail:'), p=prompt('Passwort:'); try{ await API.login(e,p);}catch{ alert('Login fehlgeschlagen');return; } }
+  if (!API.token()) {
+    const e = prompt('E-Mail:'), p = prompt('Passwort:');
+    try { await API.login(e,p); } catch { alert('Login fehlgeschlagen'); return; }
+  }
   const rows = document.getElementById('rows');
   async function load(){
     rows.innerHTML = '<tr><td colspan="3">Laden…</td></tr>';
