@@ -1,75 +1,102 @@
 <!doctype html>
 <html lang="de">
 <head>
-  <meta charset="utf-8">
-  <title>BUNCA HACCP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="./styles.css" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BUNCA HACCP · Übersicht</title>
+  <link rel="stylesheet" href="assets/css/app.css" />
 </head>
-<body class="bg-light">
-<nav class="navbar navbar-expand-lg">
-  <div class="container">
-    <a class="navbar-brand fw-bold">BUNCA HACCP</a>
-    <div class="ms-auto d-flex gap-2">
-      <select id="shopSelect" class="form-select form-select-sm"></select>
-      <a class="btn btn-sm btn-outline-light" href="historie.html">Historie</a>
-      <a class="btn btn-sm btn-outline-light" href="info.html">Anleitung</a>
-      <a class="btn btn-sm btn-outline-light" id="adminBtn" href="admin.html">Admin</a>
-      <button class="btn btn-sm btn-dark" id="logoutBtn">Abmelden</button>
-    </div>
-  </div>
-</nav>
+<body>
 
-<div class="container py-4" id="content">
-  <!-- Login card (shown if not logged in) -->
-  <div id="loginCard" class="row justify-content-center">
-    <div class="col-lg-6">
-      <div class="card p-4">
-        <h4 class="mb-3">Anmelden</h4>
-        <div class="mb-3">
-          <label class="form-label">E-Mail</label>
-          <input class="form-control" id="loginEmail" placeholder="you@bunca.de">
+  <!-- Shared Header -->
+  <!-- paste the header block from section 4 here -->
+  <header class="app-header">
+    <div class="navbar">
+      <a class="brand" href="index.html">
+        <img src="assets/img/bunca-logo.svg" alt="BUNCA" />
+        <span>BUNCA HACCP</span>
+      </a>
+      <div class="spacer"></div>
+      <select id="shopSelect" class="select--shop" aria-label="Shop auswählen">
+        <option value="BUNCA · City">BUNCA · City</option>
+        <option value="BUNCA · Hauptbahnhof">BUNCA · Hauptbahnhof</option>
+        <option value="BUNCA · West">BUNCA · West</option>
+      </select>
+      <nav class="nav">
+        <a data-nav href="index.html">Übersicht</a>
+        <a data-nav href="historie.html" class="hide-sm">Historie</a>
+        <a data-nav href="info.html" class="hide-sm">Anleitung</a>
+        <a data-nav data-admin-link href="admin.html">Admin</a>
+      </nav>
+      <a href="#" class="btn btn--ghost" data-logout>Abmelden</a>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- KPI Cards -->
+    <section class="cards">
+      <div class="card">
+        <h4>Checks (heute)</h4>
+        <div class="metric" id="kpi-checks">0/0</div>
+      </div>
+      <div class="card">
+        <h4>Abweichungen</h4>
+        <div class="metric">0</div>
+      </div>
+      <div class="card">
+        <h4>Offene Issues (heute)</h4>
+        <div class="metric">0</div>
+      </div>
+    </section>
+
+    <!-- Checklist -->
+    <section class="panel mt-24">
+      <h3>HACCP Tages-Checkliste <span id="today"></span></h3>
+
+      <div class="grid">
+        <div class="col-3">
+          <label class="form-label" for="t1">Kühlschrank 1 (0–7 °C)</label>
+          <input id="t1" class="input" type="number" step="0.1" placeholder="z. B. 4.2" />
+          <div class="help">Regel: Bereich 0–7</div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Passwort</label>
-          <input type="password" class="form-control" id="loginPassword" placeholder="••••••••">
+
+        <div class="col-3">
+          <label class="form-label" for="t2">Kühlschrank 2 (0–7 °C)</label>
+          <input id="t2" class="input" type="number" step="0.1" placeholder="z. B. 5.0" />
+          <div class="help">Regel: Bereich 0–7</div>
         </div>
-        <div class="d-flex gap-2">
-          <button class="btn btn-bunca" id="loginBtn">Login</button>
+
+        <div class="col-3">
+          <label class="form-label" for="freezer">Tiefkühler (≤ −18 °C)</label>
+          <input id="freezer" class="input" type="number" step="0.1" placeholder="-18" />
+          <div class="help">Regel: max −18</div>
+        </div>
+
+        <div class="col-3">
+          <label class="form-label" for="oven">Ofen/Backstation Betriebstemp (≥ 180 °C)</label>
+          <input id="oven" class="input" type="number" step="1" placeholder="180" />
+          <div class="help">Regel: min 180</div>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label" for="notes">Notizen / Issues</label>
+          <textarea id="notes" class="textarea" rows="4" placeholder="z. B. Kühlschrank 2 schließt nicht richtig…"></textarea>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- Dashboard -->
-  <div id="dash" class="d-none">
-    <div class="row g-3">
-      <div class="col-md-4"><div class="card p-3"><div class="text-muted">Checks (heute)</div><div class="h3" id="checksStat">0/0</div></div></div>
-      <div class="col-md-4"><div class="card p-3"><div class="text-muted">Abweichungen</div><div class="h3" id="devStat">0</div></div></div>
-      <div class="col-md-4"><div class="card p-3"><div class="text-muted">Offene Issues (heute)</div><div class="h3">0</div></div></div>
-    </div>
-
-    <div class="card p-4 mt-4">
-      <h5 class="mb-3">HACCP Tages-Checkliste <span id="dayLabel"></span></h5>
-      <form id="checklistForm" class="row g-3"></form>
-      <div class="mb-3">
-        <label class="form-label">Notizen / Issues</label>
-        <textarea class="form-control" id="notes" rows="3" placeholder="z. B. Kühlschrank 2 schließt nicht richtig..."></textarea>
+      <div class="actions mt-16">
+        <button class="btn btn--light" type="button">Zurücksetzen</button>
+        <button class="btn btn--success" type="button">Speichern</button>
       </div>
-      <div class="d-flex gap-2">
-        <button class="btn btn-outline-secondary" id="resetBtn">Zurücksetzen</button>
-        <button class="btn btn-bunca" id="saveBtn">Speichern</button>
-      </div>
-    </div>
-  </div>
-</div>
+    </section>
+  </main>
 
-<footer class="container py-5">
-  <div class="text-center small-muted">BUNCA HACCP — simple & fast</div>
-</footer>
-
-<script src="js/api.js"></script>
-<script src="js/app.js"></script>
+  <script>
+    // Just prints “today” nicely
+    const d = new Date();
+    document.getElementById('today').textContent =
+      d.toLocaleDateString('de-DE',{weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+  </script>
+  <script src="assets/js/app.js"></script>
 </body>
 </html>
