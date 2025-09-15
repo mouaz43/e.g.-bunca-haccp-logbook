@@ -1,47 +1,57 @@
-// Simple helpers used by multiple pages (nav, auth, shop select)
-(function(){
-  const path = location.pathname.split('/').pop() || 'index.html';
-  document.querySelectorAll('[data-nav]').forEach(a => {
-    const href = a.getAttribute('href');
-    if (href === path) a.classList.add('active');
-  });
-
-  // Shop dropdown (populates from API)
-  const shopSel = document.querySelector('[data-shop-select]');
-  const shopBadge = document.querySelector('[data-shop-badge]');
-
-  async function loadShops(){
-    try{
-      const shops = await API.shops();
-      if (shopSel) {
-        shopSel.innerHTML = '';
-        shops.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.id; opt.textContent = s.name;
-          shopSel.appendChild(opt);
-        });
-        const saved = API.getShop().id || shops[0]?.id;
-        if (saved) shopSel.value = saved;
-        if (saved) { const s = shops.find(x=>x.id===saved); if (s) API.setShop(s.id, s.name); }
-      }
-      if (shopBadge && API.getShop().name) shopBadge.textContent = API.getShop().name;
-    }catch(e){
-      // not logged in, hide shop picker
-      if (shopSel) shopSel.disabled = true;
-    }
+/* public/js/ui.js
+   Small UI helpers shared by pages
+*/
+window.UI = (function () {
+  function markActiveNav() {
+    const path = location.pathname.split("/").pop() || "index.html";
+    document.querySelectorAll("[data-nav]").forEach((a) => {
+      const href = a.getAttribute("href");
+      if (href === path) a.classList.add("active");
+    });
   }
-  loadShops();
 
-  if (shopSel) shopSel.addEventListener('change', e => {
-    const id = e.target.value;
-    const name = e.target.selectedOptions[0]?.textContent || '';
-    API.setShop(id, name);
-    if (shopBadge) shopBadge.textContent = name;
-    if (path === 'index.html') location.reload();
-  });
+  async function fillShopSelect(shops, selectedId) {
+    const sel = document.querySelector("[data-shop-select]");
+    if (!sel) return;
+    sel.innerHTML = "";
+    shops.forEach((s) => {
+      const opt = document.createElement("option");
+      opt.value = s.id;
+      opt.textContent = s.name || "Shop";
+      if (selectedId && selectedId === s.id) opt.selected = true;
+      sel.appendChild(opt);
+    });
+    sel.onchange = (e) => {
+      API.setShopId(e.target.value);
+      // Keep the page in sync without a full reload if the page has a loader
+      // Prefer dispatching a custom event so each page can react
+      window.dispatchEvent(new CustomEvent("bunca:shop-changed", { detail: { id: e.target.value } }));
+      // Fallback: reload if the page has no dynamic loader
+      if (!window._buncaHandlesShopChange) location.reload();
+    };
+  }
 
-  // logout
-  const logout = document.querySelector('[data-logout]');
-  if (logout) logout.addEventListener('click', (e)=>{ e.preventDefault(); API.logout(); location.href='index.html'; });
+  function hookLogout() {
+    const btn = document.querySelector("[data-logout]");
+    if (!btn) return;
+    btn.addEventListener("click", (e) => {
+      e.preventDefault();
+      API.logout();
+      location.href = "login.html";
+    });
+  }
 
+  function setToday(selector = "#today") {
+    const el = document.querySelector(selector);
+    if (!el) return;
+    const d = new Date();
+    el.textContent = d.toLocaleDateString("de-DE", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  }
+
+  return { markActiveNav, fillShopSelect, hookLogout, setToday };
 })();
