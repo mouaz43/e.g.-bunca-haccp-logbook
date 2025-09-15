@@ -1,17 +1,16 @@
 {
   "name": "bunca-haccp",
-  "version": "0.3.0",
-  "private": true,
-  "type": "module",
-  "engines": { "node": ">=20" },
+  "version": "1.0.0",
+  "description": "BUNCA HACCP (Render + GitHub storage)",
+  "type": "commonjs",
+  "main": "server.js",
   "scripts": {
-    "start": "node src/server.js"
+    "start": "node server.js"
   },
   "dependencies": {
-    "body-parser": "^1.20.2",
+    "@octokit/rest": "^20.0.0",
     "cookie-parser": "^1.4.6",
     "express": "^4.19.2",
-    "express-session": "^1.17.3",
-    "octokit": "^3.1.2"
+    "jsonwebtoken": "^9.0.2"
   }
 }
