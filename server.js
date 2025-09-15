@@ -1,12 +1,14 @@
-/* Bunca HACCP Logbook — TailAdmin-Style, DE
+/* Bunca HACCP Logbook — TailAdmin-Style, DE (Render-ready)
    Tech: Node 18+, Express, better-sqlite3, bcrypt, cookie-session, Helmet, Tailwind CDN
    Features v0.2:
-   - Multi-Shop Accounts (Registrierung/Login), "Eingeloggt bleiben"
+   - Multi-Shop Accounts, "Eingeloggt bleiben" (7/30 Tage)
    - Seiten: Dashboard, Temperaturen, Wareneingang, Reinigung, Exporte, Einstellungen
-   - Geräteverwaltung (Kühl/TK/Heiß), Zielbereiche, Tages-Messungen mit Abweichung+Maßnahme
-   - Wareneingang mit Temperatur/MHD/Abweichungen
-   - Reinigungs-Checklisten (täglich/wöchentlich) mit Abhaken + Initialen
-   - CSV-Export pro Modul/Datum
+   - Geräteverwaltung, Tagesmessungen (Abweichung + Maßnahme), Lieferungen, Reinigung
+   - CSV-Export pro Datum
+   Render extras:
+   - DB path from env DB_FILE (use /var/data on Render persistent disk)
+   - trust proxy + secure cookies in production
+   - optional DISABLE_PUBLIC_REGISTRATION=true after first admin created
 */
 import express from "express";
 import helmet from "helmet";
@@ -15,12 +17,18 @@ import bcrypt from "bcrypt";
 import Database from "better-sqlite3";
 import { randomUUID } from "uuid";
 
+// ====== Config ======
 const PORT = process.env.PORT || 3000;
 const SESSION_SECRET = process.env.SESSION_SECRET || "dev-secret-change-me";
 const COOKIE_NAME = "bunca_sess";
+const DB_FILE = process.env.DB_FILE || "bunca-haccp.db";
+const REG_LOCK = (process.env.DISABLE_PUBLIC_REGISTRATION || "").toLowerCase() === "true";
 
 const app = express();
 app.disable("x-powered-by");
+// running behind Render proxy → needed for secure cookies to work
+app.set("trust proxy", 1);
+
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
@@ -40,11 +48,12 @@ app.use(session({
   secret: SESSION_SECRET,
   sameSite: "lax",
   httpOnly: true,
-  maxAge: 1000 * 60 * 60 * 24 * 7 // 7 Tage
+  secure: process.env.NODE_ENV === "production", // secure cookie on Render
+  maxAge: 1000 * 60 * 60 * 24 * 7                 // 7 days default
 }));
 
 // ===== DB =====
-const db = new Database("bunca-haccp.db");
+const db = new Database(DB_FILE);
 db.pragma("journal_mode = WAL");
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
@@ -60,8 +69,8 @@ CREATE TABLE IF NOT EXISTS devices (
   user_id TEXT NOT NULL,
   name TEXT NOT NULL,
   type TEXT NOT NULL,            -- 'kuehl' | 'tk' | 'heiss'
-  target_min REAL,               -- °C
-  target_max REAL,               -- °C
+  target_min REAL,
+  target_max REAL,
   unit TEXT DEFAULT '°C',
   active INTEGER DEFAULT 1,
   created_at TEXT NOT NULL
@@ -73,7 +82,7 @@ CREATE TABLE IF NOT EXISTS temp_logs (
   device_id TEXT NOT NULL,
   measured_c REAL NOT NULL,
   status TEXT NOT NULL,          -- 'ok' | 'abweichung'
-  correction TEXT,               -- Korrekturmaßnahme bei Abweichung
+  correction TEXT,
   note TEXT,
   measured_at TEXT NOT NULL
 );
@@ -81,14 +90,14 @@ CREATE TABLE IF NOT EXISTS temp_logs (
 CREATE TABLE IF NOT EXISTS deliveries (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
-  received_at TEXT NOT NULL,     -- ISO Datum/Uhrzeit
+  received_at TEXT NOT NULL,
   supplier TEXT NOT NULL,
   item TEXT NOT NULL,
   quantity REAL,
   unit TEXT,
   temp_type TEXT,                -- 'gekuehlt' | 'tk' | 'ambient'
   measured_temp REAL,
-  best_before TEXT,              -- MHD (YYYY-MM-DD)
+  best_before TEXT,
   issue TEXT,                    -- 'ok' | 'fehlend' | 'beschaedigt' | 'falsch_temp' | 'sonstiges'
   correction TEXT,
   note TEXT
@@ -98,7 +107,7 @@ CREATE TABLE IF NOT EXISTS cleaning_tasks (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL,
   title TEXT NOT NULL,
-  section TEXT,                  -- z.B. Bar, Küche, Lager
+  section TEXT,
   frequency TEXT NOT NULL,       -- 'taeglich' | 'woechentlich'
   active INTEGER DEFAULT 1,
   created_at TEXT NOT NULL
@@ -114,10 +123,10 @@ CREATE TABLE IF NOT EXISTS cleaning_logs (
 );
 `);
 
-// ===== Helpers =====
 const nowISO = () => new Date().toISOString();
-const todayStr = (d = new Date()) => d.toISOString().slice(0,10); // YYYY-MM-DD
+const todayStr = (d = new Date()) => d.toISOString().slice(0,10);
 
+// ===== Helpers =====
 function requireAuth(req, res, next) {
   if (!req.session || !req.session.user) return res.redirect("/login");
   next();
@@ -128,12 +137,14 @@ function userByEmail(email) {
 function userById(id) {
   return db.prepare("SELECT * FROM users WHERE id = ?").get(id);
 }
+function usersCount() {
+  return db.prepare("SELECT COUNT(*) AS n FROM users").get().n;
+}
 function createUser({ shop_name, email, password_hash }) {
   const id = randomUUID();
   db.prepare(`INSERT INTO users (id, shop_name, email, password_hash, created_at)
               VALUES (@id,@shop_name,@email,@password_hash,@created_at)`)
     .run({ id, shop_name, email, password_hash, created_at: nowISO() });
-  // Seed: Standardgeräte + Reinigungsplan
   seedDefaults(id);
   return userById(id);
 }
@@ -141,16 +152,13 @@ function seedDefaults(user_id) {
   const addDev = db.prepare(`INSERT INTO devices
     (id,user_id,name,type,target_min,target_max,unit,active,created_at)
     VALUES (@id,@user_id,@name,@type,@target_min,@target_max,'°C',1,@created_at)`);
-  const devs = [
+  [
     { name:"Kühlschrank Theke", type:"kuehl", target_min:0, target_max:7 },
     { name:"Milch-Kühlschrank Bar", type:"kuehl", target_min:0, target_max:7 },
     { name:"Lager-Kühlschrank", type:"kuehl", target_min:0, target_max:7 },
     { name:"Tiefkühler", type:"tk", target_min:-25, target_max:-18 },
     { name:"Heißhaltung", type:"heiss", target_min:60, target_max:120 }
-  ];
-  devs.forEach(d => addDev.run({
-    id: randomUUID(), user_id, ...d, created_at: nowISO()
-  }));
+  ].forEach(d => addDev.run({ id: randomUUID(), user_id, ...d, created_at: nowISO() }));
 
   const addTask = db.prepare(`INSERT INTO cleaning_tasks
     (id,user_id,title,section,frequency,active,created_at)
@@ -161,12 +169,10 @@ function seedDefaults(user_id) {
     { title:"Milchsystem spülen/reinigen", section:"Bar", frequency:"taeglich" },
     { title:"Boden gründlich reinigen", section:"Allgemein", frequency:"taeglich" },
     { title:"Kühlgeräte-Dichtungen wischen", section:"Kühlung", frequency:"woechentlich" }
-  ].forEach(t => addTask.run({
-    id: randomUUID(), user_id, ...t, created_at: nowISO()
-  }));
+  ].forEach(t => addTask.run({ id: randomUUID(), user_id, ...t, created_at: nowISO() }));
 }
 
-// ===== Layout =====
+// ===== Layout (TailAdmin-like) =====
 const baseHead = (title = "BUNCA HACCP") => `
 <!doctype html>
 <html lang="de">
@@ -180,9 +186,7 @@ const baseHead = (title = "BUNCA HACCP") => `
     tailwind.config = {
       theme: {
         extend: {
-          colors: {
-            bunca: { cream:'#efe7db', brown:'#3d2b1f', gold:'#c7a15a', ink:'#0f172a' }
-          },
+          colors: { bunca:{ cream:'#efe7db', brown:'#3d2b1f', gold:'#c7a15a', ink:'#0f172a' } },
           borderRadius: { '2xl':'1.25rem' },
           boxShadow: { 'soft':'0 10px 25px rgba(0,0,0,0.08)' }
         }
@@ -254,7 +258,7 @@ ${baseHead("BUNCA HACCP — " + title)}
 </html>
 `;
 
-// ===== Auth Routes =====
+// ===== Routes: Auth =====
 app.get("/", (req,res)=> req.session?.user ? res.redirect("/dashboard") : res.redirect("/login"));
 
 app.get("/login", (req,res)=>{
@@ -273,6 +277,7 @@ app.get("/login", (req,res)=>{
     </form>
   `, "Login"));
 });
+
 app.post("/login", async (req,res)=>{
   const { email, password, remember } = req.body;
   const user = userByEmail(String(email||"").toLowerCase().trim());
@@ -286,6 +291,15 @@ app.post("/login", async (req,res)=>{
 
 app.get("/register", (req,res)=>{
   if (req.session?.user) return res.redirect("/dashboard");
+  const locked = REG_LOCK && usersCount() > 0;
+  if (locked) {
+    return res.status(403).send(authLayout(`
+      <div class="text-bunca-brown/80">
+        Registrierung ist deaktiviert. Bitte wenden Sie sich an die/den Manager:in.
+      </div>
+      <div class="mt-3"><a class="underline" href="/login">Zum Login</a></div>
+    `, "Registrierung gesperrt"));
+  }
   res.send(authLayout(`
     <form action="/register" method="post" class="grid gap-3">
       <div><label class="block text-sm mb-1">Filiale / Shop-Name</label>
@@ -299,15 +313,18 @@ app.get("/register", (req,res)=>{
           <input name="password2" type="password" minlength="8" class="w-full rounded-xl border px-3 py-2" required></div>
       </div>
       <button class="mt-2 rounded-2xl bg-bunca-brown text-white px-4 py-2 font-semibold">Konto anlegen</button>
-      <p class="text-xs text-bunca-brown/70">Hinweis: Registrierung später nur per Einladung aktiv.</p>
+      <p class="text-xs text-bunca-brown/70">Hinweis: Nach der ersten Einrichtung kann die Registrierung gesperrt werden.</p>
     </form>
   `, "Registrieren"));
 });
+
 app.post("/register", async (req,res)=>{
   const shop_name = String(req.body.shop_name||"").trim();
   const email = String(req.body.email||"").toLowerCase().trim();
   const pw = String(req.body.password||"");
   const pw2 = String(req.body.password2||"");
+  const locked = REG_LOCK && usersCount() > 0;
+  if (locked) return res.status(403).send(authLayout(`<div class="text-red-700 mb-3">Registrierung deaktiviert.</div><a class="underline" href="/login">Zum Login</a>`));
   if (!shop_name || !email || !pw) return res.status(400).send(authLayout(`<div class="text-red-700 mb-3">Bitte alle Felder ausfüllen.</div><a class="underline" href="/register">Zurück</a>`));
   if (pw !== pw2) return res.status(400).send(authLayout(`<div class="text-red-700 mb-3">Passwörter stimmen nicht überein.</div><a class="underline" href="/register">Zurück</a>`));
   if (userByEmail(email)) return res.status(400).send(authLayout(`<div class="text-red-700 mb-3">E-Mail bereits registriert.</div><a class="underline" href="/register">Zurück</a>`));
@@ -315,6 +332,7 @@ app.post("/register", async (req,res)=>{
   createUser({ shop_name, email, password_hash });
   res.redirect("/login");
 });
+
 app.get("/logout", (req,res)=>{ req.session = null; res.redirect("/login"); });
 
 // ===== Dashboard =====
@@ -434,6 +452,7 @@ app.get("/temperaturen", requireAuth, (req,res)=>{
   `;
   res.send(appLayout(req, content, "Temperaturen"));
 });
+
 app.post("/temperaturen/log", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const { device_id, measured_c, status, correction, note } = req.body;
@@ -520,6 +539,7 @@ app.get("/wareneingang", requireAuth, (req,res)=>{
   `;
   res.send(appLayout(req, content, "Wareneingang"));
 });
+
 app.post("/wareneingang/add", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const { supplier, item, quantity, unit, temp_type, measured_temp, best_before, issue, correction, note } = req.body;
@@ -608,6 +628,7 @@ app.get("/reinigung", requireAuth, (req,res)=>{
   `;
   res.send(appLayout(req, content, "Reinigung"));
 });
+
 app.post("/reinigung/done", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const { task_id, initials, note } = req.body;
@@ -703,7 +724,7 @@ app.get("/export/reinigung", requireAuth, (req,res)=>{
     ["Zeit","Aufgabe","Bereich","Frequenz","Initialen","Notiz"], out);
 });
 
-// ===== Einstellungen (Geräte + Aufgaben verwalten) =====
+// ===== Einstellungen =====
 app.get("/einstellungen", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const u = req.session.user;
@@ -793,6 +814,7 @@ app.get("/einstellungen", requireAuth, (req,res)=>{
   `;
   res.send(appLayout(req, content, "Einstellungen"));
 });
+
 app.post("/einstellungen/device/add", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const { name, type, target_min, target_max } = req.body;
@@ -807,12 +829,14 @@ app.post("/einstellungen/device/add", requireAuth, (req,res)=>{
     });
   res.redirect("/einstellungen#geraete");
 });
+
 app.post("/einstellungen/device/delete", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const { id } = req.body;
   db.prepare(`DELETE FROM devices WHERE id=? AND user_id=?`).run(id, uid);
   res.redirect("/einstellungen#geraete");
 });
+
 app.post("/einstellungen/task/add", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const { title, section, frequency } = req.body;
@@ -821,6 +845,7 @@ app.post("/einstellungen/task/add", requireAuth, (req,res)=>{
     .run({ id: randomUUID(), user_id: uid, title: title?.trim(), section: section?.trim()||null, frequency, created_at: nowISO() });
   res.redirect("/einstellungen#aufgaben");
 });
+
 app.post("/einstellungen/task/delete", requireAuth, (req,res)=>{
   const uid = req.session.user.id;
   const { id } = req.body;
@@ -829,4 +854,4 @@ app.post("/einstellungen/task/delete", requireAuth, (req,res)=>{
 });
 
 // ===== Start =====
-app.listen(PORT, ()=> console.log(`BUNCA HACCP läuft auf http://localhost:${PORT}`));
+app.listen(PORT, ()=> console.log(`BUNCA HACCP läuft auf http://localhost:${PORT} (DB: ${DB_FILE})`));
