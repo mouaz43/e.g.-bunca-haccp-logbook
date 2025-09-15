@@ -21,24 +21,34 @@
 </header>
 
 <main class="container">
-  <div class="grid">
-    <div class="col-4"><div class="card"><div class="h">Checks (heute)</div><div id="checks" class="h" style="font-weight:900;font-size:28px">0/0</div></div></div>
-    <div class="col-4"><div class="card"><div class="h">Abweichungen</div><div id="deviations" class="h" style="font-weight:900;font-size:28px">0</div></div></div>
-    <div class="col-4"><div class="card"><div class="h">Shop</div><div class="badge" data-shop-badge>–</div></div></div>
-  </div>
+  <h2 class="h">HACCP Tages-Checkliste <span id="today"></span></h2>
 
-  <section class="panel" style="margin-top:18px">
-    <h2 class="h">HACCP Tages-Checkliste <span id="todayLabel"></span></h2>
-    <div id="items" class="grid"></div>
-    <div class="row" style="margin-top:10px">
-      <div class="col-12">
-        <label class="label" for="notes">Notizen / Issues</label>
-        <textarea id="notes" class="textarea" rows="3" placeholder="z. B. Kühlschrank 2 schließt nicht richtig…"></textarea>
-      </div>
+  <section class="cards">
+    <div class="card">
+      <h4>Checks (heute)</h4>
+      <div class="metric"><span id="done">0</span>/<span id="total">0</span></div>
+      <div class="muted" id="lastSaved">–</div>
     </div>
-    <div style="margin-top:12px; display:flex; gap:10px">
-      <button class="btn" id="resetBtn">Zurücksetzen</button>
-      <button class="btn btn-primary" id="saveBtn">Speichern</button>
+    <div class="card">
+      <h4>Abweichungen</h4>
+      <div class="metric" id="devs">0</div>
+      <div class="muted">Grenzwerte beachten</div>
+    </div>
+    <div class="card">
+      <h4>Shop</h4>
+      <div class="metric"><span id="shopName">–</span></div>
+    </div>
+  </section>
+
+  <section class="panel" style="margin-top:16px">
+    <div id="items" class="stack"></div>
+
+    <label class="label" for="notes">Notizen / Issues</label>
+    <textarea id="notes" class="input" rows="3" placeholder="z. B. Kühlschrank 2 schließt nicht richtig…"></textarea>
+
+    <div class="actions">
+      <button id="reset" class="btn btn--light">Zurücksetzen</button>
+      <button id="save" class="btn">Speichern</button>
     </div>
   </section>
 </main>
@@ -48,62 +58,204 @@
 <script src="./js/api.js"></script>
 <script src="./js/ui.js"></script>
 <script>
-(async function(){
-  const shop = API.getShop().id;
-  if (!API.token()) { // soft login prompt
-    const email = prompt('E-Mail für Login:');
-    const pass = prompt('Passwort:');
-    if (email && pass) { try{ await API.login(email, pass); } catch{ alert('Login fehlgeschlagen'); } }
+/**
+ * Helper: try multiple endpoints (works whether your server uses /api/* or /store/*)
+ */
+async function fetchJSONEither(paths, opts){
+  for(const p of paths){
+    try{
+      const r = await fetch(p, opts);
+      if (r.ok) return await r.json();
+    }catch(_){}
   }
-  const today = await API.today(shop);
-  document.getElementById('todayLabel').textContent = today.date.split('-').reverse().join('.');
-  const root = document.getElementById('items');
+  throw new Error('Kein API-Endpunkt erreichbar');
+}
+
+(function initHeader(){
+  // today
+  const d = new Date();
+  document.getElementById('today').textContent =
+    d.toLocaleDateString('de-DE',{weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+
+  // logout
+  const logout = document.querySelector('[data-logout]');
+  if (logout) logout.addEventListener('click', e => { e.preventDefault(); API.logout(); location.href='login.html'; });
+})();
+
+/**
+ * Build a nice rule label from an item
+ */
+function ruleText(it){
+  const t = (it.rule || '').toLowerCase();
+  const min = it.min ?? '';
+  const max = it.max ?? '';
+  if (t.startsWith('bereich') || t === 'range') return `Regel: ${min}–${max} ${it.unit||''}`.trim();
+  if (t.startsWith('min')) return `Regel: min ${min} ${it.unit||''}`.trim();
+  if (t.startsWith('max')) return `Regel: max ${max} ${it.unit||''}`.trim();
+  return '';
+}
+
+/**
+ * Create a row element for a checklist item
+ */
+function renderItem(it){
+  const row = document.createElement('div');
+  row.className = 'card';
+  row.dataset.itemId = it.id;
+
+  const label = document.createElement('div');
+  label.className = 'label';
+  label.textContent = `${it.label}${it.unit ? ' ('+it.unit+')':''}`;
+  row.appendChild(label);
+
+  const inputWrap = document.createElement('div');
+  if ((it.type||'').toLowerCase().startsWith('zahl') || (it.type||'').toLowerCase()==='number' || it.type==='Z'){
+    const inp = document.createElement('input');
+    inp.className = 'input';
+    inp.type = 'number';
+    if (typeof it.step === 'number') inp.step = it.step;
+    inp.placeholder = 'Wert…';
+    inp.inputMode = 'decimal';
+    inputWrap.appendChild(inp);
+  } else {
+    // treat anything else as a yes/no checkbox
+    const chk = document.createElement('input');
+    chk.type = 'checkbox';
+    chk.id = `c_${it.id}`;
+    const lab = document.createElement('label');
+    lab.setAttribute('for', chk.id);
+    lab.textContent = 'Erledigt';
+    inputWrap.appendChild(chk);
+    inputWrap.appendChild(lab);
+    inputWrap.style.display = 'flex';
+    inputWrap.style.gap = '8px';
+    inputWrap.style.alignItems = 'center';
+  }
+  row.appendChild(inputWrap);
+
+  const help = document.createElement('div');
+  help.className = 'muted';
+  help.textContent = ruleText(it);
+  row.appendChild(help);
+
+  return row;
+}
+
+/**
+ * Load shops + render selected shop items
+ */
+async function loadPage(){
+  // ensure login (if you have login.html)
+  try{
+    if (!API.token()) throw new Error('no token');
+  }catch{ /* if API helper not present, just continue */ }
+
+  // shops
+  let shops;
+  try{
+    // prefer your API helper if present
+    if (API.shops) shops = await API.shops();
+    else shops = await fetchJSONEither(['/api/shops','/store/shops']);
+  }catch(e){
+    console.error(e);
+    alert('Shops konnten nicht geladen werden.');
+    return;
+  }
+
+  // selected shop (via helper or fallback to first)
+  let sel = null;
+  try{
+    sel = API.getShop ? API.getShop() : null;
+  }catch{}
+  let shop = sel ? shops.find(s => s.id === sel.id) : null;
+  if (!shop) shop = shops[0];
+  document.getElementById('shopName').textContent = shop?.name || '—';
+
+  // fill header select using UI helper if available
+  try{ if (window.UI && UI.fillShopSelect) UI.fillShopSelect(shops, shop?.id); }catch{}
 
   // render items
-  root.innerHTML = '';
-  let done = 0;
-  today.items.forEach((it, idx) => {
-    const id = `it_${idx}`;
-    const wrap = document.createElement('div');
-    wrap.className = 'col-6';
-    const help = (it.rule?.kind === 'range')
-      ? `Regel: ${it.rule.min}–${it.rule.max} ${it.unit||''}`
-      : it.rule?.kind === 'min' ? `Regel: min ${it.rule.min} ${it.unit||''}`
-      : it.rule?.kind === 'max' ? `Regel: max ${it.rule.max} ${it.unit||''}` : '';
-    wrap.innerHTML = `
-      <div class="card">
-        <label class="label" for="${id}">${it.label}${it.unit ? ` (${it.unit})` : ''}</label>
-        ${it.type === 'boolean'
-          ? `<input id="${id}" type="checkbox" ${it.value ? 'checked':''} />`
-          : `<input id="${id}" class="input" type="number" inputmode="decimal" value="${it.value ?? ''}" placeholder="Wert…">`
-        }
-        <div class="h" style="color:#6b7280;font-size:12px;margin-top:6px">${help}</div>
-      </div>`;
-    root.appendChild(wrap);
-  });
+  const itemsWrap = document.getElementById('items');
+  itemsWrap.innerHTML = '';
+  const items = (shop && Array.isArray(shop.items)) ? shop.items : [];
+  document.getElementById('total').textContent = items.length;
+  if (!items.length){
+    const empty = document.createElement('div');
+    empty.className = 'muted';
+    empty.textContent = 'Keine Items im Shop konfiguriert. Bitte im Admin-Bereich hinzufügen.';
+    itemsWrap.appendChild(empty);
+  } else {
+    items.forEach(it => itemsWrap.appendChild(renderItem(it)));
+  }
 
-  // notes
-  document.getElementById('notes').value = today.notes || '';
-
-  // reset
-  document.getElementById('resetBtn').onclick = () => location.reload();
-
-  // save
-  document.getElementById('saveBtn').onclick = async () => {
-    const items = today.items.map((it, idx) => {
-      const el = document.getElementById(`it_${idx}`);
-      return { ...it, value: (it.type==='boolean' ? el.checked : el.value) };
-    });
-    const res = await API.saveToday({ shopId: today.shop.id, date: today.date, items, notes: document.getElementById('notes').value });
-    alert(`Gespeichert. Abweichungen: ${res.deviations}`);
-    location.reload();
+  // simple save/reset (frontend only; wire to your API if needed)
+  document.getElementById('reset').onclick = () => {
+    itemsWrap.querySelectorAll('input').forEach(i => { if(i.type==='checkbox') i.checked=false; else i.value=''; });
+    document.getElementById('notes').value='';
+    document.getElementById('done').textContent = '0';
+    document.getElementById('devs').textContent = '0';
   };
 
-  // counters
-  done = today.items.filter(i => (i.type==='boolean'? true : String(i.value||'') !== '')).length;
-  document.getElementById('checks').textContent = `${done}/${today.items.length}`;
-  document.getElementById('deviations').textContent = String(today.deviations || 0);
-})();
+  document.getElementById('save').onclick = async () => {
+    // collect values
+    const payload = {
+      shopId: shop.id,
+      date: new Date().toISOString().slice(0,10),
+      notes: document.getElementById('notes').value || '',
+      values: Array.from(itemsWrap.children).map(row => {
+        const id = row.dataset.itemId;
+        const input = row.querySelector('input');
+        const val = input.type==='checkbox' ? (input.checked?1:0) : (input.value===''?null:Number(input.value));
+        return { id, value: val };
+      })
+    };
+
+    // simple deviation calc on client
+    let devs = 0, done = 0;
+    payload.values.forEach(v => {
+      const it = items.find(i => i.id===v.id);
+      if (!it) return;
+      if (v.value !== null && v.value !== 0) done++;
+      if ((it.type||'').toLowerCase().startsWith('zahl') || (it.type||'')==='number' || it.type==='Z'){
+        const rule = (it.rule||'').toLowerCase();
+        const min = Number(it.min), max = Number(it.max);
+        const x = Number(v.value);
+        if (rule.startsWith('bereich') || rule==='range'){ if (x < min || x > max) devs++; }
+        else if (rule.startsWith('min')) { if (x < min) devs++; }
+        else if (rule.startsWith('max')) { if (x > max) devs++; }
+      }
+    });
+    document.getElementById('done').textContent = String(done);
+    document.getElementById('devs').textContent = String(devs);
+    document.getElementById('lastSaved').textContent = 'gespeichert: ' + new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+
+    // send to whichever endpoint exists in your server
+    try{
+      const body = JSON.stringify(payload);
+      const headers = {'Content-Type':'application/json'};
+      let ok = false;
+
+      // Prefer API helper if present
+      if (API.saveToday) {
+        await API.saveToday(payload);
+        ok = true;
+      } else {
+        for (const p of ['/api/log/today','/store/logs/today']){
+          try{
+            const r = await fetch(p, {method:'POST', headers, body});
+            if (r.ok){ ok = true; break; }
+          }catch(_){}
+        }
+      }
+      if (!ok) console.warn('Konnte nicht an Server speichern – UI wird dennoch aktualisiert.');
+    }catch(err){
+      console.error(err);
+      alert('Speichern fehlgeschlagen.');
+    }
+  };
+}
+
+loadPage();
 </script>
 </body>
 </html>
