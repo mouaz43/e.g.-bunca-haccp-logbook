@@ -1,0 +1,57 @@
+{
+  "shops": [
+    {
+      "id": "shop_e19e395e",
+      "name": "BUNCA · City",
+      "city": "",
+      "address": "",
+      "active": true,
+      "items": [
+        {
+          "id": "item_b3ae5644",
+          "label": "Kühlschrank 1",
+          "type": "number",
+          "unit": "°C",
+          "rule": "range",
+          "min": 0,
+          "max": 7
+        },
+        {
+          "id": "item_e9e7b905",
+          "label": "Kühlschrank 2",
+          "type": "number",
+          "unit": "°C",
+          "rule": "range",
+          "min": 0,
+          "max": 7
+        },
+        {
+          "id": "item_d8a0eaaf",
+          "label": "Tiefkühler",
+          "type": "number",
+          "unit": "°C",
+          "rule": "max",
+          "min": -999,
+          "max": -18
+        },
+        {
+          "id": "item_85030b6d",
+          "label": "Ofen/Backstation Betriebstemp",
+          "type": "number",
+          "unit": "°C",
+          "rule": "min",
+          "min": 180,
+          "max": 999
+        }
+      ],
+      "cleaning": [
+        {
+          "id": "task_ae3335bb",
+          "task": "Arbeitsflächen reinigen",
+          "freq": "täglich",
+          "area": "Küche"
+        }
+      ]
+    }
+  ]
+}
