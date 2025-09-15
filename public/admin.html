@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BUNCA HACCP · Admin</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+<header class="header">
+  <div class="nav">
+    <a class="brand" href="index.html"><span>🛡️ BUNCA HACCP</span></a>
+    <div class="fill"></div>
+    <a data-nav href="index.html">Übersicht</a>
+    <a data-nav href="historie.html">Historie</a>
+    <a data-nav href="info.html">Anleitung</a>
+    <a data-nav href="admin.html">Admin</a>
+    <a href="#" class="btn" data-logout>Abmelden</a>
+  </div>
+</header>
+
+<main class="container">
+  <h2 class="h">Adminbereich</h2>
+
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div class="h">Shops</div>
+      <button id="newShop" class="btn btn-primary">+ Neuer Shop</button>
+    </div>
+    <table class="table" id="shopTable">
+      <thead><tr><th>Name</th><th>Stadt</th><th>Adresse</th><th>Aktiv</th><th>Aktion</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <div id="editor" class="panel" style="margin-top:18px; display:none">
+    <h3 class="h" id="edTitle">Shop bearbeiten</h3>
+    <div class="row">
+      <div class="col-6">
+        <label class="label">Name</label>
+        <input class="input" id="edName" />
+      </div>
+      <div class="col-3">
+        <label class="label">Stadt</label>
+        <input class="input" id="edCity" />
+      </div>
+      <div class="col-3">
+        <label class="label">Adresse</label>
+        <input class="input" id="edAddr" />
+      </div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="col-3">
+        <label class="label">Aktiv</label>
+        <select id="edActive" class="select2"><option value="true">Ja</option><option value="false">Nein</option></select>
+      </div>
+    </div>
+
+    <h4 class="h" style="margin-top:14px">Checkliste (Items)</h4>
+    <table class="table" id="itTable">
+      <thead><tr><th>Label</th><th>Typ</th><th>Einheit</th><th>Regel</th><th>Min</th><th>Max</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn" id="addItem">+ Item</button>
+
+    <h4 class="h" style="margin-top:14px">Cleaning Plan</h4>
+    <table class="table" id="clTable">
+      <thead><tr><th>Aufgabe</th><th>Frequenz</th><th>Bereich</th><th></th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <button class="btn" id="addTask">+ Aufgabe</button>
+
+    <div style="margin-top:12px;display:flex;gap:10px">
+      <button class="btn" id="cancelEd">Abbrechen</button>
+      <button class="btn btn-primary" id="saveEd">Speichern</button>
+    </div>
+  </div>
+</main>
+
+<footer class="footer">BUNCA HACCP · Admin</footer>
+
+<script src="./js/api.js"></script>
+<script src="./js/ui.js"></script>
+<script>
+(async function(){
+  if (!API.token()) {
+    const email = prompt('Admin E-Mail:'); const pass = prompt('Passwort:');
+    try { await API.login(email, pass); } catch { alert('Login fehlgeschlagen'); location.href='index.html'; return; }
+  }
+
+  const shopTbody = document.querySelector('#shopTable tbody');
+  const editor = document.getElementById('editor');
+  const edTitle = document.getElementById('edTitle');
+
+  let shops = await API.shops();
+  renderShopTable();
+
+  function renderShopTable(){
+    shopTbody.innerHTML = '';
+    shops.forEach(s=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${s.name}</td><td>${s.city||'-'}</td><td>${s.address||'-'}</td><td>${s.active?'aktiv':'inaktiv'}</td>
+      <td><button class="btn" data-ed="${s.id}">✏️</button> <button class="btn btn-danger" data-del="${s.id}">🗑️</button></td>`;
+      shopTbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('newShop').onclick = () => openEditor({ id:null, name:'', city:'', address:'', active:true, checklist:[], cleaningPlan:[] });
+
+  shopTbody.addEventListener('click', async (e)=>{
+    const edId = e.target.closest('button')?.dataset.ed;
+    const delId = e.target.closest('button')?.dataset.del;
+    if (edId) {
+      const s = shops.find(x=>x.id===edId); openEditor(JSON.parse(JSON.stringify(s)));
+    } else if (delId) {
+      if (confirm('Shop löschen?')) { await API.deleteShop(delId); shops = await API.shops(); renderShopTable(); }
+    }
+  });
+
+  // ---- Editor ----
+  let current = null;
+  const itBody = document.querySelector('#itTable tbody');
+  const clBody = document.querySelector('#clTable tbody');
+
+  function openEditor(s){
+    current = s;
+    editor.style.display = 'block';
+    edTitle.textContent = s.id ? 'Shop bearbeiten' : 'Neuer Shop';
+    document.getElementById('edName').value = s.name||'';
+    document.getElementById('edCity').value = s.city||'';
+    document.getElementById('edAddr').value = s.address||'';
+    document.getElementById('edActive').value = String(!!s.active);
+
+    renderItems();
+    renderTasks();
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
+  function renderItems(){
+    itBody.innerHTML = '';
+    (current.checklist||[]).forEach((it, i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="input" value="${it.label||''}" data-k="label" data-i="${i}"></td>
+        <td>
+          <select class="select2" data-k="type" data-i="${i}">
+            <option value="number" ${it.type==='number'?'selected':''}>Zahl</option>
+            <option value="boolean" ${it.type==='boolean'?'selected':''}>Ja/Nein</option>
+          </select>
+        </td>
+        <td><input class="input" value="${it.unit||''}" data-k="unit" data-i="${i}"></td>
+        <td>
+          <select class="select2" data-k="rule.kind" data-i="${i}">
+            <option value="range" ${it.rule?.kind==='range'?'selected':''}>Bereich</option>
+            <option value="min" ${it.rule?.kind==='min'?'selected':''}>min</option>
+            <option value="max" ${it.rule?.kind==='max'?'selected':''}>max</option>
+          </select>
+        </td>
+        <td><input class="input" type="number" value="${it.rule?.min ?? ''}" data-k="rule.min" data-i="${i}"></td>
+        <td><input class="input" type="number" value="${it.rule?.max ?? ''}" data-k="rule.max" data-i="${i}"></td>
+        <td><button class="btn btn-danger" data-itdel="${i}">x</button></td>`;
+      itBody.appendChild(tr);
+    });
+  }
+
+  function renderTasks(){
+    clBody.innerHTML = '';
+    (current.cleaningPlan||[]).forEach((t, i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input class="input" value="${t.task||''}" data-tk="task" data-ti="${i}"></td>
+        <td>
+          <select class="select2" data-tk="frequency" data-ti="${i}">
+            <option value="täglich" ${t.frequency==='täglich'?'selected':''}>täglich</option>
+            <option value="wöchentlich" ${t.frequency==='wöchentlich'?'selected':''}>wöchentlich</option>
+            <option value="monatlich" ${t.frequency==='monatlich'?'selected':''}>monatlich</option>
+          </select>
+        </td>
+        <td><input class="input" value="${t.area||''}" data-tk="area" data-ti="${i}"></td>
+        <td><button class="btn btn-danger" data-tdel="${i}">x</button></td>`;
+      clBody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('addItem').onclick = () => {
+    current.checklist.push({ id: `item_${Math.random().toString(36).slice(2,7)}`, label:'Neues Item', type:'number', unit:'°C', rule:{kind:'range', min:0, max:7} });
+    renderItems();
+  };
+  document.getElementById('addTask').onclick = () => {
+    current.cleaningPlan.push({ id: `task_${Math.random().toString(36).slice(2,7)}`, task:'Aufgabe', frequency:'täglich', area:'Bereich (z. B. Küche)' });
+    renderTasks();
+  };
+
+  itBody.addEventListener('input', e => {
+    const i = +e.target.dataset.i; const key = e.target.dataset.k;
+    if (!Number.isFinite(i)) return;
+    let ref = current.checklist[i];
+    if (key.includes('.')) {
+      const [a,b] = key.split('.');
+      ref[a] ||= {};
+      ref[a][b] = (e.target.type==='number' ? Number(e.target.value) : e.target.value);
+    } else {
+      ref[key] = e.target.type==='number' ? Number(e.target.value) : e.target.value;
+    }
+  });
+  itBody.addEventListener('click', e => {
+    const i = e.target.dataset.itdel;
+    if (i !== undefined) { current.checklist.splice(+i,1); renderItems(); }
+  });
+
+  clBody.addEventListener('input', e => {
+    const i = +e.target.dataset.ti; const key = e.target.dataset.tk;
+    if (!Number.isFinite(i)) return;
+    current.cleaningPlan[i][key] = e.target.value;
+  });
+  clBody.addEventListener('click', e => {
+    const i = e.target.dataset.tdel;
+    if (i !== undefined) { current.cleaningPlan.splice(+i,1); renderTasks(); }
+  });
+
+  document.getElementById('cancelEd').onclick = () => { editor.style.display = 'none'; };
+  document.getElementById('saveEd').onclick = async () => {
+    current.name = document.getElementById('edName').value.trim();
+    current.city = document.getElementById('edCity').value.trim();
+    current.address = document.getElementById('edAddr').value.trim();
+    current.active = document.getElementById('edActive').value === 'true';
+    if (!current.name) return alert('Name erforderlich');
+
+    if (current.id) await API.updateShop(current.id, current);
+    else current = await API.createShop(current);
+
+    shops = await API.shops();
+    renderShopTable();
+    alert('Gespeichert');
+    editor.style.display = 'none';
+  };
+})();
+</script>
+</body>
+</html>
