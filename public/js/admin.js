@@ -2,10 +2,16 @@ const el = s => document.querySelector(s);
 
 let SHOPS = [];
 let editingIdx = -1;
+let pendingSave = null; // function to retry after login
 
 async function api(path, opts) {
   const res = await fetch(path, { headers: { "Content-Type":"application/json" }, ...opts });
-  if (!res.ok) throw new Error(await res.text());
+  if (!res.ok) {
+    const text = await res.text().catch(()=>res.statusText);
+    const err = new Error(text || "Request failed");
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 }
 
@@ -13,7 +19,7 @@ function uid(prefix) { return `${prefix}_${Math.random().toString(36).slice(2,8)
 
 function renderList() {
   const box = el("#shopsList");
-  if (!SHOPS.length) { box.innerHTML = "<div class='muted'>Noch keine Shops.</div>"; return; }
+  if (!SHOPS.length) { box.innerHTML = "<div class='muted' style='padding:14px;'>Noch keine Shops.</div>"; return; }
   box.innerHTML = `
     <div class="thead">
       <div>Name</div><div>Stadt</div><div>Adresse</div><div>Aktiv</div><div>Aktion</div>
@@ -26,7 +32,7 @@ function renderList() {
         <div>${s.active ? "<span class='badge ok'>aktiv</span>" : "<span class='badge'>inaktiv</span>"}</div>
         <div class="row gap">
           <button class="btn" onclick="editShop(${i})">✏️</button>
-          <button class="btn" onclick="delShop(${i})">🗑️</button>
+          <button class="btn danger" onclick="delShop(${i})">🗑️</button>
         </div>
       </div>
     `).join("")}
@@ -41,7 +47,7 @@ function itemRow(it) {
       <option value="number" ${it.type==="number"?"selected":""}>Zahl</option>
       <option value="boolean" ${it.type==="boolean"?"selected":""}>Ja/Nein</option>
     </select>
-    <input class="i_unit" placeholder="Einheit (z.B. °C)" value="${it.unit||""}">
+    <input class="i_unit" placeholder="Einheit (z. B. °C)" value="${it.unit||""}">
     <select class="i_rule">
       <option value="range" ${it.rule==="range"?"selected":""}>↔ Bereich</option>
       <option value="min" ${it.rule==="min"?"selected":""}>≥ Minimum</option>
@@ -96,7 +102,6 @@ function openDlgFor(shop, idx) {
   dlg.showModal();
 
   el("#saveShop").onclick = async () => {
-    // collect rows
     const items = [...itemsTable.querySelectorAll(".itemrow")].map(r => ({
       id: r.dataset.id,
       label: r.querySelector(".i_label").value,
@@ -116,6 +121,7 @@ function openDlgFor(shop, idx) {
 
     const updated = {
       ...shop,
+      id: shop.id || el("#s_name").value.trim().toLowerCase().replace(/\s+/g, "-"),
       name: el("#s_name").value.trim(),
       city: el("#s_city").value.trim(),
       address: el("#s_addr").value.trim(),
@@ -124,32 +130,64 @@ function openDlgFor(shop, idx) {
       cleaning: tasks
     };
 
-    if (editingIdx >= 0) SHOPS[editingIdx] = updated;
-    else {
-      updated.id = updated.id || updated.name.toLowerCase().replace(/\s+/g, "-");
-      SHOPS.push(updated);
-    }
+    if (editingIdx >= 0) SHOPS[editingIdx] = updated; else SHOPS.push(updated);
 
-    await api("/api/shops", { method:"POST", body: JSON.stringify({ shops: SHOPS }) });
-    dlg.close();
-    await loadShops();
+    pendingSave = saveAllShops;
+    try {
+      await saveAllShops();
+      dlg.close();
+      await loadShops();
+    } catch (e) {
+      if (e.status === 401) openLogin(); else alert(`Speichern fehlgeschlagen:\n${e.message}`);
+    }
   };
+}
+
+async function saveAllShops() {
+  return api("/api/shops", { method:"POST", body: JSON.stringify({ shops: SHOPS }) });
 }
 
 window.editShop = (idx) => openDlgFor(SHOPS[idx], idx);
 window.delShop = async (idx) => {
   if (!confirm("Shop wirklich löschen?")) return;
   SHOPS.splice(idx, 1);
-  await api("/api/shops", { method:"POST", body: JSON.stringify({ shops: SHOPS }) });
-  renderList();
+  try {
+    await saveAllShops();
+    renderList();
+  } catch (e) {
+    if (e.status === 401) { pendingSave = saveAllShops; openLogin(); }
+    else alert(`Löschen fehlgeschlagen:\n${e.message}`);
+  }
 };
 
-el("#newShopBtn").onclick = () => openDlgFor({ id: "", name: "", active: true, checklist: [], cleaning: [] }, -1);
+function openLogin() {
+  const dlg = el("#loginDlg");
+  dlg.showModal();
+}
+
+el("#doLogin").onclick = async () => {
+  const email = el("#l_email").value.trim();
+  const password = el("#l_pass").value;
+  try {
+    await api("/api/login", { method:"POST", body: JSON.stringify({ email, password }) });
+    el("#loginDlg").close();
+    if (typeof pendingSave === "function") {
+      const fn = pendingSave;
+      pendingSave = null;
+      await fn();
+      await loadShops();
+    }
+  } catch (e) {
+    alert("Login fehlgeschlagen. Prüfe E-Mail/Passwort (Render ENV).");
+  }
+};
+
+el("#newShopBtn").onclick = () =>
+  openDlgFor({ id:"", name:"", active:true, checklist:[], cleaning:[] }, -1);
 
 async function loadShops() {
   const data = await api("/api/shops");
   SHOPS = data.shops || [];
   renderList();
 }
-
 loadShops();
