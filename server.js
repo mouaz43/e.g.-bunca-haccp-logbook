@@ -1,18 +1,15 @@
 /**
  * BUNCA HACCP — Production Express Server (single-file edition)
  * ------------------------------------------------------------
- * Goals
- * - Minimal external files: you can deploy with only package.json + this file.
- * - Security: helmet, rate-limit, CORS, sane headers.
- * - Render-compatible: binds to process.env.PORT, provides /healthz.
- * - SEO basics: /robots.txt, /sitemap.xml.
- * - Fully working pages served from strings (/, /login, /impressum, /datenschutz).
- * - Assets served via routes: /assets/style.css and /assets/app.js
- * - Clean structure & graceful shutdown.
+ * - Minimal files (this + package.json) so Render works instantly
+ * - Security: helmet, rate-limit, CORS
+ * - Health: /healthz
+ * - SEO: /robots.txt, /sitemap.xml
+ * - UI: Home, Login, Impressum, Datenschutz
+ * - Assets: /assets/style.css, /assets/app.js (served from memory)
  *
- * Next steps (when you say “Next file”):
- * - Split into modules (auth, shops, checks, admin), SQLite, EJS views.
- * - Keep each new **code** file ≥ 500 lines as requested.
+ * Next step (if you want): I’ll split into modules (Auth, Shops, HACCP) —
+ * each 500+ LOC — but for now this runs cleanly with real BUNCA copy.
  */
 
 'use strict';
@@ -31,16 +28,16 @@ const APP_NAME = process.env.APP_NAME || 'BUNCA HACCP';
 const NODE_ENV = process.env.NODE_ENV || 'production';
 const PORT = Number(process.env.PORT || 3000);
 
-// CORS (open; we can restrict later)
+// CORS (open now; can restrict later)
 const corsOptions = {
   origin: (_origin, cb) => cb(null, true),
   credentials: false
 };
 
-// Rate limit (basic)
+// Rate limit
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 120, // 120 req/min/IP
+  max: 120,
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -80,9 +77,9 @@ const getBaseUrl = (req) => {
   return `${proto}://${host}`;
 };
 
-// ------------------------- CSS (served via route) ----------
+// ------------------------- CSS -----------------------------
 const CSS = String.raw`
-/* === BUNCA HACCP Base Styles (mobile-first, modern) === */
+/* === BUNCA HACCP Base Styles === */
 :root{
   --bg:#0e0f12; --panel:#14161b; --soft:#1a1d23;
   --text:#e9eef7; --muted:#a8b0bf;
@@ -169,9 +166,6 @@ main.page{padding:28px 0 56px}
 .h2{font-size:clamp(22px,3.2vw,34px);font-weight:900;margin:0 0 12px}
 .lead{font-size:clamp(15px,2vw,18px);color:var(--muted);max-width:70ch}
 .section{padding:24px 0}
-.tabs{display:flex;gap:8px;flex-wrap:wrap}
-.tabs .tab{padding:10px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12);cursor:pointer}
-.tabs .tab[aria-selected="true"]{background:linear-gradient(180deg,var(--gold),#9f7e3d);color:#14161b;border-color:transparent}
 
 /* Footer */
 .site-footer{padding:26px 0;border-top:1px solid rgba(255,255,255,.06);color:var(--muted)}
@@ -191,13 +185,9 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
 .hidden{display:none !important}.center{display:grid;place-items:center}
 `;
 
-// ------------------------- JS (served via route) ------------
+// ------------------------- JS ------------------------------
 const JS = String.raw`
 // BUNCA HACCP front-end (vanilla JS)
-// - Mobile menu toggle
-// - Theme toggle (persisted)
-// - Lead form (demo) -> localStorage
-// - Simple toast feedback
 (function(){
   'use strict';
   const $ = (sel, root=document) => root.querySelector(sel);
@@ -265,7 +255,7 @@ const JS = String.raw`
 })();
 `;
 
-// ------------------------- HTML Templates ------------------
+// ------------------------- HTML ----------------------------
 function layoutHTML({ title, content }) {
   return `<!doctype html>
 <html lang="de" data-theme="dark">
@@ -274,7 +264,7 @@ function layoutHTML({ title, content }) {
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>${escapeHtml(title ? `${title} · ${APP_NAME}` : APP_NAME)}</title>
   <meta name="color-scheme" content="dark light" />
-  <meta name="description" content="BUNCA HACCP – modernes, audit-sicheres Toolkit für Gastronomie & Coffee Shops." />
+  <meta name="description" content="BUNCA HACCP – Digitale Hygienedokumentation, Trainings & Checklisten für Coffee Shops." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%233E2723'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' font-size='28' font-family='system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial' fill='%23F5EDE3'%3EB%3C/text%3E%3C/svg%3E" />
   <link rel="stylesheet" href="/assets/style.css" />
 </head>
@@ -363,18 +353,17 @@ function pageHome() {
   <div class="grid-2">
     <div>
       <span class="badge">BUNCA HACCP</span>
-      <h1 class="h1">Frischer Start – Render-ready, ohne fehlende Dateien.</h1>
-      <p class="lead">Dieses Grundgerüst läuft sofort. Es liefert Seiten, CSS & JS aus dem Server. Später splitten wir in Module (500+ Zeilen pro Code-Datei, wie gewünscht).</p>
+      <h1 class="h1">Digitale HACCP-Prozesse für Coffee Shops</h1>
+      <p class="lead">Ein System für Schulungen, Checklisten und audit-sichere Dokumentation. Mobilfreundlich, schnell ausrollbar, perfekt für BUNCA-Filialen.</p>
       <div class="row">
         <a class="btn btn-primary" href="#starter">Starter-Kit holen</a>
         <a class="btn btn-ghost" href="/login">Login</a>
       </div>
       <div class="spacer"></div>
       <div class="row">
-        <span class="chip">🔐 Helmet</span>
-        <span class="chip">🛡️ Rate-Limit</span>
-        <span class="chip">🌐 CORS</span>
-        <span class="chip">❤️ Render Healthcheck</span>
+        <span class="chip">🔐 DSGVO-konform</span>
+        <span class="chip">🇪🇺 EU-Hosting möglich</span>
+        <span class="chip">📦 Audit-Exporte</span>
       </div>
     </div>
     <div class="card">
@@ -450,7 +439,7 @@ function pageLogin() {
     <button class="btn btn-primary" type="submit">Login</button>
   </form>
   <div class="spacer"></div>
-  <p class="muted" style="font-size:13px">Hinweis: Echte Auth (Session/SQLite) liefern wir im nächsten 500+ Zeilen Modul.</p>
+  <p class="muted" style="font-size:13px">Hinweis: Echte Auth (Session/SQLite) liefern wir im nächsten Schritt.</p>
 </div>
 `
   });
