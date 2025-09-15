@@ -1,193 +1,144 @@
-const el = s => document.querySelector(s);
+(async function(){
+  const user = await me();
+  if (!user || user.role !== 'admin') { location.href = 'index.html'; return; }
 
-let SHOPS = [];
-let editingIdx = -1;
-let pendingSave = null; // function to retry after login
+  const shopsTable = document.getElementById('shopsTable');
+  const newShopBtn = document.getElementById('newShopBtn');
+  const logoutBtn = document.getElementById('logoutBtn');
 
-async function api(path, opts) {
-  const res = await fetch(path, { headers: { "Content-Type":"application/json" }, ...opts });
-  if (!res.ok) {
-    const text = await res.text().catch(()=>res.statusText);
-    const err = new Error(text || "Request failed");
-    err.status = res.status;
-    throw err;
-  }
-  return res.json();
-}
+  logoutBtn.onclick = async ()=> { await logout(); location.href='index.html'; };
 
-function uid(prefix) { return `${prefix}_${Math.random().toString(36).slice(2,8)}`; }
+  const modalEl = document.getElementById('shopModal');
+  const shopModal = new bootstrap.Modal(modalEl);
 
-function renderList() {
-  const box = el("#shopsList");
-  if (!SHOPS.length) { box.innerHTML = "<div class='muted' style='padding:14px;'>Noch keine Shops.</div>"; return; }
-  box.innerHTML = `
-    <div class="thead">
-      <div>Name</div><div>Stadt</div><div>Adresse</div><div>Aktiv</div><div>Aktion</div>
-    </div>
-    ${SHOPS.map((s, i)=>`
-      <div class="trow">
-        <div>${s.name}</div>
-        <div>${s.city||"–"}</div>
-        <div>${s.address||"–"}</div>
-        <div>${s.active ? "<span class='badge ok'>aktiv</span>" : "<span class='badge'>inaktiv</span>"}</div>
-        <div class="row gap">
-          <button class="btn" onclick="editShop(${i})">✏️</button>
-          <button class="btn danger" onclick="delShop(${i})">🗑️</button>
-        </div>
-      </div>
-    `).join("")}
-  `;
-}
+  let editing = null; // shop object while editing
 
-function itemRow(it) {
-  return `
-  <div class="grid6 itemrow" data-id="${it.id}">
-    <input class="i_label" placeholder="Label" value="${it.label||""}">
-    <select class="i_type">
-      <option value="number" ${it.type==="number"?"selected":""}>Zahl</option>
-      <option value="boolean" ${it.type==="boolean"?"selected":""}>Ja/Nein</option>
-    </select>
-    <input class="i_unit" placeholder="Einheit (z. B. °C)" value="${it.unit||""}">
-    <select class="i_rule">
-      <option value="range" ${it.rule==="range"?"selected":""}>↔ Bereich</option>
-      <option value="min" ${it.rule==="min"?"selected":""}>≥ Minimum</option>
-      <option value="max" ${it.rule==="max"?"selected":""}>≤ Maximum</option>
-    </select>
-    <input type="number" class="i_min" placeholder="Min" value="${it.min ?? ""}">
-    <input type="number" class="i_max" placeholder="Max" value="${it.max ?? ""}">
-    <button class="btn danger sm item-del" type="button">x</button>
-  </div>`;
-}
-
-function taskRow(t) {
-  return `
-  <div class="grid4 itemrow" data-id="${t.id}">
-    <input class="t_label" placeholder="Aufgabe" value="${t.label||""}">
-    <input class="t_freq" placeholder="Frequenz (z. B. täglich)" value="${t.frequency||"täglich"}">
-    <input class="t_area" placeholder="Bereich (z. B. Küche)" value="${t.area||""}">
-    <button class="btn danger sm task-del" type="button">x</button>
-  </div>`;
-}
-
-function openDlgFor(shop, idx) {
-  editingIdx = idx;
-  el("#s_name").value = shop.name || "";
-  el("#s_city").value = shop.city || "";
-  el("#s_addr").value = shop.address || "";
-  el("#s_active").checked = !!shop.active;
-
-  const itemsTable = el("#itemsTable");
-  itemsTable.innerHTML = (shop.checklist||[]).map(itemRow).join("");
-  itemsTable.querySelectorAll(".item-del").forEach(btn => {
-    btn.onclick = (e) => e.currentTarget.closest(".itemrow").remove();
-  });
-
-  const tasksTable = el("#tasksTable");
-  tasksTable.innerHTML = (shop.cleaning||[]).map(taskRow).join("");
-  tasksTable.querySelectorAll(".task-del").forEach(btn => {
-    btn.onclick = (e) => e.currentTarget.closest(".itemrow").remove();
-  });
-
-  el("#addItem").onclick = () => {
-    itemsTable.insertAdjacentHTML("beforeend", itemRow({ id: uid("item"), type:"number", rule:"range" }));
-    itemsTable.querySelectorAll(".item-del").forEach(btn => btn.onclick = (e)=> e.currentTarget.closest(".itemrow").remove());
-  };
-
-  el("#addTask").onclick = () => {
-    tasksTable.insertAdjacentHTML("beforeend", taskRow({ id: uid("task"), frequency:"täglich" }));
-    tasksTable.querySelectorAll(".task-del").forEach(btn => btn.onclick = (e)=> e.currentTarget.closest(".itemrow").remove());
-  };
-
-  const dlg = el("#shopDlg");
-  dlg.showModal();
-
-  el("#saveShop").onclick = async () => {
-    const items = [...itemsTable.querySelectorAll(".itemrow")].map(r => ({
-      id: r.dataset.id,
-      label: r.querySelector(".i_label").value,
-      type: r.querySelector(".i_type").value,
-      unit: r.querySelector(".i_unit").value,
-      rule: r.querySelector(".i_rule").value,
-      min: r.querySelector(".i_min").value === "" ? undefined : Number(r.querySelector(".i_min").value),
-      max: r.querySelector(".i_max").value === "" ? undefined : Number(r.querySelector(".i_max").value)
-    }));
-
-    const tasks = [...tasksTable.querySelectorAll(".itemrow")].map(r => ({
-      id: r.dataset.id,
-      label: r.querySelector(".t_label").value,
-      frequency: r.querySelector(".t_freq").value,
-      area: r.querySelector(".t_area").value
-    }));
-
-    const updated = {
-      ...shop,
-      id: shop.id || el("#s_name").value.trim().toLowerCase().replace(/\s+/g, "-"),
-      name: el("#s_name").value.trim(),
-      city: el("#s_city").value.trim(),
-      address: el("#s_addr").value.trim(),
-      active: el("#s_active").checked,
-      checklist: items,
-      cleaning: tasks
+  function row(shop){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${shop.name}</td><td>${shop.city||'-'}</td><td>${shop.address||'-'}</td>
+      <td><span class="badge ${shop.active?'bg-success':'bg-secondary'}">${shop.active?'aktiv':'inaktiv'}</span></td>
+      <td class="text-nowrap">
+        <button class="btn btn-sm btn-outline-secondary me-2 edit">Bearbeiten</button>
+        <button class="btn btn-sm btn-outline-danger del">Löschen</button>
+      </td>`;
+    tr.querySelector('.edit').onclick = () => openEditor(shop);
+    tr.querySelector('.del').onclick = async () => {
+      if (!confirm('Diesen Shop löschen?')) return;
+      await api(`/api/shops/${shop.id}`, { method:'DELETE' });
+      load();
     };
-
-    if (editingIdx >= 0) SHOPS[editingIdx] = updated; else SHOPS.push(updated);
-
-    pendingSave = saveAllShops;
-    try {
-      await saveAllShops();
-      dlg.close();
-      await loadShops();
-    } catch (e) {
-      if (e.status === 401) openLogin(); else alert(`Speichern fehlgeschlagen:\n${e.message}`);
-    }
-  };
-}
-
-async function saveAllShops() {
-  return api("/api/shops", { method:"POST", body: JSON.stringify({ shops: SHOPS }) });
-}
-
-window.editShop = (idx) => openDlgFor(SHOPS[idx], idx);
-window.delShop = async (idx) => {
-  if (!confirm("Shop wirklich löschen?")) return;
-  SHOPS.splice(idx, 1);
-  try {
-    await saveAllShops();
-    renderList();
-  } catch (e) {
-    if (e.status === 401) { pendingSave = saveAllShops; openLogin(); }
-    else alert(`Löschen fehlgeschlagen:\n${e.message}`);
+    return tr;
   }
-};
 
-function openLogin() {
-  const dlg = el("#loginDlg");
-  dlg.showModal();
-}
-
-el("#doLogin").onclick = async () => {
-  const email = el("#l_email").value.trim();
-  const password = el("#l_pass").value;
-  try {
-    await api("/api/login", { method:"POST", body: JSON.stringify({ email, password }) });
-    el("#loginDlg").close();
-    if (typeof pendingSave === "function") {
-      const fn = pendingSave;
-      pendingSave = null;
-      await fn();
-      await loadShops();
-    }
-  } catch (e) {
-    alert("Login fehlgeschlagen. Prüfe E-Mail/Passwort (Render ENV).");
+  function itemRow(it){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="form-control form-control-sm label" value="${it.label||''}"></td>
+      <td>
+        <select class="form-select form-select-sm type">
+          <option value="number" ${it.type==='number'?'selected':''}>Zahl</option>
+          <option value="boolean" ${it.type==='boolean'?'selected':''}>Ja/Nein</option>
+        </select>
+      </td>
+      <td><input class="form-control form-control-sm unit" value="${it.unit||''}"></td>
+      <td>
+        <select class="form-select form-select-sm rule">
+          <option value="range" ${it.rule==='range'?'selected':''}>↔ Bereich</option>
+          <option value="min" ${it.rule==='min'?'selected':''}>≥ Min</option>
+          <option value="max" ${it.rule==='max'?'selected':''}>≤ Max</option>
+        </select>
+      </td>
+      <td><input type="number" class="form-control form-control-sm min" value="${it.min ?? ''}"></td>
+      <td><input type="number" class="form-control form-control-sm max" value="${it.max ?? ''}"></td>
+      <td><button class="btn btn-sm btn-outline-danger x">x</button></td>
+    `;
+    tr.querySelector('.x').onclick = () => tr.remove();
+    return tr;
   }
-};
+  function taskRow(t){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input class="form-control form-control-sm task" value="${t.task||''}"></td>
+      <td>
+        <select class="form-select form-select-sm freq">
+          <option>täglich</option><option>woechentlich</option><option>monatlich</option>
+        </select>
+      </td>
+      <td><input class="form-control form-control-sm area" value="${t.area||''}" placeholder="Bereich (z. B. Küche)"></td>
+      <td><button class="btn btn-sm btn-outline-danger x">x</button></td>`;
+    tr.querySelector('.freq').value = t.freq || 'täglich';
+    tr.querySelector('.x').onclick = () => tr.remove();
+    return tr;
+  }
 
-el("#newShopBtn").onclick = () =>
-  openDlgFor({ id:"", name:"", active:true, checklist:[], cleaning:[] }, -1);
+  function openEditor(shop){
+    editing = shop || { name:'', city:'', address:'', active:true, items:[], cleaning:[] };
+    document.getElementById('m_name').value = editing.name || '';
+    document.getElementById('m_city').value = editing.city || '';
+    document.getElementById('m_addr').value = editing.address || '';
+    document.getElementById('m_active').checked = !!editing.active;
 
-async function loadShops() {
-  const data = await api("/api/shops");
-  SHOPS = data.shops || [];
-  renderList();
-}
-loadShops();
+    const itemsBody = document.getElementById('m_items'); itemsBody.innerHTML='';
+    (editing.items || []).forEach(it => itemsBody.appendChild(itemRow(it)));
+    const cleanBody = document.getElementById('m_clean'); cleanBody.innerHTML='';
+    (editing.cleaning || []).forEach(t => cleanBody.appendChild(taskRow(t)));
+
+    document.getElementById('addItem').onclick = ()=> itemsBody.appendChild(itemRow({ type:'number', rule:'range' }));
+    document.getElementById('addTask').onclick = ()=> cleanBody.appendChild(taskRow({ freq:'täglich' }));
+
+    document.getElementById('saveShop').onclick = saveEditor;
+
+    shopModal.show();
+  }
+
+  async function saveEditor(){
+    const payload = {
+      name: document.getElementById('m_name').value,
+      city: document.getElementById('m_city').value,
+      address: document.getElementById('m_addr').value,
+      active: document.getElementById('m_active').checked,
+      items: [],
+      cleaning: []
+    };
+    // collect items
+    document.querySelectorAll('#m_items tr').forEach(tr=>{
+      payload.items.push({
+        id: cryptoId(),
+        label: tr.querySelector('.label').value,
+        type: tr.querySelector('.type').value,
+        unit: tr.querySelector('.unit').value,
+        rule: tr.querySelector('.rule').value,
+        min: tr.querySelector('.min').value === '' ? null : Number(tr.querySelector('.min').value),
+        max: tr.querySelector('.max').value === '' ? null : Number(tr.querySelector('.max').value),
+      });
+    });
+    // collect cleaning tasks
+    document.querySelectorAll('#m_clean tr').forEach(tr=>{
+      payload.cleaning.push({
+        id: cryptoId(),
+        task: tr.querySelector('.task').value,
+        freq: tr.querySelector('.freq').value,
+        area: tr.querySelector('.area').value
+      });
+    });
+
+    if (editing.id) {
+      await api(`/api/shops/${editing.id}`, { method:'PUT', body: payload });
+    } else {
+      await api('/api/shops', { method:'POST', body: payload });
+    }
+    shopModal.hide();
+    load();
+  }
+
+  function cryptoId(){ return 'id_'+Math.random().toString(16).slice(2,10); }
+
+  async function load(){
+    const { shops } = await api('/api/shops');
+    shopsTable.innerHTML = '';
+    shops.forEach(s => shopsTable.appendChild(row(s)));
+  }
+
+  newShopBtn.onclick = ()=> openEditor(null);
+  load();
+})();
