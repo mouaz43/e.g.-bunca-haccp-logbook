@@ -8,7 +8,7 @@
       "active": true,
       "items": [
         {
-          "id": "id_f6d4ae16",
+          "id": "id_e3a39706",
           "label": "Kühlschrank 1",
           "type": "number",
           "unit": "°C",
@@ -17,7 +17,7 @@
           "max": 7
         },
         {
-          "id": "id_74aa8153",
+          "id": "id_d54e673d",
           "label": "Kühlschrank 2",
           "type": "number",
           "unit": "°C",
@@ -26,7 +26,7 @@
           "max": 7
         },
         {
-          "id": "id_714f5f7c",
+          "id": "id_dd6f3d7c",
           "label": "Tiefkühler",
           "type": "number",
           "unit": "°C",
@@ -35,7 +35,7 @@
           "max": -18
         },
         {
-          "id": "id_531552d1",
+          "id": "id_61dc2703",
           "label": "Ofen/Backstation Betriebstemp",
           "type": "number",
           "unit": "°C",
@@ -46,7 +46,7 @@
       ],
       "cleaning": [
         {
-          "id": "id_8cd588ff",
+          "id": "id_b651a568",
           "task": "Arbeitsflächen reinigen",
           "freq": "täglich",
           "area": "Küche"
