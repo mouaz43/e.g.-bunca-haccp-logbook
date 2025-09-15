@@ -1,6 +1,6 @@
 {
   "name": "bunca-haccp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "BUNCA HACCP — Production-ready Node/Express server for Render",
   "private": true,
   "scripts": {
