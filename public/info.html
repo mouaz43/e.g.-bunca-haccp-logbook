@@ -4,65 +4,46 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BUNCA HACCP · Anleitung</title>
-
-  <!-- IMPORTANT: use the same global stylesheet as other pages -->
+  <!-- keep using your existing shared stylesheet -->
   <link rel="stylesheet" href="style.css" />
 
-  <!-- Page-local, safe additions (won’t affect other pages) -->
+  <!-- Page-only print tweaks (scoped & safe) -->
   <style>
-    .page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 8px}
-    .page-actions{display:flex;gap:8px;flex-wrap:wrap}
-    .btn{display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:.55rem .9rem;background:#fff;cursor:pointer;font-weight:700}
-    .btn:hover{background:#f5f7f5}
-    .badge-pill{display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.35rem .7rem;background:#eef6f0;border:1px solid #dcefe4;font-weight:700}
-
-    .cards{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:10px}
-    .card{grid-column:span 4;background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
-    .panel{background:#fff;border:1px solid #e8ecea;border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.06);margin-top:16px}
-    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
-    .col-6{grid-column:span 6}
-    .col-12{grid-column:span 12}
-    .muted{color:#64748b}
-    .table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #e8ecea;border-radius:12px;overflow:hidden}
-    .table th,.table td{padding:10px 12px;border-bottom:1px solid #eef2f1;text-align:left}
-    .table tr:last-child td{border-bottom:none}
-
-    /* Print helpers */
-    body.print-compact .card, body.print-compact .panel{box-shadow:none;border-color:#dfe7e4}
-    body.print-compact .card{padding:12px}
-    body.print-compact .panel{padding:12px}
-    body.print-compact .cards{gap:10px}
-    body.print-compact h2{margin:8px 0}
-    body.print-compact h3{margin:8px 0}
-    body.print-compact .page-actions{display:none}
-    @media print{
-      header, nav, .page-actions, .site-footer{display:none !important}
-      main{margin:0 !important;padding:0 6mm !important}
-      body{background:#fff}
-      .card,.panel{box-shadow:none;border-color:#dcdcdc}
-      .cards{grid-template-columns:repeat(12,1fr)}
-      .card{grid-column:span 4}
-      .col-6{grid-column:span 6}
-      .col-12{grid-column:span 12}
-      .avoid-break{page-break-inside:avoid}
+    /* Compact print: everything fits on one A4 */
+    @media print {
+      .app-header,
+      .navbar,
+      .nav,
+      .btn,
+      .print-hide { display: none !important; }
+      .container { max-width: 100% !important; padding: 0 !important; }
+      .cards, .grid { gap: 10px !important; }
+      .card, .panel { box-shadow: none !important; border: 1px solid #ddd !important; }
+      .card h4, h1, h2, h3 { margin: 4px 0 6px 0 !important; }
+      .print-compact .card p,
+      .print-compact .card li { font-size: 12px !important; line-height: 1.25 !important; }
+      .footer { display: none !important; }
     }
-    @media (max-width: 820px){ .card{grid-column:span 12} .col-6{grid-column:span 12} }
   </style>
 </head>
 <body>
 
-  <!-- SAME HEADER AS OTHER PAGES -->
+  <!-- Header (same structure/ids/classes as on index.html) -->
   <header class="app-header">
     <div class="navbar">
       <a class="brand" href="index.html">
-        <img src="assets/img/bunca-logo.svg" alt="BUNCA" style="height:26px" onerror="this.remove()">
+        <img src="assets/img/bunca-logo.svg" alt="BUNCA" onerror="this.remove()" />
         <span>BUNCA HACCP</span>
       </a>
-      <div style="flex:1"></div>
 
-      <!-- Shop selector (synced) -->
-      <select id="shopSelect" class="select--shop" aria-label="Shop wählen"></select>
+      <div class="spacer"></div>
 
+      <!-- Shop selector (kept in sync via localStorage + API fallback) -->
+      <select id="shopSelect" class="select--shop" aria-label="Shop auswählen">
+        <!-- will be populated by JS -->
+      </select>
+
+      <!-- Main nav -->
       <nav class="nav">
         <a data-nav href="index.html">Übersicht</a>
         <a data-nav href="historie.html">Historie</a>
@@ -76,166 +57,169 @@
   </header>
 
   <main class="container">
-    <div class="page-header">
-      <h1 style="margin:10px 0 0 0">Anleitung & Soforthilfe</h1>
-      <div class="page-actions">
-        <span id="shopBadge" class="badge-pill">Shop: –</span>
-        <button class="btn" id="btnCompact">Kompakt drucken</button>
-        <button class="btn" id="btnPrint">Drucken</button>
-      </div>
-    </div>
+    <header class="print-hide" style="display:flex;align-items:center;gap:12px;margin-top:10px;">
+      <h1 style="margin:0;">Anleitung & Soforthilfe</h1>
+      <span class="badge badge--muted" style="margin-left:auto;">Shop: <strong data-shop-name>–</strong></span>
+      <button class="btn btn--light" id="btnPrintCompact" type="button">Kompakt drucken</button>
+      <button class="btn btn--light" id="btnPrint" type="button">Drucken</button>
+    </header>
 
-    <h2 style="margin:8px 0">Kurzanleitungen</h2>
-    <section class="cards avoid-break">
+    <section class="cards" style="margin-top:18px;">
       <article class="card">
-        <h3 style="margin:0 0 6px 0">Händehygiene</h3>
-        <ul class="muted" style="margin:0 0 4px 16px">
+        <h3 style="margin:0 0 8px 0;">Händehygiene</h3>
+        <ul class="help" style="margin:8px 0 0 18px;">
           <li>Hände 20–30 s einseifen, Zwischenräume/Daumen/Nägel.</li>
           <li>Gründlich abspülen, Einmalhandtuch benutzen.</li>
-          <li>Bei Arbeitswechsel/Toilette/rohem Fleisch immer waschen.</li>
+          <li>Bei Arbeitsplatzwechsel/Toilette/rohem Fleisch immer waschen.</li>
         </ul>
       </article>
+
       <article class="card">
-        <h3 style="margin:0 0 6px 0">Kühlkette</h3>
-        <ul class="muted" style="margin:0 0 4px 16px">
-          <li>Eingangstemperatur messen und dokumentieren.</li>
+        <h3 style="margin:0 0 8px 0;">Kühlkette</h3>
+        <ul class="help" style="margin:8px 0 0 18px;">
+          <li>Eingangstemperatur messen & dokumentieren.</li>
           <li>Sofort einlagern, Türen nicht offen stehen lassen.</li>
           <li>FIFO beachten (zuerst ablaufende Ware zuerst).</li>
         </ul>
       </article>
+
       <article class="card">
-        <h3 style="margin:0 0 6px 0">Reinigung</h3>
-        <ul class="muted" style="margin:0 0 4px 16px">
-          <li>Von sauber ➝ schmutzig; farbcodierte Tücher verwenden.</li>
-          <li>Dosierung &amp; Einwirkzeit lt. Etikett; Klarspültemp. prüfen.</li>
+        <h3 style="margin:0 0 8px 0;">Reinigung</h3>
+        <ul class="help" style="margin:8px 0 0 18px;">
+          <li>Von sauber → schmutzig; farbcodierte Tücher verwenden.</li>
+          <li>Dosierung & Einwirkzeit lt. Etikett; Klarspültemp. prüfen.</li>
           <li>Checkliste täglich abhaken, Abweichungen melden.</li>
         </ul>
       </article>
     </section>
 
-    <section class="panel avoid-break">
-      <h2 style="margin:0 0 10px 0">Bildliche Anleitungen</h2>
+    <section class="panel" style="margin-top:24px;">
+      <h2 style="margin:0 0 12px 0;">Bildliche Anleitungen</h2>
       <div class="grid">
         <div class="col-6">
-          <div class="panel">
-            <h3 style="margin-top:0">Hände waschen (5 Schritte)</h3>
-            <ol class="muted" style="margin:6px 0 0 18px">
+          <article class="card">
+            <h4>Hände waschen (5 Schritte)</h4>
+            <ol class="help" style="margin:8px 0 0 18px;">
               <li>Nass machen</li>
               <li>Einseifen (auch Zwischenräume/Daumen/Nägel)</li>
               <li>Reiben (20–30 s)</li>
               <li>Abspülen</li>
               <li>Trocknen</li>
             </ol>
-          </div>
+          </article>
         </div>
         <div class="col-6">
-          <div class="panel">
-            <h3 style="margin-top:0">Backstation aufheizen</h3>
-            <ol class="muted" style="margin:6px 0 0 18px">
+          <article class="card">
+            <h4>Backstation aufheizen</h4>
+            <ol class="help" style="margin:8px 0 0 18px;">
               <li>Ofen einschalten</li>
               <li>Auf <strong>180 °C</strong> einstellen</li>
               <li>Vorlaufzeit beachten</li>
             </ol>
-          </div>
+          </article>
         </div>
       </div>
     </section>
-
-    <section class="panel avoid-break">
-      <h2 style="margin:0 0 10px 0">Kritische Grenzwerte (Schnellübersicht)</h2>
-      <table class="table">
-        <thead><tr><th>Bereich</th><th>Grenzwert</th><th>Hinweis</th></tr></thead>
-        <tbody>
-          <tr><td>Kühlschrank</td><td>0–7 °C</td><td>Tür zügig schließen</td></tr>
-          <tr><td>Tiefkühler</td><td>≤ −18 °C</td><td>Ware beschriften/FIFO</td></tr>
-          <tr><td>Warmhalten</td><td>≥ 60 °C</td><td>Regelmäßig kontrollieren</td></tr>
-          <tr><td>Backen / Betrieb</td><td>≥ 180 °C</td><td>Vorlaufzeit beachten</td></tr>
-          <tr><td>Spülmaschine (Klarspül)</td><td>≥ 82 °C</td><td>Siebe/Tank sauber halten</td></tr>
-        </tbody>
-      </table>
-    </section>
-
-    <section class="panel avoid-break">
-      <h2 style="margin:0 0 10px 0">Soforthilfe bei Abweichungen</h2>
-      <ol class="muted" style="margin:6px 0 0 18px">
-        <li><strong>Stop:</strong> Ware sichern/kennzeichnen, nicht ausgeben.</li>
-        <li><strong>Ursache prüfen:</strong> Gerät, Tür, Thermometer, Ablauf?</li>
-        <li><strong>Maßnahme:</strong> Kühlen/Umräumen/Technik informieren.</li>
-        <li><strong>Dokumentieren:</strong> In Tages-Checkliste unter „Issues“.</li>
-        <li><strong>Nachkontrolle:</strong> Wert erneut messen und eintragen.</li>
-      </ol>
-    </section>
   </main>
 
-  <footer class="site-footer" style="text-align:center;color:#94a3b8;font-size:12px;margin:22px 0">
-    BUNCA HACCP · v1 · Anleitung
-  </footer>
+  <footer class="footer">BUNCA HACCP · v1 · Anleitung</footer>
 
+  <!-- Page script (mirrors index.html behaviors) -->
   <script>
-    (function(){
-      // Active nav
-      document.querySelectorAll('[data-nav]').forEach(a=>{
-        const here = location.pathname.split('/').pop() || 'index.html';
-        if (a.getAttribute('href') === here) a.classList.add('active');
-      });
+  (function () {
+    // Highlight active nav
+    const path = location.pathname.split('/').pop() || 'index.html';
+    document.querySelectorAll('[data-nav]').forEach(a => {
+      const href = a.getAttribute('href');
+      if (href === path || (path === '' && href === 'index.html')) a.classList.add('active');
+    });
 
-      // Logout
-      document.querySelector('[data-logout]')?.addEventListener('click', e=>{
-        e.preventDefault();
-        localStorage.removeItem('bunca_role');
-        location.href = 'index.html';
-      });
+    // Logout like on other pages
+    const logout = document.querySelector('[data-logout]');
+    if (logout) logout.addEventListener('click', (e) => {
+      e.preventDefault();
+      localStorage.removeItem('bunca_role');
+      window.location.href = 'index.html';
+    });
 
-      // Shop sync (API → localStorage → default)
-      const sel   = document.getElementById('shopSelect');
-      const badge = document.getElementById('shopBadge');
+    const shopNameEl = document.querySelector('[data-shop-name]');
+    const shopSelect  = document.getElementById('shopSelect');
 
-      function setShop(name){
-        if (!name) return;
-        localStorage.setItem('bunca_shop', name);
-        if (badge) badge.textContent = 'Shop: ' + name;
-        if (sel && sel.value !== name) sel.value = name;
-      }
+    function setShopNameFromSelect() {
+      const label = shopSelect.options[shopSelect.selectedIndex]?.text || '–';
+      if (shopNameEl) shopNameEl.textContent = label;
+    }
 
-      async function loadShops(){
-        let shops = [];
-        try {
-          const r = await fetch('/api/shops', {credentials:'include'});
-          if (r.ok){
-            const data = await r.json();
-            shops = Array.isArray(data) ? data : (data.shops || []);
-          }
-        } catch(_) {}
-        if (!shops.length){
-          try { const s = localStorage.getItem('bunca_shops'); if (s) shops = JSON.parse(s); } catch(_){}
+    function restoreSavedShop(shops) {
+      const savedId   = localStorage.getItem('bunca_shop_id');
+      const savedName = localStorage.getItem('bunca_shop');
+      if (shops && shops.length) {
+        if (savedId && shops.some(s => (s.id || s._id || s.name) == savedId)) {
+          shopSelect.value = savedId;
+        } else {
+          // default to first active
+          const first = shops[0];
+          shopSelect.value = (first.id || first._id || first.name);
+          localStorage.setItem('bunca_shop_id', shopSelect.value);
+          localStorage.setItem('bunca_shop', first.name || first.label || String(shopSelect.value));
         }
-        if (!shops.length) shops = [{name:'Bunca City', active:true}];
-        shops = shops.filter(s => s && (s.active === undefined || s.active));
-
-        sel.innerHTML = '';
-        shops.forEach(s=>{
-          const v = s.name || s.label || String(s);
-          const opt = document.createElement('option');
-          opt.value = v; opt.textContent = v;
-          sel.appendChild(opt);
+      } else if (savedName) {
+        // fallback when we only persisted the name
+        [...shopSelect.options].forEach(opt => {
+          if (opt.text === savedName) shopSelect.value = opt.value;
         });
-
-        const saved = localStorage.getItem('bunca_shop');
-        const initial = saved && [...sel.options].some(o=>o.value===saved)
-          ? saved
-          : (sel.options[0]?.value || '');
-        setShop(initial);
       }
+      setShopNameFromSelect();
+    }
 
-      sel?.addEventListener('change', ()=> setShop(sel.value));
-      loadShops();
+    async function loadShops() {
+      // Try API first (same as overview page), fallback to local examples
+      try {
+        const res = await fetch('/api/shops', { credentials: 'same-origin' });
+        if (res.ok) {
+          const shops = await res.json();
+          // Normalize and render
+          shopSelect.innerHTML = shops.map(s => {
+            const id = s.id || s._id || s.name;
+            const name = s.name || s.label || id;
+            return `<option value="${id}">${name}</option>`;
+          }).join('');
+          restoreSavedShop(shops);
+          return;
+        }
+      } catch (_) { /* ignore and fallback */ }
 
-      // Print helpers
-      document.getElementById('btnPrint')?.addEventListener('click', ()=> window.print());
-      document.getElementById('btnCompact')?.addEventListener('click', ()=>{
-        document.body.classList.toggle('print-compact');
+      // Fallback: use saved name or a single “Bunca City”
+      const fallback = (localStorage.getItem('bunca_shop') || 'Bunca City');
+      shopSelect.innerHTML = `<option value="${fallback}">${fallback}</option>`;
+      restoreSavedShop([]);
+    }
+
+    // Persist shop selection like other pages
+    if (shopSelect) {
+      shopSelect.addEventListener('change', () => {
+        const id   = shopSelect.value;
+        const name = shopSelect.options[shopSelect.selectedIndex]?.text || id;
+        localStorage.setItem('bunca_shop_id', id);
+        localStorage.setItem('bunca_shop', name);
+        setShopNameFromSelect();
       });
-    })();
+    }
+
+    // Print buttons
+    const btnPrint = document.getElementById('btnPrint');
+    const btnPrintCompact = document.getElementById('btnPrintCompact');
+    if (btnPrint) btnPrint.addEventListener('click', () => window.print());
+    if (btnPrintCompact) btnPrintCompact.addEventListener('click', () => {
+      document.documentElement.classList.add('print-compact');
+      window.print();
+      // clean up after print (Safari/WebKit fires after a delay)
+      setTimeout(() => document.documentElement.classList.remove('print-compact'), 1000);
+    });
+
+    // Boot
+    loadShops();
+  })();
   </script>
 </body>
 </html>
