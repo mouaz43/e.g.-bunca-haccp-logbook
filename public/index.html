@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BUNCA HACCP</title>
+  <link rel="icon" href="assets/logo.svg" />
+  <link rel="stylesheet" href="assets/styles.css" />
+  <script defer src="assets/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <img src="assets/logo.svg" alt="BUNCA" class="logo" />
+      <span class="brand-title">BUNCA HACCP</span>
+    </div>
+    <nav class="top-actions">
+      <button id="switch-shop" class="btn ghost" title="Shop wechseln">
+        <span class="dot"></span><span id="shop-name">—</span>
+      </button>
+      <span class="date" id="today-date">—</span>
+      <div id="auth-area">
+        <button id="btn-login" class="btn solid">Anmelden</button>
+        <button id="btn-logout" class="btn ghost" hidden>Abmelden</button>
+      </div>
+    </nav>
+  </header>
+
+  <section class="auth-panel" id="auth-panel" hidden>
+    <form id="login-form" class="card form">
+      <h2>Anmelden</h2>
+      <label>E-Mail <input type="email" name="email" required /></label>
+      <label>Passwort <input type="password" name="password" required /></label>
+      <button class="btn solid" type="submit">Login</button>
+      <p class="muted">Neu? <a href="#" id="link-register">Registrieren</a></p>
+      <p class="small danger" id="auth-error" hidden></p>
+    </form>
+
+    <form id="register-form" class="card form" hidden>
+      <h2>Registrieren</h2>
+      <label>E-Mail <input type="email" name="email" required /></label>
+      <label>Passwort <input type="password" name="password" required minlength="6" /></label>
+      <label>Shop</label>
+      <select name="shopId" id="register-shop" required></select>
+      <label>Registrierungscode <input type="text" name="code" placeholder="Code vom Admin" required /></label>
+      <button class="btn solid" type="submit">Konto anlegen</button>
+      <p class="muted">Schon Konto? <a href="#" id="link-login">Zurück</a></p>
+      <p class="small danger" id="register-error" hidden></p>
+    </form>
+  </section>
+
+  <main class="container" id="app" hidden>
+    <div class="grid kpis">
+      <div class="card kpi">
+        <div class="kpi-title">Checks (heute)</div>
+        <div class="kpi-value"><span id="kpi-done">0</span>/<span id="kpi-total">4</span></div>
+        <div class="kpi-meta">zuletzt gespeichert: <span id="kpi-saved">–</span></div>
+      </div>
+      <div class="card kpi warn">
+        <div class="kpi-title">Abweichungen</div>
+        <div class="kpi-value" id="kpi-deviations">0</div>
+        <div class="kpi-meta">Grenzwerte beachten</div>
+      </div>
+      <div class="card kpi">
+        <div class="kpi-title">Offene Issues (heute)</div>
+        <div class="kpi-value" id="kpi-issues">0</div>
+        <div class="kpi-meta"><a href="#" id="btn-history">Historie & Export</a></div>
+      </div>
+    </div>
+
+    <div class="grid main">
+      <section class="card">
+        <div class="card-header">
+          <h2>HACCP Tages-Checkliste <span id="headline-date"></span></h2>
+          <div class="actions">
+            <button class="btn ghost" id="btn-reset">Zurücksetzen</button>
+            <button class="btn solid" id="btn-save">Speichern</button>
+          </div>
+        </div>
+        <p class="muted small">Zielbereiche sind Hinweise; interne Vorgaben gelten vorrangig.</p>
+
+        <h3>Temperaturen</h3>
+        <div class="grid form-grid">
+          <label>Kühlschrank 1 (0–7 °C)
+            <input type="number" step="0.1" id="fridge1" placeholder="z. B. 4.2" /> <span class="unit">°C</span>
+          </label>
+          <label>Kühlschrank 2 (0–7 °C)
+            <input type="number" step="0.1" id="fridge2" placeholder="z. B. 5.0" /> <span class="unit">°C</span>
+          </label>
+          <label>Tiefkühler (≤ −18 °C)
+            <input type="number" step="0.1" id="freezer" placeholder="-18" /> <span class="unit">°C</span>
+          </label>
+          <label>Ofen/Backstation Betriebstemperatur (≥ 180 °C)
+            <input type="number" step="1" id="oven" placeholder="180" /> <span class="unit">°C</span>
+          </label>
+        </div>
+
+        <h3>Funktionschecks</h3>
+        <div class="checks">
+          <label class="check"><input type="checkbox" id="dishwasher_ok" /> Spülmaschine Spültemperatur ≥ 82 °C</label>
+          <label class="check"><input type="checkbox" id="warmwater_ok" /> Handwaschbecken Warmwasser vorhanden</label>
+          <label class="check"><input type="checkbox" id="cleaning_done" /> Reinigungsplan erledigt</label>
+        </div>
+
+        <h3>Bemerkungen</h3>
+        <textarea id="notes" rows="3" placeholder="Hinweise…"></textarea>
+
+        <h3>Issue melden</h3>
+        <textarea id="issues" rows="2" placeholder="Was funktioniert nicht?"></textarea>
+      </section>
+
+      <aside class="sidebar">
+        <section class="card">
+          <h3>Offene Issues (heute)</h3>
+          <ul id="issues-list" class="list"></ul>
+          <div class="card-footer">
+            <a href="#" id="btn-view-issues" class="muted">Historie & Export</a>
+          </div>
+        </section>
+
+        <section class="card">
+          <h3>Heutige Punkte</h3>
+          <ul class="list checklist-today" id="today-points"></ul>
+        </section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <span>© <span id="year"></span> BUNCA</span>
+  </footer>
+
+  <dialog id="shop-dialog">
+    <form method="dialog" class="card form">
+      <h3>Shop auswählen</h3>
+      <select id="shop-select"></select>
+      <menu>
+        <button class="btn ghost">Abbrechen</button>
+        <button class="btn solid" id="shop-apply" value="ok">Übernehmen</button>
+      </menu>
+    </form>
+  </dialog>
+</body>
+</html>
