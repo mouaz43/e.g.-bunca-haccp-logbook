@@ -5,77 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>BUNCA HACCP · Anleitung</title>
 
-  <!-- Uses your existing global styles; only minimal extras below -->
+  <!-- IMPORTANT: use the same global stylesheet as other pages -->
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Page-local, safe additions (won’t affect other pages) -->
   <style>
-    /* --- Page-only tweaks (safe, won't touch other pages) --- */
-    .page-header {display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 8px}
-    .page-actions {display:flex;gap:8px;flex-wrap:wrap}
-    .btn {display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:.55rem .9rem;background:#fff;cursor:pointer;font-weight:700}
-    .btn:hover {background:#f5f7f5}
-    .badge-pill {display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.35rem .7rem;background:#eef6f0;border:1px solid #dcefe4;font-weight:700}
-    .cards {display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:10px}
-    .card  {grid-column:span 4;background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
-    .panel {background:#fff;border:1px solid #e8ecea;border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.06);margin-top:16px}
-    .grid  {display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
-    .col-6 {grid-column:span 6}
+    .page-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:16px 0 8px}
+    .page-actions{display:flex;gap:8px;flex-wrap:wrap}
+    .btn{display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(0,0,0,.1);border-radius:10px;padding:.55rem .9rem;background:#fff;cursor:pointer;font-weight:700}
+    .btn:hover{background:#f5f7f5}
+    .badge-pill{display:inline-flex;align-items:center;gap:.5rem;border-radius:999px;padding:.35rem .7rem;background:#eef6f0;border:1px solid #dcefe4;font-weight:700}
+
+    .cards{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:10px}
+    .card{grid-column:span 4;background:#fff;border:1px solid #e8ecea;border-radius:14px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+    .panel{background:#fff;border:1px solid #e8ecea;border-radius:16px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.06);margin-top:16px}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:14px}
+    .col-6{grid-column:span 6}
     .col-12{grid-column:span 12}
-    .muted {color:#64748b}
-    .table {width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #e8ecea;border-radius:12px;overflow:hidden}
+    .muted{color:#64748b}
+    .table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border:1px solid #e8ecea;border-radius:12px;overflow:hidden}
     .table th,.table td{padding:10px 12px;border-bottom:1px solid #eef2f1;text-align:left}
     .table tr:last-child td{border-bottom:none}
 
-    /* Compact mode for printing one page */
-    body.print-compact .card,
-    body.print-compact .panel {box-shadow:none;border-color:#dfe7e4}
-    body.print-compact .card  {padding:12px}
-    body.print-compact .panel {padding:12px}
-    body.print-compact .cards {gap:10px}
-    body.print-compact h2 {margin:8px 0}
-    body.print-compact h3 {margin:8px 0}
-    body.print-compact .page-actions {display:none}
-
-    /* --- Print styles (A4 friendly) --- */
-    @media print {
-      header, nav, .page-actions, .site-footer {display:none !important}
-      main {margin:0 !important;padding:0 6mm !important}
-      body {background:#fff}
-      .card, .panel {box-shadow:none;border-color:#dcdcdc}
-      .cards {grid-template-columns:repeat(12,1fr)}
-      .card {grid-column:span 4}
-      .col-6 {grid-column:span 6}
+    /* Print helpers */
+    body.print-compact .card, body.print-compact .panel{box-shadow:none;border-color:#dfe7e4}
+    body.print-compact .card{padding:12px}
+    body.print-compact .panel{padding:12px}
+    body.print-compact .cards{gap:10px}
+    body.print-compact h2{margin:8px 0}
+    body.print-compact h3{margin:8px 0}
+    body.print-compact .page-actions{display:none}
+    @media print{
+      header, nav, .page-actions, .site-footer{display:none !important}
+      main{margin:0 !important;padding:0 6mm !important}
+      body{background:#fff}
+      .card,.panel{box-shadow:none;border-color:#dcdcdc}
+      .cards{grid-template-columns:repeat(12,1fr)}
+      .card{grid-column:span 4}
+      .col-6{grid-column:span 6}
       .col-12{grid-column:span 12}
-      .avoid-break {page-break-inside:avoid}
+      .avoid-break{page-break-inside:avoid}
     }
-
-    /* Mobile */
-    @media (max-width: 820px){
-      .card {grid-column:span 12}
-      .col-6 {grid-column:span 12}
-    }
+    @media (max-width: 820px){ .card{grid-column:span 12} .col-6{grid-column:span 12} }
   </style>
 </head>
 <body>
 
-  <!-- ======= Global header (same structure as other pages) ======= -->
+  <!-- SAME HEADER AS OTHER PAGES -->
   <header class="app-header">
     <div class="navbar">
-      <a class="brand" href="index.html" style="text-decoration:none;color:#fff;font-weight:800;display:flex;align-items:center;gap:.6rem">
+      <a class="brand" href="index.html">
         <img src="assets/img/bunca-logo.svg" alt="BUNCA" style="height:26px" onerror="this.remove()">
         <span>BUNCA HACCP</span>
       </a>
       <div style="flex:1"></div>
 
-      <!-- Shop select (populated dynamically from API/localStorage) -->
-      <select id="shopSelect" aria-label="Shop wählen" class="select--shop" style="margin-right:8px"></select>
+      <!-- Shop selector (synced) -->
+      <select id="shopSelect" class="select--shop" aria-label="Shop wählen"></select>
 
       <nav class="nav">
         <a data-nav href="index.html">Übersicht</a>
         <a data-nav href="historie.html">Historie</a>
-        <a data-nav href="info.html" class="active">Anleitung</a>
+        <a data-nav href="info.html">Anleitung</a>
         <a data-nav href="admin.html">Admin</a>
         <a data-nav href="cleaning.html">Reinigungsplan</a>
       </nav>
-      <a href="#" class="btn btn--ghost" data-logout style="color:#fff;border-color:rgba(255,255,255,.35)">Abmelden</a>
+
+      <a href="#" class="btn btn--ghost" data-logout>Abmelden</a>
     </div>
   </header>
 
@@ -89,7 +85,6 @@
       </div>
     </div>
 
-    <!-- ===== Kurzanleitungen ===== -->
     <h2 style="margin:8px 0">Kurzanleitungen</h2>
     <section class="cards avoid-break">
       <article class="card">
@@ -118,7 +113,6 @@
       </article>
     </section>
 
-    <!-- ===== Visual guides ===== -->
     <section class="panel avoid-break">
       <h2 style="margin:0 0 10px 0">Bildliche Anleitungen</h2>
       <div class="grid">
@@ -147,13 +141,10 @@
       </div>
     </section>
 
-    <!-- ===== Critical limits quick table ===== -->
     <section class="panel avoid-break">
       <h2 style="margin:0 0 10px 0">Kritische Grenzwerte (Schnellübersicht)</h2>
       <table class="table">
-        <thead>
-          <tr><th>Bereich</th><th>Grenzwert</th><th>Hinweis</th></tr>
-        </thead>
+        <thead><tr><th>Bereich</th><th>Grenzwert</th><th>Hinweis</th></tr></thead>
         <tbody>
           <tr><td>Kühlschrank</td><td>0–7 °C</td><td>Tür zügig schließen</td></tr>
           <tr><td>Tiefkühler</td><td>≤ −18 °C</td><td>Ware beschriften/FIFO</td></tr>
@@ -164,7 +155,6 @@
       </table>
     </section>
 
-    <!-- ===== Deviation SOP ===== -->
     <section class="panel avoid-break">
       <h2 style="margin:0 0 10px 0">Soforthilfe bei Abweichungen</h2>
       <ol class="muted" style="margin:6px 0 0 18px">
@@ -175,88 +165,70 @@
         <li><strong>Nachkontrolle:</strong> Wert erneut messen und eintragen.</li>
       </ol>
     </section>
-
   </main>
 
   <footer class="site-footer" style="text-align:center;color:#94a3b8;font-size:12px;margin:22px 0">
     BUNCA HACCP · v1 · Anleitung
   </footer>
 
-  <!-- ====== Page script (nav highlight, shop sync, print) ====== -->
   <script>
-    (function () {
-      // Active nav highlight
+    (function(){
+      // Active nav
       document.querySelectorAll('[data-nav]').forEach(a=>{
-        if (a.getAttribute('href') === (location.pathname.split('/').pop() || 'index.html')) {
-          a.classList.add('active');
-        }
+        const here = location.pathname.split('/').pop() || 'index.html';
+        if (a.getAttribute('href') === here) a.classList.add('active');
       });
 
-      // Logout (client-side session)
-      const logout = document.querySelector('[data-logout]');
-      if (logout) logout.addEventListener('click', (e)=>{
+      // Logout
+      document.querySelector('[data-logout]')?.addEventListener('click', e=>{
         e.preventDefault();
         localStorage.removeItem('bunca_role');
         location.href = 'index.html';
       });
 
-      const sel = document.getElementById('shopSelect');
+      // Shop sync (API → localStorage → default)
+      const sel   = document.getElementById('shopSelect');
       const badge = document.getElementById('shopBadge');
 
-      function setSelectedShop(name){
+      function setShop(name){
         if (!name) return;
         localStorage.setItem('bunca_shop', name);
         if (badge) badge.textContent = 'Shop: ' + name;
         if (sel && sel.value !== name) sel.value = name;
       }
 
-      async function populateShops(){
+      async function loadShops(){
         let shops = [];
-        // 1) Try API
         try {
-          const res = await fetch('/api/shops',{credentials:'include'});
-          if (res.ok) {
-            const data = await res.json();
-            // Support both {shops:[...]} and [...]
+          const r = await fetch('/api/shops', {credentials:'include'});
+          if (r.ok){
+            const data = await r.json();
             shops = Array.isArray(data) ? data : (data.shops || []);
           }
-        } catch (_) {}
-
-        // 2) Fallback: locally stored shops array
-        if (!shops.length) {
-          try {
-            const ls = localStorage.getItem('bunca_shops');
-            if (ls) shops = JSON.parse(ls);
-          } catch (_) {}
+        } catch(_) {}
+        if (!shops.length){
+          try { const s = localStorage.getItem('bunca_shops'); if (s) shops = JSON.parse(s); } catch(_){}
         }
-
-        // 3) Final fallback: single default
         if (!shops.length) shops = [{name:'Bunca City', active:true}];
-
-        // filter only active truthy if field exists
         shops = shops.filter(s => s && (s.active === undefined || s.active));
 
-        // Fill selector
         sel.innerHTML = '';
         shops.forEach(s=>{
+          const v = s.name || s.label || String(s);
           const opt = document.createElement('option');
-          opt.value = s.name || s.label || String(s);
-          opt.textContent = opt.value;
+          opt.value = v; opt.textContent = v;
           sel.appendChild(opt);
         });
 
-        // Select saved or first
         const saved = localStorage.getItem('bunca_shop');
-        const toSelect = saved && Array.from(sel.options).some(o=>o.value===saved)
+        const initial = saved && [...sel.options].some(o=>o.value===saved)
           ? saved
-          : (sel.options[0] ? sel.options[0].value : '');
-        setSelectedShop(toSelect);
+          : (sel.options[0]?.value || '');
+        setShop(initial);
       }
 
-      if (sel) {
-        sel.addEventListener('change', ()=> setSelectedShop(sel.value));
-        populateShops();
-      }
+      sel?.addEventListener('change', ()=> setShop(sel.value));
+      loadShops();
 
       // Print helpers
       document.getElementById('btnPrint')?.addEventListener('click', ()=> window.print());
