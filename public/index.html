@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>BUNCA HACCP · Übersicht</title>
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body>
+<header class="header">
+  <div class="nav">
+    <a class="brand" href="index.html"><span>🛡️ BUNCA HACCP</span></a>
+    <div class="fill"></div>
+    <select class="select" data-shop-select aria-label="Shop wählen"></select>
+    <a data-nav href="index.html">Übersicht</a>
+    <a data-nav href="historie.html">Historie</a>
+    <a data-nav href="info.html">Anleitung</a>
+    <a data-nav href="admin.html">Admin</a>
+    <a href="#" class="btn" data-logout>Abmelden</a>
+  </div>
+</header>
+
+<main class="container">
+  <div class="grid">
+    <div class="col-4"><div class="card"><div class="h">Checks (heute)</div><div id="checks" class="h" style="font-weight:900;font-size:28px">0/0</div></div></div>
+    <div class="col-4"><div class="card"><div class="h">Abweichungen</div><div id="deviations" class="h" style="font-weight:900;font-size:28px">0</div></div></div>
+    <div class="col-4"><div class="card"><div class="h">Shop</div><div class="badge" data-shop-badge>–</div></div></div>
+  </div>
+
+  <section class="panel" style="margin-top:18px">
+    <h2 class="h">HACCP Tages-Checkliste <span id="todayLabel"></span></h2>
+    <div id="items" class="grid"></div>
+    <div class="row" style="margin-top:10px">
+      <div class="col-12">
+        <label class="label" for="notes">Notizen / Issues</label>
+        <textarea id="notes" class="textarea" rows="3" placeholder="z. B. Kühlschrank 2 schließt nicht richtig…"></textarea>
+      </div>
+    </div>
+    <div style="margin-top:12px; display:flex; gap:10px">
+      <button class="btn" id="resetBtn">Zurücksetzen</button>
+      <button class="btn btn-primary" id="saveBtn">Speichern</button>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">BUNCA HACCP · Übersicht</footer>
+
+<script src="./js/api.js"></script>
+<script src="./js/ui.js"></script>
+<script>
+(async function(){
+  const shop = API.getShop().id;
+  if (!API.token()) { // soft login prompt
+    const email = prompt('E-Mail für Login:');
+    const pass = prompt('Passwort:');
+    if (email && pass) { try{ await API.login(email, pass); } catch{ alert('Login fehlgeschlagen'); } }
+  }
+  const today = await API.today(shop);
+  document.getElementById('todayLabel').textContent = today.date.split('-').reverse().join('.');
+  const root = document.getElementById('items');
+
+  // render items
+  root.innerHTML = '';
+  let done = 0;
+  today.items.forEach((it, idx) => {
+    const id = `it_${idx}`;
+    const wrap = document.createElement('div');
+    wrap.className = 'col-6';
+    const help = (it.rule?.kind === 'range')
+      ? `Regel: ${it.rule.min}–${it.rule.max} ${it.unit||''}`
+      : it.rule?.kind === 'min' ? `Regel: min ${it.rule.min} ${it.unit||''}`
+      : it.rule?.kind === 'max' ? `Regel: max ${it.rule.max} ${it.unit||''}` : '';
+    wrap.innerHTML = `
+      <div class="card">
+        <label class="label" for="${id}">${it.label}${it.unit ? ` (${it.unit})` : ''}</label>
+        ${it.type === 'boolean'
+          ? `<input id="${id}" type="checkbox" ${it.value ? 'checked':''} />`
+          : `<input id="${id}" class="input" type="number" inputmode="decimal" value="${it.value ?? ''}" placeholder="Wert…">`
+        }
+        <div class="h" style="color:#6b7280;font-size:12px;margin-top:6px">${help}</div>
+      </div>`;
+    root.appendChild(wrap);
+  });
+
+  // notes
+  document.getElementById('notes').value = today.notes || '';
+
+  // reset
+  document.getElementById('resetBtn').onclick = () => location.reload();
+
+  // save
+  document.getElementById('saveBtn').onclick = async () => {
+    const items = today.items.map((it, idx) => {
+      const el = document.getElementById(`it_${idx}`);
+      return { ...it, value: (it.type==='boolean' ? el.checked : el.value) };
+    });
+    const res = await API.saveToday({ shopId: today.shop.id, date: today.date, items, notes: document.getElementById('notes').value });
+    alert(`Gespeichert. Abweichungen: ${res.deviations}`);
+    location.reload();
+  };
+
+  // counters
+  done = today.items.filter(i => (i.type==='boolean'? true : String(i.value||'') !== '')).length;
+  document.getElementById('checks').textContent = `${done}/${today.items.length}`;
+  document.getElementById('deviations').textContent = String(today.deviations || 0);
+})();
+</script>
+</body>
+</html>
