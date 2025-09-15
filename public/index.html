@@ -2,143 +2,260 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BUNCA HACCP</title>
-  <link rel="icon" href="assets/logo.svg" />
-  <link rel="stylesheet" href="assets/styles.css" />
-  <script defer src="assets/app.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="icon" href="/public/logo.svg">
+  <style>
+    body{background:#f4f6f8}
+    .brandbar{background:#1f7a3f}
+    .card-shadow{box-shadow:0 10px 25px rgba(0,0,0,.06)}
+    .login-card{max-width:480px}
+    .metric{font-weight:700;font-size:28px}
+  </style>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <img src="assets/logo.svg" alt="BUNCA" class="logo" />
-      <span class="brand-title">BUNCA HACCP</span>
+  <nav class="navbar navbar-dark brandbar">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="#">BUNCA HACCP</a>
+      <div class="d-flex gap-2">
+        <select id="shopSelect" class="form-select form-select-sm"></select>
+        <a id="adminLink" class="btn btn-outline-light btn-sm d-none" href="/admin.html">Admin</a>
+        <button id="btnLogout" class="btn btn-light btn-sm d-none">Abmelden</button>
+      </div>
     </div>
-    <nav class="top-actions">
-      <button id="switch-shop" class="btn ghost" title="Shop wechseln">
-        <span class="dot"></span><span id="shop-name">—</span>
-      </button>
-      <span class="date" id="today-date">—</span>
-      <div id="auth-area">
-        <button id="btn-login" class="btn solid">Anmelden</button>
-        <button id="btn-logout" class="btn ghost" hidden>Abmelden</button>
-      </div>
-    </nav>
-  </header>
+  </nav>
 
-  <section class="auth-panel" id="auth-panel" hidden>
-    <form id="login-form" class="card form">
-      <h2>Anmelden</h2>
-      <label>E-Mail <input type="email" name="email" required /></label>
-      <label>Passwort <input type="password" name="password" required /></label>
-      <button class="btn solid" type="submit">Login</button>
-      <p class="muted">Neu? <a href="#" id="link-register">Registrieren</a></p>
-      <p class="small danger" id="auth-error" hidden></p>
-    </form>
-
-    <form id="register-form" class="card form" hidden>
-      <h2>Registrieren</h2>
-      <label>E-Mail <input type="email" name="email" required /></label>
-      <label>Passwort <input type="password" name="password" required minlength="6" /></label>
-      <label>Shop</label>
-      <select name="shopId" id="register-shop" required></select>
-      <label>Registrierungscode <input type="text" name="code" placeholder="Code vom Admin" required /></label>
-      <button class="btn solid" type="submit">Konto anlegen</button>
-      <p class="muted">Schon Konto? <a href="#" id="link-login">Zurück</a></p>
-      <p class="small danger" id="register-error" hidden></p>
-    </form>
-  </section>
-
-  <main class="container" id="app" hidden>
-    <div class="grid kpis">
-      <div class="card kpi">
-        <div class="kpi-title">Checks (heute)</div>
-        <div class="kpi-value"><span id="kpi-done">0</span>/<span id="kpi-total">4</span></div>
-        <div class="kpi-meta">zuletzt gespeichert: <span id="kpi-saved">–</span></div>
-      </div>
-      <div class="card kpi warn">
-        <div class="kpi-title">Abweichungen</div>
-        <div class="kpi-value" id="kpi-deviations">0</div>
-        <div class="kpi-meta">Grenzwerte beachten</div>
-      </div>
-      <div class="card kpi">
-        <div class="kpi-title">Offene Issues (heute)</div>
-        <div class="kpi-value" id="kpi-issues">0</div>
-        <div class="kpi-meta"><a href="#" id="btn-history">Historie & Export</a></div>
+  <div class="container my-4">
+    <!-- Login -->
+    <div id="loginBox" class="card card-shadow login-card mx-auto">
+      <div class="card-body">
+        <h3 class="h4 mb-3">Anmelden</h3>
+        <div class="mb-2"><label class="form-label">E-Mail</label><input id="loginEmail" class="form-control" value=""></div>
+        <div class="mb-3"><label class="form-label">Passwort</label><input id="loginPass" type="password" class="form-control"></div>
+        <button id="btnLogin" class="btn btn-success">Login</button>
       </div>
     </div>
 
-    <div class="grid main">
-      <section class="card">
-        <div class="card-header">
-          <h2>HACCP Tages-Checkliste <span id="headline-date"></span></h2>
-          <div class="actions">
-            <button class="btn ghost" id="btn-reset">Zurücksetzen</button>
-            <button class="btn solid" id="btn-save">Speichern</button>
+    <!-- Dashboard -->
+    <div id="dash" class="d-none">
+      <div class="row g-3 mb-3">
+        <div class="col-md-4">
+          <div class="card card-shadow p-3">
+            <div class="text-muted">Checks (heute)</div>
+            <div class="metric" id="checksCount">0/0</div>
+            <div class="small text-muted" id="lastSaved">zuletzt gespeichert: –</div>
           </div>
         </div>
-        <p class="muted small">Zielbereiche sind Hinweise; interne Vorgaben gelten vorrangig.</p>
-
-        <h3>Temperaturen</h3>
-        <div class="grid form-grid">
-          <label>Kühlschrank 1 (0–7 °C)
-            <input type="number" step="0.1" id="fridge1" placeholder="z. B. 4.2" /> <span class="unit">°C</span>
-          </label>
-          <label>Kühlschrank 2 (0–7 °C)
-            <input type="number" step="0.1" id="fridge2" placeholder="z. B. 5.0" /> <span class="unit">°C</span>
-          </label>
-          <label>Tiefkühler (≤ −18 °C)
-            <input type="number" step="0.1" id="freezer" placeholder="-18" /> <span class="unit">°C</span>
-          </label>
-          <label>Ofen/Backstation Betriebstemperatur (≥ 180 °C)
-            <input type="number" step="1" id="oven" placeholder="180" /> <span class="unit">°C</span>
-          </label>
-        </div>
-
-        <h3>Funktionschecks</h3>
-        <div class="checks">
-          <label class="check"><input type="checkbox" id="dishwasher_ok" /> Spülmaschine Spültemperatur ≥ 82 °C</label>
-          <label class="check"><input type="checkbox" id="warmwater_ok" /> Handwaschbecken Warmwasser vorhanden</label>
-          <label class="check"><input type="checkbox" id="cleaning_done" /> Reinigungsplan erledigt</label>
-        </div>
-
-        <h3>Bemerkungen</h3>
-        <textarea id="notes" rows="3" placeholder="Hinweise…"></textarea>
-
-        <h3>Issue melden</h3>
-        <textarea id="issues" rows="2" placeholder="Was funktioniert nicht?"></textarea>
-      </section>
-
-      <aside class="sidebar">
-        <section class="card">
-          <h3>Offene Issues (heute)</h3>
-          <ul id="issues-list" class="list"></ul>
-          <div class="card-footer">
-            <a href="#" id="btn-view-issues" class="muted">Historie & Export</a>
+        <div class="col-md-4">
+          <div class="card card-shadow p-3">
+            <div class="text-muted">Abweichungen</div>
+            <div class="metric text-warning" id="deviations">0</div>
+            <div class="small text-muted">Grenzwerte beachten</div>
           </div>
-        </section>
+        </div>
+        <div class="col-md-4">
+          <div class="card card-shadow p-3">
+            <div class="text-muted">Offene Issues (heute)</div>
+            <div class="metric" id="issuesToday">0</div>
+            <a class="small" id="historyLink" href="/historie.html">Historie & Export</a>
+          </div>
+        </div>
+      </div>
 
-        <section class="card">
-          <h3>Heutige Punkte</h3>
-          <ul class="list checklist-today" id="today-points"></ul>
-        </section>
-      </aside>
+      <div class="card card-shadow">
+        <div class="card-body">
+          <h5 class="card-title">HACCP Tages-Checkliste <span id="todaySpan"></span></h5>
+
+          <div class="row g-3">
+            <div class="col-md-3">
+              <label class="form-label">Kühlschrank 1 (0–7°C)</label>
+              <div class="input-group">
+                <input id="fr1" type="number" step="0.1" class="form-control" placeholder="z. B. 4.2">
+                <span class="input-group-text">°C</span>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Kühlschrank 2 (0–7°C)</label>
+              <div class="input-group">
+                <input id="fr2" type="number" step="0.1" class="form-control" placeholder="z. B. 5.0">
+                <span class="input-group-text">°C</span>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Tiefkühler (≤ −18°C)</label>
+              <div class="input-group">
+                <input id="fz" type="number" step="0.1" class="form-control" placeholder="-18">
+                <span class="input-group-text">°C</span>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label">Ofen/Backstation (≥ 180°C)</label>
+              <div class="input-group">
+                <input id="ov" type="number" step="1" class="form-control" placeholder="180">
+                <span class="input-group-text">°C</span>
+              </div>
+            </div>
+
+            <div class="col-md-4">
+              <div class="form-check mt-4">
+                <input id="dw" class="form-check-input" type="checkbox">
+                <label class="form-check-label" for="dw">Spülmaschine Spültemperatur ≥ 82°C</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-check mt-4">
+                <input id="hw" class="form-check-input" type="checkbox">
+                <label class="form-check-label" for="hw">Handwaschbecken Warmwasser vorhanden</label>
+              </div>
+            </div>
+            <div class="col-md-4">
+              <div class="form-check mt-4">
+                <input id="cl" class="form-check-input" type="checkbox">
+                <label class="form-check-label" for="cl">Reinigungsplan erledigt</label>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Notizen / Issues</label>
+              <textarea id="notes" class="form-control" rows="3" placeholder="z. B. Kühlschrank 2 schließt nicht richtig…"></textarea>
+            </div>
+
+            <div class="col-12 d-flex gap-2">
+              <button id="btnReset" class="btn btn-outline-secondary">Zurücksetzen</button>
+              <button id="btnSave" class="btn btn-success">Speichern</button>
+              <div class="ms-auto small text-muted align-self-center" id="saveInfo">–</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-  </main>
+  </div>
 
-  <footer class="footer">
-    <span>© <span id="year"></span> BUNCA</span>
-  </footer>
+<script>
+  // --- helpers
+  const $ = s => document.querySelector(s);
+  const token = localStorage.getItem('token');
+  const role  = localStorage.getItem('role');
 
-  <dialog id="shop-dialog">
-    <form method="dialog" class="card form">
-      <h3>Shop auswählen</h3>
-      <select id="shop-select"></select>
-      <menu>
-        <button class="btn ghost">Abbrechen</button>
-        <button class="btn solid" id="shop-apply" value="ok">Übernehmen</button>
-      </menu>
-    </form>
-  </dialog>
+  function setAuthUI() {
+    const logged = !!token;
+    $('#loginBox').classList.toggle('d-none', logged);
+    $('#dash').classList.toggle('d-none', !logged);
+    $('#btnLogout').classList.toggle('d-none', !logged);
+    $('#adminLink').classList.toggle('d-none', !(role === 'admin'));
+  }
+  setAuthUI();
+
+  $('#btnLogin').onclick = async () => {
+    const email = $('#loginEmail').value.trim();
+    const password = $('#loginPass').value;
+    const r = await fetch('/api/auth/login', {
+      method:'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ email, password })
+    });
+    const data = await r.json();
+    if (!r.ok) return alert(data.error || 'Login fehlgeschlagen');
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('role', data.role || 'staff');
+    location.reload();
+  };
+
+  $('#btnLogout').onclick = () => {
+    localStorage.removeItem('token'); localStorage.removeItem('role');
+    location.reload();
+  };
+
+  async function authFetch(url, opts={}) {
+    const h = opts.headers || {};
+    h['Authorization'] = 'Bearer ' + localStorage.getItem('token');
+    if (!h['Content-Type'] && opts.method && opts.method !== 'GET') h['Content-Type'] = 'application/json';
+    const r = await fetch(url, { ...opts, headers: h });
+    if (r.status === 401) { alert('Bitte neu anmelden.'); location.reload(); }
+    return r;
+  }
+
+  // shops dropdown
+  async function loadShops() {
+    const r = await authFetch('/api/shops');
+    const shops = await r.json();
+    $('#shopSelect').innerHTML = shops.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  async function loadToday() {
+    const shopId = $('#shopSelect').value || 'shop_default';
+    $('#todaySpan').textContent = todayStr();
+    const r = await authFetch(`/api/today?shopId=${encodeURIComponent(shopId)}`);
+    const d = await r.json();
+
+    $('#fr1').value = d.readings.fridge1 ?? '';
+    $('#fr2').value = d.readings.fridge2 ?? '';
+    $('#fz').value  = d.readings.freezer ?? '';
+    $('#ov').value  = d.readings.oven ?? '';
+    $('#dw').checked = !!d.readings.dishwasherOver82C;
+    $('#hw').checked = !!d.readings.handwashHot;
+    $('#cl').checked = !!d.readings.cleaningDone;
+    $('#notes').value = d.notes || '';
+
+    const total = 7; // 4 temps + 3 checks
+    let done = 0;
+    if (d.readings.fridge1 !== null && d.readings.fridge1 !== '') done++;
+    if (d.readings.fridge2 !== null && d.readings.fridge2 !== '') done++;
+    if (d.readings.freezer !== null && d.readings.freezer !== '') done++;
+    if (d.readings.oven !== null && d.readings.oven !== '') done++;
+    if (d.readings.dishwasherOver82C) done++;
+    if (d.readings.handwashHot) done++;
+    if (d.readings.cleaningDone) done++;
+    $('#checksCount').textContent = `${done}/${total}`;
+
+    let dev = 0;
+    const t = d.targets || { fridge1Min:0, fridge1Max:7, fridge2Min:0, fridge2Max:7, freezerMax:-18, ovenMin:180 };
+    if (d.readings.fridge1 != null && (d.readings.fridge1 < t.fridge1Min || d.readings.fridge1 > t.fridge1Max)) dev++;
+    if (d.readings.fridge2 != null && (d.readings.fridge2 < t.fridge2Min || d.readings.fridge2 > t.fridge2Max)) dev++;
+    if (d.readings.freezer  != null && d.readings.freezer > t.freezerMax) dev++;
+    if (d.readings.oven     != null && d.readings.oven < t.ovenMin) dev++;
+    $('#deviations').textContent = dev;
+
+    $('#issuesToday').textContent = (d.issues||[]).length;
+    $('#lastSaved').textContent = d.lastSavedAt ? new Date(d.lastSavedAt).toLocaleString() : '–';
+  }
+
+  $('#shopSelect').onchange = loadToday;
+  $('#btnReset').onclick = loadToday;
+
+  $('#btnSave').onclick = async () => {
+    const body = {
+      date: todayStr(),
+      shopId: $('#shopSelect').value || 'shop_default',
+      readings: {
+        fridge1: $('#fr1').value === '' ? null : Number($('#fr1').value),
+        fridge2: $('#fr2').value === '' ? null : Number($('#fr2').value),
+        freezer: $('#fz').value === '' ? null : Number($('#fz').value),
+        oven:    $('#ov').value === '' ? null : Number($('#ov').value),
+        dishwasherOver82C: $('#dw').checked,
+        handwashHot: $('#hw').checked,
+        cleaningDone: $('#cl').checked
+      },
+      notes: $('#notes').value.trim(),
+      issues: $('#notes').value.trim() ? [$('#notes').value.trim()] : []
+    };
+    const r = await authFetch('/api/today', { method:'POST', body: JSON.stringify(body) });
+    const data = await r.json();
+    if (!r.ok) return alert(data.error || 'Fehler beim Speichern');
+    $('#saveInfo').textContent = 'Gespeichert ✔︎';
+    loadToday();
+  };
+
+  (async function boot(){
+    if (!localStorage.getItem('token')) return;
+    await loadShops();
+    await loadToday();
+  })();
+</script>
 </body>
 </html>
