@@ -8,28 +8,17 @@
   <style>body{background:#f4f6f8}.brandbar{background:#1f7a3f}</style>
 </head>
 <body>
-<nav class="navbar navbar-dark brandbar">
-  <div class="container"><a class="navbar-brand fw-bold" href="/index.html">BUNCA HACCP</a></div>
-</nav>
+<nav class="navbar navbar-dark brandbar"><div class="container"><a class="navbar-brand fw-bold" href="/index.html">BUNCA HACCP</a></div></nav>
 <main class="container my-4">
   <h1 class="h4 mb-3">Historie</h1>
   <select id="shopSelect" class="form-select w-auto mb-3"></select>
   <ul id="list" class="list-group"></ul>
 </main>
 <script>
-  const token = localStorage.getItem('token');
-  if (!token) { alert('Bitte anmelden'); location.href='/index.html'; }
+  const token = localStorage.getItem('token'); if(!token){ alert('Bitte anmelden'); location.href='/index.html'; }
   async function authFetch(url){ return fetch(url, { headers:{ Authorization:'Bearer '+token } }); }
-  async function loadShops(){
-    const r=await authFetch('/api/shops'); const shops=await r.json();
-    document.getElementById('shopSelect').innerHTML = shops.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-  }
-  async function loadHistory(){
-    const id = document.getElementById('shopSelect').value;
-    const r=await authFetch('/api/history?shopId='+encodeURIComponent(id));
-    const dates = await r.json();
-    document.getElementById('list').innerHTML = dates.map(d=>`<li class="list-group-item">${d}</li>`).join('');
-  }
+  async function loadShops(){ const r=await authFetch('/api/shops'); const shops=await r.json(); document.getElementById('shopSelect').innerHTML=shops.map(s=>`<option value="${s.id}">${s.name}</option>`).join(''); }
+  async function loadHistory(){ const id=document.getElementById('shopSelect').value; const r=await authFetch('/api/history?shopId='+encodeURIComponent(id)); const dates=await r.json(); document.getElementById('list').innerHTML=dates.map(d=>`<li class="list-group-item">${d}</li>`).join(''); }
   document.getElementById('shopSelect').onchange = loadHistory;
   (async function(){ await loadShops(); await loadHistory(); })();
 </script>
