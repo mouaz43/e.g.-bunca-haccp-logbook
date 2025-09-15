@@ -4,7 +4,6 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { Octokit } = require('octokit');
 
-// --- env ---
 const {
   PORT = 10000,
   ADMIN_EMAIL,
@@ -25,13 +24,13 @@ const [OWNER, REPO] = GITHUB_REPO.split('/');
 const octokit = new Octokit({ auth: GITHUB_TOKEN });
 
 const app = express();
-app.use(express.json({ limit: '2mb' }));
+app.use(express.json({ limit: '4mb' }));
 app.use(express.static('public'));
 
 // ---------- GitHub helpers ----------
 async function ghGet(path) {
   const res = await octokit.rest.repos.getContent({ owner: OWNER, repo: REPO, path, ref: GITHUB_BRANCH });
-  return res.data; // file: {content, sha,...} or array for dir
+  return res.data;
 }
 async function ghTryGet(path) { try { return await ghGet(path); } catch { return null; } }
 async function ghPut(path, contentBase64, message, sha) {
@@ -42,9 +41,9 @@ async function ghPut(path, contentBase64, message, sha) {
 }
 async function readJson(path, fallback = null) {
   const file = await ghTryGet(path);
-  if (!file || Array.isArray(file)) { return fallback; }
-  const buf = Buffer.from(file.content, 'base64').toString('utf8');
-  return JSON.parse(buf);
+  if (!file || Array.isArray(file)) return fallback;
+  const text = Buffer.from(file.content, 'base64').toString('utf8');
+  return JSON.parse(text);
 }
 async function writeJson(path, obj, message) {
   const existing = await ghTryGet(path);
@@ -56,7 +55,28 @@ async function listDir(path) {
   return Array.isArray(res) ? res : [];
 }
 
-// ---------- bootstrap data on first run ----------
+// ---------- defaults ----------
+function defaultCheckItems() {
+  return [
+    { id: 'fridge1', label: 'Kühlschrank 1', type: 'number', unit: '°C', rule: 'range', min: 0, max: 7 },
+    { id: 'fridge2', label: 'Kühlschrank 2', type: 'number', unit: '°C', rule: 'range', min: 0, max: 7 },
+    { id: 'freezer', label: 'Tiefkühler',     type: 'number', unit: '°C', rule: 'max',   max: -18, note: '≤ −18°C' },
+    { id: 'oven',    label: 'Ofen/Backstation', type: 'number', unit: '°C', rule: 'min', min: 180 },
+    { id: 'dw82',    label: 'Spülmaschine Spültemperatur ≥ 82°C', type: 'boolean' },
+    { id: 'handwash',label: 'Handwaschbecken Warmwasser vorhanden', type: 'boolean' },
+    { id: 'cleaningDone', label: 'Reinigungsplan erledigt', type: 'boolean' }
+  ];
+}
+function defaultCleaningPlan() {
+  return [
+    { id: 'surfaces',  name: 'Arbeitsflächen reinigen & desinfizieren', freq: 'daily',  area: 'Küche' },
+    { id: 'sinks',     name: 'Becken/Armaturen reinigen',               freq: 'daily',  area: 'Küche' },
+    { id: 'fridgeIn',  name: 'Kühlschrank innen wischen',               freq: 'weekly', area: 'Küche' },
+    { id: 'ovenDeep',  name: 'Ofen/Backstation Grundreinigung',         freq: 'weekly', area: 'Backstube' },
+    { id: 'freezerDef',name: 'Tiefkühler abtauen',                      freq: 'monthly',area: 'Lager' }
+  ];
+}
+
 async function ensureFiles() {
   const users = await readJson('data/users.json', null);
   if (!users) await writeJson('data/users.json', [], 'init users.json');
@@ -65,12 +85,9 @@ async function ensureFiles() {
   if (!shops) {
     const id = 'shop_default';
     await writeJson('data/shops.json', [{
-      id,
-      name: DEFAULT_SHOP,
-      city: '',
-      address: '',
-      isActive: true,
-      targets: { fridge1Min: 0, fridge1Max: 7, fridge2Min: 0, fridge2Max: 7, freezerMax: -18, ovenMin: 180 }
+      id, name: DEFAULT_SHOP, city: '', address: '', isActive: true,
+      checkItems: defaultCheckItems(),
+      cleaningPlan: defaultCleaningPlan()
     }], 'init shops.json');
   }
 }
@@ -80,14 +97,11 @@ ensureFiles();
 function setUser(req, _res, next) {
   const h = req.headers.authorization;
   if (h && h.startsWith('Bearer ')) {
-    try {
-      req.user = jwt.verify(h.slice(7), JWT_SECRET);
-    } catch { /* ignore */ }
+    try { req.user = jwt.verify(h.slice(7), JWT_SECRET); } catch {}
   }
   next();
 }
 app.use(setUser);
-
 function requireAuth(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Unauthenticated' });
   next();
@@ -106,7 +120,6 @@ app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'email and password required' });
 
-  // Admin login (env-based)
   if (ADMIN_EMAIL && ADMIN_PASSWORD &&
       email.toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
       password === ADMIN_PASSWORD) {
@@ -114,13 +127,11 @@ app.post('/api/auth/login', async (req, res) => {
     return res.json({ token, role: 'admin', name: 'Admin' });
   }
 
-  // Users from repo
   const users = await readJson('data/users.json', []);
   const u = users.find(x => x.email.toLowerCase() === email.toLowerCase());
   if (!u) return res.status(401).json({ error: 'Invalid credentials' });
   const ok = await bcrypt.compare(password, u.passwordHash || '');
   if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
-
   const token = jwt.sign({ sub: u.id, email: u.email, role: u.role || 'staff', shops: u.shops || [] }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, role: u.role || 'staff', name: u.name || u.email });
 });
@@ -131,70 +142,93 @@ app.get('/api/shops', requireAuth, async (_req, res) => {
   res.json(shops);
 });
 
-// ---------- checklist (today) ----------
-function todayStr() {
+// ---------- utils ----------
+const todayStr = () => {
   const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
-function defaultChecklist(date, shop) {
-  return {
-    date,
-    shopId: shop.id,
-    readings: {
-      fridge1: null, fridge2: null, freezer: null, oven: null,
-      dishwasherOver82C: false, handwashHot: false, cleaningDone: false
-    },
-    notes: '',
-    issues: [],
-    lastSavedBy: null,
-    lastSavedAt: null,
-    targets: shop.targets || { fridge1Min: 0, fridge1Max: 7, fridge2Min: 0, fridge2Max: 7, freezerMax: -18, ovenMin: 180 }
-  };
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+};
+const pathChecklist = (shopId, date) => `data/checklists/${shopId}/${date}.json`;
+const pathCleaning  = (shopId, date) => `data/cleaning/${shopId}/${date}.json`;
+
+function emptyChecklist(shop) {
+  const values = {};
+  (shop.checkItems || []).forEach(i => values[i.id] = i.type === 'boolean' ? false : null);
+  return { date: todayStr(), shopId: shop.id, values, notes: '', issues: [], lastSavedBy: null, lastSavedAt: null };
 }
 
+function countDeviations(values, items) {
+  let dev = 0;
+  for (const i of items) {
+    const v = values[i.id];
+    if (i.type !== 'number' || v === null || v === '' || Number.isNaN(v)) continue;
+    if (i.rule === 'range' && (v < i.min || v > i.max)) dev++;
+    if (i.rule === 'max'   && (v > i.max)) dev++;
+    if (i.rule === 'min'   && (v < i.min)) dev++;
+  }
+  return dev;
+}
+
+// ---------- daily checklist ----------
 app.get('/api/today', requireAuth, async (req, res) => {
   const date = (req.query.date || todayStr()).trim();
   const shopId = (req.query.shopId || 'shop_default').trim();
   const shops = await readJson('data/shops.json', []);
   const shop = shops.find(s => s.id === shopId) || shops[0];
 
-  const path = `data/checklists/${shop.id}/${date}.json`;
-  const file = await ghTryGet(path);
-  if (!file) return res.json(defaultChecklist(date, shop));
+  const file = await ghTryGet(pathChecklist(shop.id, date));
+  const data = file
+    ? JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'))
+    : emptyChecklist(shop);
 
-  const data = JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
-  res.json(data);
+  res.json({ ...data, items: shop.checkItems || [] });
 });
 
 app.post('/api/today', requireAuth, async (req, res) => {
   const body = req.body || {};
-  if (!body.date || !body.shopId) return res.status(400).json({ error: 'date and shopId required' });
+  if (!body.date || !body.shopId || typeof body.values !== 'object')
+    return res.status(400).json({ error: 'date, shopId, values required' });
 
   body.lastSavedBy = req.user.email;
   body.lastSavedAt = new Date().toISOString();
 
-  const path = `data/checklists/${body.shopId}/${body.date}.json`;
-  await writeJson(path, body, `checklist: ${body.shopId} ${body.date}`);
+  await writeJson(pathChecklist(body.shopId, body.date), body, `checklist ${body.shopId} ${body.date}`);
   res.json({ ok: true });
 });
 
-// history list (dates only)
+// ---------- history (dates only) ----------
 app.get('/api/history', requireAuth, async (req, res) => {
   const shopId = (req.query.shopId || 'shop_default').trim();
   const dir = `data/checklists/${shopId}`;
   const items = await listDir(dir);
-  const dates = items
-    .filter(x => x.type === 'file' && x.name.endsWith('.json'))
-    .map(x => x.name.replace('.json', ''))
-    .sort()
-    .reverse();
+  const dates = items.filter(x => x.type === 'file' && x.name.endsWith('.json'))
+                     .map(x => x.name.replace('.json', ''))
+                     .sort().reverse();
   res.json(dates);
 });
 
-// ---------- ADMIN (shops & users stored in repo JSON) ----------
+// ---------- Cleaning Plan (per day status) ----------
+app.get('/api/cleaning', requireAuth, async (req, res) => {
+  const date = (req.query.date || todayStr()).trim();
+  const shopId = (req.query.shopId || 'shop_default').trim();
+  const shops = await readJson('data/shops.json', []);
+  const shop = shops.find(s => s.id === shopId) || shops[0];
+
+  const file = await ghTryGet(pathCleaning(shop.id, date));
+  const data = file
+    ? JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'))
+    : { date, shopId: shop.id, tasks: (shop.cleaningPlan || []).map(t => ({ id: t.id, done: false, note: '' })), lastSavedBy: null, lastSavedAt: null };
+
+  res.json({ ...data, plan: shop.cleaningPlan || [] });
+});
+app.post('/api/cleaning', requireAuth, async (req, res) => {
+  const { date, shopId, tasks } = req.body || {};
+  if (!date || !shopId || !Array.isArray(tasks)) return res.status(400).json({ error: 'date, shopId, tasks[] required' });
+  const body = { date, shopId, tasks, lastSavedBy: req.user.email, lastSavedAt: new Date().toISOString() };
+  await writeJson(pathCleaning(shopId, date), body, `cleaning ${shopId} ${date}`);
+  res.json({ ok: true });
+});
+
+// ---------- ADMIN (shops & users) ----------
 app.get('/api/admin/shops', requireRole('admin'), async (_req, res) => {
   res.json(await readJson('data/shops.json', []));
 });
@@ -208,12 +242,8 @@ app.post('/api/admin/shops', requireRole('admin'), async (req, res) => {
     city: s.city || '',
     address: s.address || '',
     isActive: s.isActive !== false,
-    targets: {
-      fridge1Min: 0, fridge1Max: 7,
-      fridge2Min: 0, fridge2Max: 7,
-      freezerMax: -18, ovenMin: 180,
-      ...(s.targets || {})
-    }
+    checkItems: Array.isArray(s.checkItems) && s.checkItems.length ? s.checkItems : defaultCheckItems(),
+    cleaningPlan: Array.isArray(s.cleaningPlan) ? s.cleaningPlan : defaultCleaningPlan()
   };
   shops.push(shop);
   await writeJson('data/shops.json', shops, `admin: add shop ${shop.name}`);
@@ -223,7 +253,16 @@ app.put('/api/admin/shops/:id', requireRole('admin'), async (req, res) => {
   const shops = await readJson('data/shops.json', []);
   const i = shops.findIndex(s => s.id === req.params.id);
   if (i === -1) return res.status(404).json({ error: 'not found' });
-  shops[i] = { ...shops[i], ...req.body, id: shops[i].id };
+  const s = req.body || {};
+  shops[i] = {
+    ...shops[i],
+    name: s.name ?? shops[i].name,
+    city: s.city ?? shops[i].city,
+    address: s.address ?? shops[i].address,
+    isActive: s.isActive ?? shops[i].isActive,
+    checkItems: Array.isArray(s.checkItems) ? s.checkItems : shops[i].checkItems,
+    cleaningPlan: Array.isArray(s.cleaningPlan) ? s.cleaningPlan : shops[i].cleaningPlan
+  };
   await writeJson('data/shops.json', shops, `admin: update shop ${shops[i].name}`);
   res.json(shops[i]);
 });
@@ -235,7 +274,7 @@ app.delete('/api/admin/shops/:id', requireRole('admin'), async (req, res) => {
   res.status(204).end();
 });
 
-// users
+// users (same as before)
 app.get('/api/admin/users', requireRole('admin'), async (_req, res) => {
   const users = await readJson('data/users.json', []);
   res.json(users.map(u => ({ ...u, passwordHash: undefined })));
