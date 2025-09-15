@@ -1,5 +1,28 @@
 {
   "users": [],
-  "shops": [],
+  "shops": [
+    {
+      "id": "shop_hltxseyg",
+      "name": "Bunca City",
+      "city": "",
+      "address": "",
+      "active": true,
+      "checklist": [
+        {
+          "id": "item_n2v0w",
+          "label": "Kühlschrank ",
+          "type": "number",
+          "unit": "20°C",
+          "rule": {
+            "kind": "range",
+            "min": 2,
+            "max": 7
+          }
+        }
+      ],
+      "cleaningPlan": [],
+      "createdAt": "2025-09-15T10:07:10.504Z"
+    }
+  ],
   "entries": {}
 }
