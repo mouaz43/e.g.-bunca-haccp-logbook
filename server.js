@@ -10,9 +10,9 @@
  * - Assets served via routes: /assets/style.css and /assets/app.js
  * - Clean structure & graceful shutdown.
  *
- * Next steps (on your signal "Next file"):
- * - Split into modules (routes/controllers), auth, SQLite, templates.
- * - Keep each code file ≥ 500 lines as requested.
+ * Next steps (when you say “Next file”):
+ * - Split into modules (auth, shops, checks, admin), SQLite, EJS views.
+ * - Keep each new **code** file ≥ 500 lines as requested.
  */
 
 'use strict';
@@ -24,8 +24,6 @@ const compression = require('compression');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
 require('dotenv').config();
 
 // ------------------------- Config --------------------------
@@ -33,20 +31,16 @@ const APP_NAME = process.env.APP_NAME || 'BUNCA HACCP';
 const NODE_ENV = process.env.NODE_ENV || 'production';
 const PORT = Number(process.env.PORT || 3000);
 
-// CORS: allow all by default for now (safe since this is server-side HTML).
-// We can restrict later to your domain(s).
+// CORS (open; we can restrict later)
 const corsOptions = {
-  origin: function (origin, cb) {
-    // In production you can restrict: ['https://bunca-haccp.onrender.com', 'https://yourdomain.de']
-    cb(null, true);
-  },
+  origin: (_origin, cb) => cb(null, true),
   credentials: false
 };
 
-// Rate limiting (basic): protect from abuse
+// Rate limit (basic)
 const limiter = rateLimit({
   windowMs: 60 * 1000,
-  max: 120, // 120 req/min per IP
+  max: 120, // 120 req/min/IP
   standardHeaders: true,
   legacyHeaders: false
 });
@@ -54,63 +48,41 @@ const limiter = rateLimit({
 // ------------------------- App Setup -----------------------
 const app = express();
 
-// Security headers
 app.use(helmet({
   contentSecurityPolicy: {
     useDefaults: true,
     directives: {
       "default-src": ["'self'"],
       "img-src": ["'self'", "data:"],
-      "style-src": ["'self'", "'unsafe-inline'"], // we serve CSS as a route; allow inline critical styles if needed
-      "script-src": ["'self'"], // no eval, no inline scripts
+      "style-src": ["'self'", "'unsafe-inline'"],
+      "script-src": ["'self'"],
       "connect-src": ["'self'"],
       "frame-ancestors": ["'none'"]
     }
   },
   crossOriginEmbedderPolicy: false
 }));
-
-// Compression & logging
 app.use(compression());
 app.use(morgan(NODE_ENV === 'production' ? 'combined' : 'dev'));
-
-// Body parsers
 app.use(express.json({ limit: '256kb' }));
 app.use(express.urlencoded({ extended: true, limit: '256kb' }));
-
-// CORS & Rate-limit
 app.use(cors(corsOptions));
 app.use(limiter);
-
-// Basic powered-by override
 app.disable('x-powered-by');
 
 // ------------------------- Helpers -------------------------
-/**
- * small util to HTML-escape (for any user inputs later)
- */
-function escapeHtml(str = '') {
-  return String(str)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&#039;');
-}
+const escapeHtml = (s='') =>
+  String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
 
-/**
- * Build absolute base URL for sitemap
- */
-function getBaseUrl(req) {
+const getBaseUrl = (req) => {
   const proto = req.headers['x-forwarded-proto'] || req.protocol || 'https';
-  const host = req.headers['x-forwarded-host'] || req.headers.host;
+  const host  = req.headers['x-forwarded-host']  || req.headers.host;
   return `${proto}://${host}`;
-}
+};
 
-// ------------------------- CSS (served as route) -----------
-// Long, modern CSS (≈200+ lines) with BUNCA palette
+// ------------------------- CSS (served via route) ----------
 const CSS = String.raw`
-/* BUNCA HACCP Base Styles */
+/* === BUNCA HACCP Base Styles (mobile-first, modern) === */
 :root{
   --bg:#0e0f12; --panel:#14161b; --soft:#1a1d23;
   --text:#e9eef7; --muted:#a8b0bf;
@@ -125,11 +97,9 @@ const CSS = String.raw`
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0;
-  background:linear-gradient(180deg,var(--bg) 0%, #121419 100%);
-  color:var(--text);
+  margin:0;background:linear-gradient(180deg,var(--bg) 0%, #121419 100%);color:var(--text);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
-  -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
 }
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
@@ -144,34 +114,28 @@ img{max-width:100%;display:block}
   background:linear-gradient(180deg,var(--panel),#0f1115);
   border:1px solid rgba(255,255,255,.06);
   border-radius:var(--radius-lg);
-  padding:18px; box-shadow:var(--shadow);
+  padding:18px;box-shadow:var(--shadow);
 }
 .soft{background:linear-gradient(180deg,var(--soft),var(--panel));border:1px dashed rgba(255,255,255,.08)}
 .badge{
-  display:inline-flex;align-items:center;gap:8px;
-  padding:6px 10px;border:1px solid rgba(255,255,255,.08);
-  border-radius:999px;background:rgba(255,255,255,.05);
-  font-size:13px;color:var(--muted)
+  display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid rgba(255,255,255,.08);
+  border-radius:999px;background:rgba(255,255,255,.05);font-size:13px;color:var(--muted)
 }
 .btn{
   cursor:pointer;display:inline-flex;justify-content:center;align-items:center;gap:8px;
   padding:12px 16px;border:none;border-radius:14px;font-weight:800;
-  transition:transform .06s ease, box-shadow .2s ease; outline:none;
+  transition:transform .06s ease, box-shadow .2s ease;outline:none;
 }
-.btn:focus{box-shadow:var(--focus)}
-.btn:active{transform:translateY(1px)}
+.btn:focus{box-shadow:var(--focus)} .btn:active{transform:translateY(1px)}
 .btn-primary{background:linear-gradient(180deg,var(--gold),#9f7e3d);color:#14161b;box-shadow:var(--shadow)}
 .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,.12);color:var(--text)}
 .btn-danger{background:linear-gradient(180deg,#e15a64,#b92f39);color:#fff}
 .btn-ok{background:linear-gradient(180deg,#49c469,#2a8b41);color:#fff}
 .btn-warn{background:linear-gradient(180deg,#ffcc66,#e0971d);color:#14161b}
-.btn-sm{padding:8px 10px;border-radius:10px;font-weight:700}
 .chip{border:1px solid rgba(255,255,255,.08);padding:6px 10px;border-radius:999px}
-.muted{color:var(--muted)}
-.kpi{font-weight:900;font-size:1.6rem}
+.muted{color:var(--muted)} .kpi{font-weight:900;font-size:1.6rem}
 .ok{color:var(--ok)} .warn{color:var(--warn)} .fail{color:var(--fail)}
-.spacer{height:12px}
-.divider{height:1px;background:rgba(255,255,255,.08);margin:6px 0}
+.spacer{height:12px} .divider{height:1px;background:rgba(255,255,255,.08);margin:6px 0}
 .input, select, textarea{
   width:100%;padding:12px 14px;border-radius:14px;background:#0c0d11;color:var(--text);
   border:1px solid rgba(255,255,255,.07);outline:none;transition:border-color .15s ease, box-shadow .15s ease;
@@ -181,10 +145,9 @@ label>span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
 .form{display:grid;gap:12px}
 .table{width:100%;border-collapse:separate;border-spacing:0}
 .table th, .table td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left;font-size:14px}
-.table th{font-weight:800;color:var(--muted)}
-.table tr:hover td{background:rgba(255,255,255,.03)}
+.table th{font-weight:800;color:var(--muted)} .table tr:hover td{background:rgba(255,255,255,.03)}
 
-/* Header / Nav */
+/* Header/Nav */
 .site-header{position:sticky;top:0;z-index:40;background:rgba(14,15,18,.7);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.06)}
 .nav{display:flex;align-items:center;justify-content:space-between;height:64px}
 .brand{display:flex;gap:10px;align-items:center}
@@ -194,11 +157,7 @@ label>span{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
 .link{opacity:.92;padding:8px 10px;border-radius:12px}
 .link:hover{opacity:1;background:rgba(255,255,255,.06)}
 .menu-btn{display:none}
-@media(max-width:860px){
-  .links{display:none}
-  .menu-btn{display:inline-flex}
-  .mobile-menu{display:grid}
-}
+@media(max-width:860px){.links{display:none}.menu-btn{display:inline-flex}.mobile-menu{display:grid}}
 .mobile-menu{display:none;gap:10px;padding:10px}
 .mobile-menu a{padding:10px;border-radius:12px;background:rgba(255,255,255,.04)}
 .theme-toggle{border-radius:999px;padding:8px 10px}
@@ -219,21 +178,20 @@ main.page{padding:28px 0 56px}
 .footer-inner{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .logo.sm{inline-size:26px;block-size:26px;border-radius:8px}
 
-/* Dialog/Modal */
-dialog{
-  border:none;border-radius:16px;max-width:720px;width:96vw;background:linear-gradient(180deg,var(--panel),#0f1115);color:var(--text);padding:0
-}
+/* Dialog/Toast */
+dialog{border:none;border-radius:16px;max-width:720px;width:96vw;background:linear-gradient(180deg,var(--panel),#0f1115);color:var(--text);padding:0}
 dialog::backdrop{background:rgba(0,0,0,.55)}
 .dialog-header{padding:18px 18px 0;font-weight:800}
 .dialog-body{padding:12px 18px;color:var(--muted)}
 .dialog-actions{padding:0 18px 18px}
+.toast{position:fixed;right:14px;bottom:14px;z-index:60;display:none;min-width:220px;max-width:360px;background:linear-gradient(180deg,var(--panel),#0f1115);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow)}
+.toast.show{display:block;animation:pop .14s ease}
+@keyframes pop{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
 
-/* Tiny helpers to keep layout tidy */
-.hidden{display:none !important}
-.center{display:grid;place-items:center}
+.hidden{display:none !important}.center{display:grid;place-items:center}
 `;
 
-// ------------------------- JS (served as route) ------------
+// ------------------------- JS (served via route) ------------
 const JS = String.raw`
 // BUNCA HACCP front-end (vanilla JS)
 // - Mobile menu toggle
@@ -242,40 +200,29 @@ const JS = String.raw`
 // - Simple toast feedback
 (function(){
   'use strict';
-
   const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
 
   // Theme
   const THEME_KEY = 'bunca_theme';
   function applyTheme(t){
     document.documentElement.setAttribute('data-theme', t);
-    try { localStorage.setItem(THEME_KEY, t); } catch(e){}
+    try{ localStorage.setItem(THEME_KEY, t);}catch(e){}
   }
   function toggleTheme(){
     const current = document.documentElement.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
     applyTheme(current === 'dark' ? 'light' : 'dark');
   }
   window.toggleTheme = toggleTheme;
-  // init theme
-  try {
-    const saved = localStorage.getItem(THEME_KEY);
-    if(saved) applyTheme(saved);
-  } catch(e){}
+  try{ const saved = localStorage.getItem(THEME_KEY); if(saved) applyTheme(saved);}catch(e){}
 
-  // Mobile nav toggle
+  // Mobile nav
   const menuBtn = document.getElementById('menuBtn');
   const mobileNav = document.getElementById('mobileNav');
   if(menuBtn && mobileNav){
     menuBtn.addEventListener('click', ()=>{
-      const isOpen = !mobileNav.hasAttribute('hidden');
-      if(isOpen){
-        mobileNav.setAttribute('hidden','');
-        menuBtn.setAttribute('aria-expanded','false');
-      }else{
-        mobileNav.removeAttribute('hidden');
-        menuBtn.setAttribute('aria-expanded','true');
-      }
+      const open = !mobileNav.hasAttribute('hidden');
+      if(open){ mobileNav.setAttribute('hidden',''); menuBtn.setAttribute('aria-expanded','false');}
+      else{ mobileNav.removeAttribute('hidden'); menuBtn.setAttribute('aria-expanded','true');}
     });
   }
 
@@ -289,30 +236,22 @@ const JS = String.raw`
   }
   window.showToast = showToast;
 
-  // Lead form demo (localStorage)
+  // Lead form demo
   function submitLead(e){
     e.preventDefault();
     const name = document.getElementById('leadName')?.value?.trim();
     const email = document.getElementById('leadEmail')?.value?.trim();
     const ok = document.getElementById('leadConsent')?.checked;
-    if(!name || !email || !ok){
-      showToast('Bitte alle Felder ausfüllen und Datenschutz zustimmen.');
-      return false;
-    }
-    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)){
-      showToast('Bitte gültige E-Mail eingeben.');
-      return false;
-    }
-    const lead = {name, email, ts: new Date().toISOString()};
-    try {
-      const key = 'bunca_haccp_leads';
-      const arr = JSON.parse(localStorage.getItem(key) || '[]');
-      arr.push(lead);
+    if(!name || !email || !ok) return showToast('Bitte Felder ausfüllen & Datenschutz zustimmen.');
+    if(!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) return showToast('Bitte gültige E-Mail.');
+    try{
+      const key='bunca_haccp_leads';
+      const arr=JSON.parse(localStorage.getItem(key)||'[]');
+      arr.push({name,email,ts:new Date().toISOString()});
       localStorage.setItem(key, JSON.stringify(arr));
-    } catch(e){}
-    const dlg = document.getElementById('starterDialog');
-    if(dlg) dlg.showModal();
-    (e.target || e.srcElement).reset?.();
+    }catch(e){}
+    document.getElementById('starterDialog')?.showModal();
+    (e.target||{}).reset?.();
     showToast('Starter-Kit Link gesendet (Demo).');
     return false;
   }
@@ -320,11 +259,9 @@ const JS = String.raw`
 
   // Demo preview
   function demoPreview(){
-    const demo = document.getElementById('demoDialog');
-    if(demo) demo.showModal();
+    document.getElementById('demoDialog')?.showModal();
   }
   window.demoPreview = demoPreview;
-
 })();
 `;
 
@@ -547,22 +484,10 @@ function pageDatenschutz() {
 }
 
 // ------------------------- Routes --------------------------
+app.get('/healthz', (_req, res) => res.status(200).send('ok'));
+app.get('/assets/style.css', (_req, res) => { res.setHeader('Content-Type','text/css; charset=utf-8'); res.send(CSS); });
+app.get('/assets/app.js',   (_req, res) => { res.setHeader('Content-Type','application/javascript; charset=utf-8'); res.send(JS); });
 
-// Healthcheck for Render
-app.get('/healthz', (req, res) => res.status(200).send('ok'));
-
-// Assets
-app.get('/assets/style.css', (req, res) => {
-  res.setHeader('Content-Type', 'text/css; charset=utf-8');
-  res.send(CSS);
-});
-
-app.get('/assets/app.js', (req, res) => {
-  res.setHeader('Content-Type', 'application/javascript; charset=utf-8');
-  res.send(JS);
-});
-
-// SEO
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain').send([
     'User-agent: *',
@@ -573,24 +498,22 @@ app.get('/robots.txt', (req, res) => {
 
 app.get('/sitemap.xml', (req, res) => {
   const base = getBaseUrl(req);
-  const xml =
+  res.type('application/xml').send(
 `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>${base}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
   <url><loc>${base}/login</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
   <url><loc>${base}/impressum</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
   <url><loc>${base}/datenschutz</loc><changefreq>yearly</changefreq><priority>0.3</priority></url>
-</urlset>`;
-  res.type('application/xml').send(xml);
+</urlset>`
+  );
 });
 
-// Pages
-app.get('/', (req, res) => res.status(200).send(pageHome()));
-app.get('/login', (req, res) => res.status(200).send(pageLogin()));
-app.get('/impressum', (req, res) => res.status(200).send(pageImpressum()));
-app.get('/datenschutz', (req, res) => res.status(200).send(pageDatenschutz()));
+app.get('/',          (_req, res) => res.status(200).send(pageHome()));
+app.get('/login',     (_req, res) => res.status(200).send(pageLogin()));
+app.get('/impressum', (_req, res) => res.status(200).send(pageImpressum()));
+app.get('/datenschutz',(_req, res)=> res.status(200).send(pageDatenschutz()));
 
-// 404
 app.use((req, res) => {
   res.status(404).send(layoutHTML({
     title: 'Seite nicht gefunden',
@@ -604,8 +527,7 @@ app.use((req, res) => {
   }));
 });
 
-// 500
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
   console.error('❌ Unhandled error:', err);
   res.status(500).send(layoutHTML({
     title: 'Fehler',
@@ -623,21 +545,7 @@ app.use((err, req, res, next) => {
 const server = app.listen(PORT, () => {
   console.log(`✅ ${APP_NAME} running on http://localhost:${PORT} (env: ${NODE_ENV})`);
 });
-
-// Graceful shutdown
-function shutdown(signal) {
-  console.log(`\n${signal} received. Shutting down...`);
-  server.close(() => {
-    console.log('HTTP server closed.');
-    process.exit(0);
-  });
-}
-['SIGINT', 'SIGTERM'].forEach(s => process.on(s, () => shutdown(s)));
-
-// Safety
-process.on('unhandledRejection', (err) => {
-  console.error('UNHANDLED REJECTION:', err);
-});
-process.on('uncaughtException', (err) => {
-  console.error('UNCAUGHT EXCEPTION:', err);
-});
+function shutdown(signal){ console.log(`\\n${signal} received. Shutting down...`); server.close(()=>{ console.log('HTTP server closed.'); process.exit(0);});}
+['SIGINT','SIGTERM'].forEach(s=>process.on(s,()=>shutdown(s)));
+process.on('unhandledRejection',(err)=>console.error('UNHANDLED REJECTION:',err));
+process.on('uncaughtException',(err)=>console.error('UNCAUGHT EXCEPTION:',err));
