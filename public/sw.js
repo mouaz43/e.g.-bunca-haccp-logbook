@@ -1,4 +1,4 @@
-// BUNCA HACCP — Service Worker (cache-first for assets, network-first for pages)
+// BUNCA HACCP — Service Worker (DE)
 const CACHE = 'bunca-v1';
 const CORE = [
   '/', '/index.html', '/admin.html', '/check.html', '/history.html', '/dashboard.html', '/shop.html', '/login.html',
@@ -24,32 +24,21 @@ self.addEventListener('activate', (e)=>{
 self.addEventListener('fetch', (e)=>{
   const req = e.request;
   const url = new URL(req.url);
-
-  // Same-origin only
   if(url.origin !== location.origin) return;
-
-  // Don’t interfere with non-GET (let app handle)
   if(req.method !== 'GET') return;
 
-  // HTML navigations: network-first, fall back to cache
   if(req.mode === 'navigate' || (req.headers.get('accept')||'').includes('text/html')){
     e.respondWith(networkFirst(req));
     return;
   }
-
-  // Static assets: stale-while-revalidate
   if(url.pathname.startsWith('/assets/') || url.pathname.endsWith('.webmanifest')){
     e.respondWith(staleWhileRevalidate(req));
     return;
   }
-
-  // API GETs: network-first, cache fallback
   if(url.pathname.startsWith('/api/')){
     e.respondWith(networkFirst(req));
     return;
   }
-
-  // Otherwise: try cache, then network
   e.respondWith(staleWhileRevalidate(req));
 });
 
@@ -62,16 +51,14 @@ async function networkFirst(req){
   }catch{
     const cached = await cache.match(req);
     if(cached) return cached;
-    // Minimal offline fallback for navigations
     if(req.mode === 'navigate'){
-      return new Response(`<html><body><h1>Offline</h1><p>You’re offline. Try again when you’re connected.</p></body></html>`, {
-        headers:{'Content-Type':'text/html'}
+      return new Response(`<html lang="de"><body><h1>Offline</h1><p>Du bist offline. Bitte später erneut versuchen.</p></body></html>`, {
+        headers:{'Content-Type':'text/html; charset=utf-8'}
       });
     }
     return new Response('Offline', { status: 503 });
   }
 }
-
 async function staleWhileRevalidate(req){
   const cache = await caches.open(CACHE);
   const cached = await cache.match(req);
