@@ -3,17 +3,18 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA · Admin</title>
+  <title>BUNCA HACCP · Admin</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
-  <meta name="theme-color" content="#0d0f14"/>
+  <meta name="theme-color" content="#10b981"/>
 </head>
 <body>
 <header class="header">
   <div class="wrap">
-    <div class="brand"><span class="dot"></span> Admin</div>
-    <nav class="nav">
-      <a class="btn" href="/">Site</a>
-      <button id="logoutBtn" class="btn bad">Logout</button>
+    <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
+    <button id="menuToggle" class="menu-btn"><span></span></button>
+    <nav id="mainNav" class="nav">
+      <a href="/">Home</a>
+      <a class="active" href="/admin">Admin</a>
     </nav>
   </div>
 </header>
@@ -23,26 +24,16 @@
   <section class="card">
     <h3 class="card-title">Create User</h3>
     <p class="muted">Admins can create accounts for staff.</p>
-    <div class="row">
-      <label>Email</label>
-      <input id="uEmail" class="input" type="email" placeholder="user@bunca.de">
-    </div>
-    <div class="row">
-      <label>Password</label>
-      <input id="uPass" class="input" type="password" placeholder="••••••••">
-    </div>
-    <div class="row">
-      <label>Role</label>
-      <select id="uRole" class="input">
-        <option value="user">User</option>
-        <option value="admin">Admin</option>
-      </select>
+    <div class="row"><label>Email</label><input id="uEmail" class="input" type="email" placeholder="user@bunca.de"></div>
+    <div class="row"><label>Password</label><input id="uPass" class="input" type="password" placeholder="••••••••"></div>
+    <div class="row"><label>Role</label>
+      <select id="uRole" class="input"><option value="user">User</option><option value="admin">Admin</option></select>
     </div>
     <div class="row cols-2">
       <button id="createUser" class="btn primary">Create</button>
       <div id="userMsg" class="muted"></div>
     </div>
-    <hr style="opacity:.1;margin:16px 0">
+    <hr style="opacity:.5;margin:16px 0">
     <h3 class="card-title">Users</h3>
     <table class="table" id="usersTbl">
       <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
@@ -67,7 +58,7 @@
       <div id="shopMsg" class="muted"></div>
     </div>
 
-    <hr style="opacity:.1;margin:16px 0">
+    <hr style="opacity:.5;margin:16px 0">
     <h3 class="card-title">Shops</h3>
     <table class="table" id="shopsTbl">
       <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead>
@@ -77,24 +68,17 @@
 
   <!-- CHECKLIST BUILDER -->
   <section class="card" style="grid-column:1/-1">
-    <h3 class="card-title">Checklist · Templates</h3>
-    <p class="muted">Pick a shop to define daily checklist items (Fridge, Oven, Dishwasher...).</p>
+    <h3 class="card-title">Checklist Templates</h3>
+    <p class="muted">Pick a shop and define daily checklist items (Fridge, Oven, Dishwasher …).</p>
 
     <div class="row cols-2">
-      <div>
-        <label>Shop</label>
-        <select id="ciShop" class="input"></select>
-      </div>
-      <div class="muted">Use the form to add items. Drag order is coming later; for now use the "Position" number.</div>
+      <div><label>Shop</label><select id="ciShop" class="input"></select></div>
+      <div class="muted">Use “Position” to control order.</div>
     </div>
 
-    <div class="grid cols-3" style="margin-top:12px">
-      <div class="row">
-        <label>Label</label>
-        <input id="ciLabel" class="input" placeholder="Fridge 1">
-      </div>
-      <div class="row">
-        <label>Kind</label>
+    <div class="grid cols-3" style="margin-top:8px">
+      <div class="row"><label>Label</label><input id="ciLabel" class="input" placeholder="Fridge 1"></div>
+      <div class="row"><label>Kind</label>
         <select id="ciKind" class="input">
           <option value="temperature">Temperature</option>
           <option value="boolean">Yes / No</option>
@@ -102,31 +86,18 @@
           <option value="text">Text</option>
         </select>
       </div>
-      <div class="row">
-        <label>Position</label>
-        <input id="ciPos" type="number" class="input" value="0">
-      </div>
-
-      <div class="row">
-        <label>Min (for temperature)</label>
-        <input id="ciMin" type="number" step="0.1" class="input" placeholder="">
-      </div>
-      <div class="row">
-        <label>Max (for temperature)</label>
-        <input id="ciMax" type="number" step="0.1" class="input" placeholder="">
-      </div>
-      <div class="row">
-        <label>Unit</label>
-        <input id="ciUnit" class="input" value="°C">
-      </div>
+      <div class="row"><label>Position</label><input id="ciPos" type="number" class="input" value="0"></div>
+      <div class="row"><label>Min (°C)</label><input id="ciMin" type="number" step="0.1" class="input"></div>
+      <div class="row"><label>Max (°C)</label><input id="ciMax" type="number" step="0.1" class="input"></div>
+      <div class="row"><label>Unit</label><input id="ciUnit" class="input" value="°C"></div>
     </div>
 
-    <div class="row cols-2" style="margin-top:10px">
+    <div class="row cols-2" style="margin-top:8px">
       <button id="ciAdd" class="btn primary">Add Item</button>
       <div id="ciMsg" class="muted"></div>
     </div>
 
-    <hr style="opacity:.1;margin:16px 0">
+    <hr style="opacity:.5;margin:16px 0">
     <table class="table" id="ciTable">
       <thead><tr><th>Pos</th><th>Label</th><th>Kind</th><th>Limits</th><th>Actions</th></tr></thead>
       <tbody></tbody>
@@ -134,107 +105,72 @@
   </section>
 </main>
 
-<footer>© BUNCA</footer>
+<footer>© BUNCA HACCP</footer>
 
-<script>
-  function csrf(){ return sessionStorage.getItem('csrf') || ''; }
+<script type="module">
+  import { requireSession, api } from '/assets/app.js';
 
-  async function requireAdmin(){
-    const res = await fetch('/api/auth/session');
-    const data = await res.json();
-    if(!data.session || data.session.role !== 'admin'){ location.href='/login'; return null; }
-    if(!sessionStorage.getItem('csrf')) sessionStorage.setItem('csrf', data.session.csrf);
-    return data.session;
+  async function init(){
+    const session = await requireSession('admin');
+    if(!session) return;
+    await Promise.all([loadUsers(), loadShops()]);
+    document.getElementById('createUser').addEventListener('click', createUser);
+    document.getElementById('createShop').addEventListener('click', createShop);
+    document.getElementById('ciAdd').addEventListener('click', addItem);
+    document.getElementById('ciShop').addEventListener('change', e=>loadChecklist(e.target.value));
+    document.addEventListener('click', onClick);
   }
 
-  async function api(url, method='GET', body){
-    const opt = { method, headers: {} };
-    if(['POST','PUT','PATCH','DELETE'].includes(method)){
-      opt.headers['Content-Type'] = 'application/json';
-      opt.headers['x-csrf-token'] = csrf();
-      opt.body = JSON.stringify(body || {});
-    }
-    const res = await fetch(url, opt);
-    return res.json();
-  }
-
-  // Users
   async function loadUsers(){
     const data = await api('/api/users');
-    const tbody = document.querySelector('#usersTbl tbody');
-    tbody.innerHTML = (data.users||[]).map(u => `
-      <tr>
-        <td>${u.email}</td>
-        <td>${u.role}</td>
-        <td><button class="btn bad" data-del-user="${u.id}">Delete</button></td>
-      </tr>`).join('');
+    document.querySelector('#usersTbl tbody').innerHTML =
+      (data.users||[]).map(u=>`
+        <tr>
+          <td>${u.email}</td><td>${u.role}</td>
+          <td><button class="btn bad small" data-del-user="${u.id}">Delete</button></td>
+        </tr>`).join('');
   }
 
-  // Shops
-  let shops = [];
+  let shops=[];
   async function loadShops(){
-    const data = await fetch('/api/shops').then(r=>r.json());
+    const res = await fetch('/api/shops'); const data = await res.json();
     shops = data.shops || [];
-    const tbody = document.querySelector('#shopsTbl tbody');
-    tbody.innerHTML = shops.map(s => `
+    document.querySelector('#shopsTbl tbody').innerHTML = shops.map(s=>`
       <tr>
-        <td>${s.name}</td>
-        <td>${s.slug}</td>
-        <td><span class="badge ${s.status==='open'?'ok':'warn'}">${s.status}</span></td>
+        <td>${s.name}</td><td>${s.slug}</td>
+        <td><span class="badge ${s.status==='open'?'':'warn'}">${s.status}</span></td>
         <td>
-          <a class="btn" href="/shop/${encodeURIComponent(s.slug)}">View</a>
-          <a class="btn" href="/history/${encodeURIComponent(s.slug)}">History</a>
-          <button class="btn bad" data-del-shop="${s.id}">Delete</button>
+          <a class="btn small" href="/shop/${encodeURIComponent(s.slug)}">Open</a>
+          <a class="btn small" href="/history/${encodeURIComponent(s.slug)}">History</a>
+          <button class="btn bad small" data-del-shop="${s.id}">Delete</button>
         </td>
       </tr>`).join('');
-
     const sel = document.getElementById('ciShop');
     sel.innerHTML = shops.map(s=>`<option value="${s.id}">${s.name} — ${s.slug}</option>`).join('');
-    if (shops.length) loadChecklist(shops[0].id);
+    if(shops.length) loadChecklist(shops[0].id);
   }
 
-  // Checklist templates
   async function loadChecklist(shopId){
     const data = await fetch(`/api/check-items?shop_id=${encodeURIComponent(shopId)}`).then(r=>r.json());
-    const tbody = document.querySelector('#ciTable tbody');
-    tbody.innerHTML = (data.items||[]).map(i=>`
+    document.querySelector('#ciTable tbody').innerHTML = (data.items||[]).map(i=>`
       <tr>
-        <td>${i.position}</td>
-        <td>${i.label}</td>
-        <td>${i.kind}</td>
-        <td>${i.kind==='temperature' ? `${i.min ?? ''}–${i.max ?? ''} ${i.unit || ''}` : '—'}</td>
-        <td><button class="btn bad" data-del-item="${i.id}">Remove</button></td>
+        <td>${i.position}</td><td>${i.label}</td><td>${i.kind}</td>
+        <td>${i.kind==='temperature' ? `${i.min ?? ''}–${i.max ?? ''} ${i.unit||''}` : '—'}</td>
+        <td><button class="btn bad small" data-del-item="${i.id}">Remove</button></td>
       </tr>`).join('') || '<tr><td colspan="5">No items yet</td></tr>';
   }
 
-  document.addEventListener('click', async (e)=>{
-    const delUser = e.target.closest('[data-del-user]');
-    if(delUser){ if(confirm('Delete user?')){ await api('/api/users/'+delUser.dataset.delUser,'DELETE'); loadUsers(); } }
-
-    const delShop = e.target.closest('[data-del-shop]');
-    if(delShop){ if(confirm('Delete shop?')){ await api('/api/shops/'+delShop.dataset.delShop,'DELETE'); loadShops(); } }
-
-    const delItem = e.target.closest('[data-del-item]');
-    if(delItem){
-      if(confirm('Remove item from checklist?')){
-        await api('/api/check-items/'+delItem.dataset.delItem,'DELETE');
-        loadChecklist(document.getElementById('ciShop').value);
-      }
-    }
-  });
-
-  document.getElementById('createUser').addEventListener('click', async ()=>{
+  async function createUser(){
     const email = document.getElementById('uEmail').value.trim();
     const password = document.getElementById('uPass').value;
     const role = document.getElementById('uRole').value;
-    const msg = document.getElementById('userMsg');
-    msg.textContent='…';
+    const msg = document.getElementById('userMsg'); msg.textContent='…';
     const out = await api('/api/users','POST',{email,password,role});
     msg.textContent = out.ok ? 'Created' : (out.error||'Error');
     if(out.ok){ loadUsers(); }
-  });
+  }
 
-  document.getElementById('createShop').addEventListener('click', async ()=>{
+  async function createShop(){
     const body = {
       name: document.getElementById('sName').value.trim(),
       slug: document.getElementById('sSlug').value.trim(),
@@ -244,14 +180,13 @@
       description: document.getElementById('sDesc').value.trim(),
       status: document.getElementById('sStatus').value
     };
-    const msg = document.getElementById('shopMsg');
-    msg.textContent='…';
+    const msg = document.getElementById('shopMsg'); msg.textContent='…';
     const out = await api('/api/shops','POST', body);
     msg.textContent = out.ok ? 'Saved' : (out.error||'Error');
     if(out.ok){ loadShops(); }
-  });
+  }
 
-  document.getElementById('ciAdd').addEventListener('click', async ()=>{
+  async function addItem(){
     const shop_id = document.getElementById('ciShop').value;
     const label = document.getElementById('ciLabel').value.trim();
     const kind = document.getElementById('ciKind').value;
@@ -259,26 +194,22 @@
     const min = document.getElementById('ciMin').value !== '' ? Number(document.getElementById('ciMin').value) : null;
     const max = document.getElementById('ciMax').value !== '' ? Number(document.getElementById('ciMax').value) : null;
     const unit = document.getElementById('ciUnit').value.trim() || '°C';
-    const msg = document.getElementById('ciMsg');
-    msg.textContent='…';
+    const msg = document.getElementById('ciMsg'); msg.textContent='…';
     const out = await api('/api/check-items','POST',{shop_id,label,kind,position,min,max,unit});
     msg.textContent = out.ok ? 'Added' : (out.error||'Error');
     if(out.ok){ loadChecklist(shop_id); document.getElementById('ciLabel').value=''; }
-  });
+  }
 
-  document.getElementById('ciShop').addEventListener('change', e => loadChecklist(e.target.value));
+  async function onClick(e){
+    const delUser = e.target.closest('[data-del-user]');
+    if(delUser && confirm('Delete user?')){ await api('/api/users/'+delUser.dataset.delUser,'DELETE'); loadUsers(); }
+    const delShop = e.target.closest('[data-del-shop]');
+    if(delShop && confirm('Delete shop?')){ await api('/api/shops/'+delShop.dataset.delShop,'DELETE'); loadShops(); }
+    const delItem = e.target.closest('[data-del-item]');
+    if(delItem && confirm('Remove item from checklist?')){ await api('/api/check-items/'+delItem.dataset.delItem,'DELETE'); loadChecklist(document.getElementById('ciShop').value); }
+  }
 
-  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-    await api('/api/auth/logout','POST',{});
-    sessionStorage.removeItem('csrf');
-    location.href = '/';
-  });
-
-  (async ()=>{
-    const session = await requireAdmin();
-    if(!session) return;
-    await Promise.all([loadUsers(), loadShops()]);
-  })();
+  init();
 </script>
 </body>
 </html>
