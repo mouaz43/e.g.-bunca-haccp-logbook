@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA HACCP · Shops</title>
+  <title>BUNCA HACCP · Filialen</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
   <meta name="theme-color" content="#10b981"/>
   <style>
@@ -16,31 +16,31 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menü"><span></span></button>
     <nav id="mainNav" class="nav">
-      <a class="active" href="/">Home</a>
+      <a class="active" href="/">Startseite</a>
       <a href="/dashboard">Dashboard</a>
-      <a href="/admin">Admin</a>
-      <a href="/login">Login</a>
+      <a href="/admin">Verwaltung</a>
+      <a href="/login">Anmelden</a>
     </nav>
   </div>
 </header>
 
 <main class="container">
   <section class="hero">
-    <h1>Shops</h1>
-    <p class="muted">Open a shop to perform the daily check, view history, or see the dashboard.</p>
+    <h1>Filialen</h1>
+    <p class="muted">Wähle eine Filiale für Tagescheck, Verlauf oder Dashboard.</p>
     <div class="toolbar">
-      <input id="q" class="input" placeholder="Search shops by name or slug…">
+      <input id="q" class="input" placeholder="Nach Name oder Slug suchen…">
       <select id="status" class="input">
-        <option value="">All statuses</option>
-        <option value="open">Open</option>
-        <option value="closed">Closed</option>
+        <option value="">Alle Status</option>
+        <option value="open">Geöffnet</option>
+        <option value="closed">Geschlossen</option>
       </select>
       <select id="sort" class="input">
-        <option value="name">Sort by name</option>
-        <option value="status">Sort by status</option>
-        <option value="new">Newest first</option>
+        <option value="name">Nach Name sortieren</option>
+        <option value="status">Nach Status sortieren</option>
+        <option value="new">Neueste zuerst</option>
       </select>
     </div>
   </section>
@@ -52,8 +52,8 @@
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
   <a href="/dashboard">📊 Dashboard</a>
-  <a href="/admin">🛠 Admin</a>
-  <a href="/login">🔐 Login</a>
+  <a href="/admin">🛠 Verwaltung</a>
+  <a href="/login">🔐 Anmelden</a>
 </div>
 
 <footer>© BUNCA HACCP</footer>
@@ -63,21 +63,22 @@
   let ALL = [];
   function card(s){
     const cls = s.status==='open'?'badge':'badge warn';
+    const statusLabel = s.status==='open' ? 'Geöffnet' : 'Geschlossen';
     return `<article class="card shop-card">
       <div style="display:grid;gap:10px">
         ${s.image_url ? `<img src="${s.image_url}" alt="${s.name}">` : ''}
         <div style="display:flex;align-items:center;justify-content:space-between">
           <h3 class="card-title" style="margin:0">${s.name}</h3>
-          <span class="${cls}">${s.status}</span>
+          <span class="${cls}">${statusLabel}</span>
         </div>
         <p class="muted" style="margin-top:-4px">${s.slug}${s.address?` • ${s.address}`:''}</p>
         <p>${s.description || ''}</p>
         <div class="row cols-2">
-          <a class="btn primary" href="/check/${encodeURIComponent(s.slug)}">Daily Check</a>
-          <a class="btn" href="/history/${encodeURIComponent(s.slug)}">History</a>
+          <a class="btn primary" href="/check/${encodeURIComponent(s.slug)}">Tagescheck</a>
+          <a class="btn" href="/history/${encodeURIComponent(s.slug)}">Verlauf</a>
         </div>
         <div class="row cols-2">
-          <a class="btn" href="/shop/${encodeURIComponent(s.slug)}">Open</a>
+          <a class="btn" href="/shop/${encodeURIComponent(s.slug)}">Öffnen</a>
           <a class="btn" href="/dashboard?shop=${encodeURIComponent(s.slug)}">Dashboard</a>
         </div>
       </div>
@@ -94,12 +95,11 @@
     if(status){ list = list.filter(s => s.status === status); }
     if(sort==='name'){ list.sort((a,b)=> a.name.localeCompare(b.name)); }
     else if(sort==='status'){ list.sort((a,b)=> a.status.localeCompare(b.status) || a.name.localeCompare(b.name)); }
-    else if(sort==='new'){ /* list already returned newest first from API per created_at DESC */ }
 
     const grid = document.getElementById('shopsGrid');
     grid.innerHTML = list.map(card).join('') || `
-      <div class="card"><h3 class="card-title">No shops found</h3>
-      <p class="muted">Try clearing filters or create a shop in <a href="/admin">Admin</a>.</p></div>`;
+      <div class="card"><h3 class="card-title">Keine Filialen gefunden</h3>
+      <p class="muted">Filter zurücksetzen oder in der <a href="/admin">Verwaltung</a> eine Filiale anlegen.</p></div>`;
   }
 
   (async ()=>{
