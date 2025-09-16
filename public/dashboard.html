@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BUNCA HACCP · Dashboard</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+  <meta name="theme-color" content="#10b981"/>
+  <style>
+    .kpis{display:grid;gap:16px;grid-template-columns:repeat(4,minmax(0,1fr))}
+    @media (max-width:980px){.kpis{grid-template-columns:1fr 1fr}}
+    @media (max-width:640px){.kpis{grid-template-columns:1fr}}
+    .kpi{display:grid;gap:6px}
+    .kpi .num{font-size:28px;font-weight:800}
+    .kpi .label{color:var(--muted)}
+    .chart-card canvas{width:100%;height:260px}
+  </style>
+</head>
+<body>
+<header class="header">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
+    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
+    <nav id="mainNav" class="nav">
+      <a href="/">Home</a>
+      <a class="active" href="/dashboard">Dashboard</a>
+      <a href="/admin">Admin</a>
+      <a href="/login">Login</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <h1>Dashboard</h1>
+    <div class="row cols-2">
+      <div>
+        <label>Shop</label>
+        <select id="shopSel" class="input"></select>
+      </div>
+      <div style="display:flex;align-items:end;gap:8px">
+        <a id="toHistory" class="btn">Open History</a>
+        <a id="toCheck" class="btn">Start Daily Check</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="kpis" id="kpiWrap">
+    <article class="card kpi">
+      <div class="label">Total Runs</div>
+      <div id="kpiRuns" class="num">—</div>
+    </article>
+    <article class="card kpi">
+      <div class="label">Signed Runs</div>
+      <div id="kpiSigned" class="num">—</div>
+    </article>
+    <article class="card kpi">
+      <div class="label">Completion Rate</div>
+      <div id="kpiRate" class="num">—</div>
+    </article>
+    <article class="card kpi">
+      <div class="label">Issues (Last 7 days)</div>
+      <div id="kpiIssues7" class="num">—</div>
+    </article>
+  </section>
+
+  <section class="grid cols-2" style="margin-top:16px">
+    <article class="card chart-card">
+      <h3 class="card-title">Issues — Last 7 Days</h3>
+      <canvas id="trend" width="900" height="260"></canvas>
+      <div class="muted" id="trendHint"></div>
+    </article>
+
+    <article class="card">
+      <h3 class="card-title">Recent Runs</h3>
+      <table class="table" id="runsTable">
+        <thead><tr><th>Date</th><th>Status</th><th>OK</th><th>Issues</th><th></th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </article>
+  </section>
+</main>
+
+<!-- Floating menu -->
+<button id="fab" class="fab">≡</button>
+<div id="fabMenu" class="fab-menu">
+  <a href="/">🏠 Home</a>
+  <a href="/admin">🛠 Admin</a>
+</div>
+
+<footer>© BUNCA HACCP</footer>
+
+<script src="/assets/helpers.js"></script>
+<script>
+  function byId(id){ return document.getElementById(id); }
+  function statusBadge(s){
+    const cls = s==='signed' ? '' : (s==='submitted' ? 'warn' : (s==='draft' ? 'err' : ''));
+    const label = s.charAt(0).toUpperCase()+s.slice(1);
+    return `<span class="badge ${cls}">${label}</span>`;
+  }
+
+  let SHOPS = [];
+  let CURRENT = null; // slug
+
+  async function loadShops(){
+    const res = await fetch('/api/shops'); const data = await res.json();
+    SHOPS = data.shops || [];
+    const sel = byId('shopSel'); sel.innerHTML='';
+    SHOPS.forEach(s=>{
+      const o=document.createElement('option'); o.value=s.slug; o.textContent=`${s.name} — ${s.slug}`;
+      sel.appendChild(o);
+    });
+    // choose default
+    const qs = new URLSearchParams(location.search); const asked = qs.get('shop');
+    CURRENT = asked && SHOPS.find(s=>s.slug===asked) ? asked : (SHOPS[0]?.slug || null);
+    if(CURRENT) sel.value = CURRENT;
+    else { Bunca.toast('Create a shop first in Admin','warn'); }
+  }
+
+  async function refresh(){
+    if(!CURRENT) return;
+    // Links
+    byId('toHistory').href = '/history/'+encodeURIComponent(CURRENT);
+    byId('toCheck').href   = '/check/'+encodeURIComponent(CURRENT);
+
+    // KPIs + trend
+    const dash = await (await fetch('/api/dashboard?shop='+encodeURIComponent(CURRENT))).json();
+    const runs = Number(dash?.totals?.runs || 0);
+    const signed = Number(dash?.totals?.signed || 0);
+    const last7 = Array.isArray(dash?.last7) ? dash.last7 : [];
+    const totalIssues7 = last7.reduce((a,b)=> a + Number(b.issues||0), 0);
+
+    byId('kpiRuns').textContent = String(runs);
+    byId('kpiSigned').textContent = String(signed);
+    byId('kpiRate').textContent = runs ? Math.round((signed*10000)/runs)/100 + '%' : '—';
+    byId('kpiIssues7').textContent = String(totalIssues7);
+
+    drawTrend(last7);
+
+    // Recent runs (last 10)
+    const since = new Date(Date.now()-7*24*3600*1000).toISOString().slice(0,10);
+    const list = await (await fetch('/api/check-runs?shop='+encodeURIComponent(CURRENT)+'&from='+since)).json();
+    const rows = (list.runs||[]).slice(0,10);
+    const tbody = byId('runsTable').querySelector('tbody');
+    tbody.innerHTML = rows.map(r=>`
+      <tr>
+        <td>${r.run_date}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td>${r.ok_count||0}</td>
+        <td>${r.fail_count||0}</td>
+        <td><a class="btn small" href="/history/${encodeURIComponent(CURRENT)}" title="Open in History">Open</a></td>
+      </tr>`).join('') || '<tr><td colspan="5">No recent runs.</td></tr>';
+  }
+
+  function drawTrend(data){
+    const c = byId('trend'); const ctx = c.getContext('2d');
+    ctx.clearRect(0,0,c.width,c.height);
+    const padding = {l:40,r:12,t:18,b:28};
+    const w = c.width - padding.l - padding.r;
+    const h = c.height - padding.t - padding.b;
+
+    // X labels (ensure 7 days)
+    const labels = [];
+    const today = new Date(); today.setHours(0,0,0,0);
+    for(let i=6;i>=0;i--){
+      const d = new Date(today.getTime() - i*24*3600*1000);
+      const ds = d.toISOString().slice(0,10);
+      labels.push(ds);
+    }
+    const map = Object.fromEntries(data.map(d=>[d.run_date, Number(d.issues||0)]));
+    const values = labels.map(ds=> map[ds] || 0);
+    const maxV = Math.max(5, ...values);
+
+    // axes
+    ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(padding.l, padding.t); ctx.lineTo(padding.l, padding.t+h); ctx.lineTo(padding.l+w, padding.t+h); ctx.stroke();
+
+    // y ticks
+    ctx.fillStyle = '#6b7280'; ctx.font='12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
+    const steps = Math.min(maxV, 5);
+    for(let i=0;i<=steps;i++){
+      const y = padding.t + h - (i/steps)*h;
+      const val = Math.round((i/steps)*maxV);
+      ctx.strokeStyle='#f1f5f9'; ctx.beginPath(); ctx.moveTo(padding.l, y); ctx.lineTo(padding.l+w, y); ctx.stroke();
+      ctx.fillText(String(val), 8, y+4);
+    }
+
+    // x labels
+    labels.forEach((ds, idx)=>{
+      const x = padding.l + (idx/(labels.length-1))*w;
+      const txt = ds.slice(5); // MM-DD
+      ctx.fillText(txt, x-10, padding.t+h+18);
+    });
+
+    // line
+    ctx.strokeStyle = '#10b981'; ctx.lineWidth=2; ctx.beginPath();
+    values.forEach((v, idx)=>{
+      const x = padding.l + (idx/(values.length-1))*w;
+      const y = padding.t + h - (v/maxV)*h;
+      if(idx===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.stroke();
+
+    // points
+    ctx.fillStyle = '#10b981';
+    values.forEach((v, idx)=>{
+      const x = padding.l + (idx/(values.length-1))*w;
+      const y = padding.t + h - (v/maxV)*h;
+      ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
+    });
+
+    // hint
+    const sum = values.reduce((a,b)=>a+b,0);
+    byId('trendHint').textContent = sum ? '' : 'No issues recorded in the last 7 days.';
+  }
+
+  (async function init(){
+    await loadShops();
+    if(!CURRENT) return;
+    await refresh();
+    byId('shopSel').addEventListener('change', async (e)=>{ CURRENT = e.target.value; await refresh(); });
+  })();
+</script>
+</body>
+</html>
