@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BUNCA · Daily Check</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+</head>
+<body>
+<header class="header">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span> Daily Check</div>
+    <nav class="nav">
+      <a class="btn" id="backBtn">Back</a>
+      <a class="btn" href="/login">Login</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <h1>Daily Checklist</h1>
+    <p class="muted">Fill every item. Temperature fields will be validated against limits.</p>
+  </section>
+
+  <form id="form" class="grid cols-2"></form>
+</main>
+
+<footer>© BUNCA</footer>
+
+<script>
+  function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
+  function csrf(){ return sessionStorage.getItem('csrf') || ''; }
+
+  async function ensureLogged(){
+    const out = await fetch('/api/auth/session').then(r=>r.json());
+    if(!out.session){ location.href='/login'; return null; }
+    if(!sessionStorage.getItem('csrf')) sessionStorage.setItem('csrf', out.session.csrf);
+    return out.session;
+  }
+
+  function itemField(i){
+    const id = `item_${i.id}`;
+    if(i.kind==='temperature'){
+      return `
+        <div class="row">
+          <label>${i.label} <span class="badge">Target ${i.min ?? ''}–${i.max ?? ''} ${i.unit||''}</span></label>
+          <input type="number" step="0.1" class="input" id="${id}" placeholder="${i.unit||'°C'}">
+        </div>`;
+    }
+    if(i.kind==='boolean'){
+      return `
+        <div class="row">
+          <label>${i.label}</label>
+          <select id="${id}" class="input">
+            <option value="">—</option>
+            <option value="yes">Yes</option>
+            <option value="no">No</option>
+          </select>
+        </div>`;
+    }
+    if(i.kind==='number'){
+      return `
+        <div class="row">
+          <label>${i.label}</label>
+          <input type="number" step="1" class="input" id="${id}">
+        </div>`;
+    }
+    return `
+      <div class="row">
+        <label>${i.label}</label>
+        <input class="input" id="${id}">
+      </div>`;
+  }
+
+  async function load(){
+    const shop = slug();
+    const shopRes = await fetch('/api/shops/'+encodeURIComponent(shop)).then(r=>r.json());
+    const s = shopRes.shop;
+    document.getElementById('backBtn').setAttribute('href','/shop/'+encodeURIComponent(shop));
+    const itemsRes = await fetch('/api/check-items?shop='+encodeURIComponent(shop)).then(r=>r.json());
+    const items = itemsRes.items || [];
+    const form = document.getElementById('form');
+    if(!items.length){
+      form.innerHTML = `<div class="card" style="grid-column:1/-1"><h3 class="card-title">No checklist yet</h3><p class="muted">Ask admin to add items in the Admin panel.</p></div>`;
+      return;
+    }
+    form.innerHTML = `
+      ${items.map(itemField).join('')}
+      <div class="card" style="grid-column:1/-1">
+        <label>Problems / Notes</label>
+        <textarea id="note" rows="4" class="input" placeholder="Anything to report?"></textarea>
+        <div class="row cols-2" style="margin-top:10px">
+          <button id="submitBtn" class="btn primary" type="button">Submit</button>
+          <div id="msg" class="muted"></div>
+        </div>
+      </div>`;
+
+    document.getElementById('submitBtn').addEventListener('click', async ()=>{
+      const answers = items.map(i=>{
+        const el = document.getElementById(`item_${i.id}`);
+        return { item_id: i.id, value: el ? el.value : '' };
+      });
+      const body = {
+        shop_slug: shop,
+        answers,
+        note: document.getElementById('note').value
+      };
+      const res = await fetch('/api/check-runs', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-csrf-token':csrf()},
+        body: JSON.stringify(body)
+      });
+      const out = await res.json();
+      const msg = document.getElementById('msg');
+      if(out.ok){
+        msg.textContent='Saved ✓';
+        setTimeout(()=>location.href='/history/'+encodeURIComponent(shop),800);
+      }else{
+        msg.textContent = out.error || 'Error';
+      }
+    });
+  }
+
+  (async ()=>{
+    const s = await ensureLogged();
+    if(!s) return;
+    load();
+  })();
+</script>
+</body>
+</html>
