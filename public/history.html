@@ -100,6 +100,7 @@
     rows.forEach(r=>{ const n=(r.note||'').replace(/"/g,'""'); csv+=`${r.run_date},${r.ok_count||0},${r.fail_count||0},"${n}"\n`; });
     const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=`bunca-history-${slug()}.csv`; a.click(); URL.revokeObjectURL(url);
+    Bunca.toast('Exported CSV');
   }
 
   (async function init(){
