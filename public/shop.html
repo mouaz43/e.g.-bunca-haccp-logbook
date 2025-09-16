@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BUNCA · Shop</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+</head>
+<body>
+  <header class="header">
+    <div class="wrap">
+      <div class="brand"><span class="dot"></span> BUNCA Shop</div>
+      <nav class="nav">
+        <a class="btn" href="/">All Shops</a>
+        <a class="btn" href="/login">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <div id="shopView" class="grid cols-2"></div>
+  </main>
+
+  <footer>© BUNCA</footer>
+
+  <script>
+    function slugFromPath(){
+      const parts = location.pathname.split('/');
+      return decodeURIComponent(parts[parts.length-1]);
+    }
+    function view(shop){
+      return `
+        <article class="card" style="grid-column:1/-1">
+          <h1 class="card-title" style="font-size:28px">${shop.name}</h1>
+          <span class="badge ${shop.status==='open'?'ok':'warn'}">${shop.status}</span>
+        </article>
+        <article class="card">
+          ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:14px">` : '<div class="muted">No image</div>'}
+        </article>
+        <article class="card">
+          <div class="row">
+            <div><strong>Address:</strong><br>${shop.address || '—'}</div>
+            <div><strong>Phone:</strong><br>${shop.phone || '—'}</div>
+          </div>
+          <hr style="opacity:.1;margin:16px 0">
+          <p>${shop.description || ''}</p>
+        </article>
+      `;
+    }
+    async function load(){
+      const slug = slugFromPath();
+      const res = await fetch('/api/shops/'+encodeURIComponent(slug));
+      const data = await res.json();
+      const el = document.getElementById('shopView');
+      if(data.shop) el.innerHTML = view(data.shop);
+      else el.innerHTML = `<div class="card"><h3>Not found.</h3></div>`;
+    }
+    load();
+  </script>
+</body>
+</html>
