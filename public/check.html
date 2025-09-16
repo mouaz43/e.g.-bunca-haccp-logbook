@@ -11,9 +11,9 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
     <nav id="mainNav" class="nav">
-      <a id="backShop" href="/">Back</a>
+      <a id="navBack" href="/">Back</a>
       <a href="/admin">Admin</a>
     </nav>
   </div>
@@ -27,56 +27,49 @@
   <form id="form" class="grid cols-2"></form>
 </main>
 
+<button id="fab" class="fab">≡</button>
+<div id="fabMenu" class="fab-menu">
+  <a id="fabBack" href="#">⬅ Back to Shop</a>
+  <a href="/admin">🛠 Admin</a>
+</div>
+
 <footer>© BUNCA HACCP</footer>
 
-<script type="module">
-  import { requireSession, csrf } from '/assets/app.js';
-
+<script src="/assets/helpers.js"></script>
+<script>
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
-
   function field(i){
-    const id = `item_${i.id}`;
+    const id=`item_${i.id}`;
     if(i.kind==='temperature'){
-      return `
-        <div class="card">
-          <label class="muted">Target ${i.min ?? ''}–${i.max ?? ''} ${i.unit||'°C'}</label>
-          <div class="row">
-            <label><strong>${i.label}</strong></label>
-            <input type="number" step="0.1" class="input" id="${id}" placeholder="${i.unit||'°C'}">
-          </div>
-        </div>`;
+      return `<div class="card">
+        <label class="muted">Target ${i.min ?? ''}–${i.max ?? ''} ${i.unit||'°C'}</label>
+        <div class="row"><label><strong>${i.label}</strong></label>
+        <input type="number" step="0.1" class="input" id="${id}" placeholder="${i.unit||'°C'}"></div></div>`;
     }
     if(i.kind==='boolean'){
-      return `
-        <div class="card">
-          <label><strong>${i.label}</strong></label>
-          <select id="${id}" class="input"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select>
-        </div>`;
+      return `<div class="card"><label><strong>${i.label}</strong></label>
+        <select id="${id}" class="input"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>`;
     }
     if(i.kind==='number'){
-      return `
-        <div class="card">
-          <label><strong>${i.label}</strong></label>
-          <input type="number" step="1" class="input" id="${id}">
-        </div>`;
+      return `<div class="card"><label><strong>${i.label}</strong></label>
+        <input type="number" step="1" class="input" id="${id}"></div>`;
     }
-    return `
-      <div class="card">
-        <label><strong>${i.label}</strong></label>
-        <input class="input" id="${id}">
-      </div>`;
+    return `<div class="card"><label><strong>${i.label}</strong></label>
+      <input class="input" id="${id}"></div>`;
   }
 
-  async function load(){
-    const session = await requireSession(); if(!session) return;
-    const shop = slug();
-    document.getElementById('backShop').setAttribute('href','/shop/'+encodeURIComponent(shop));
+  (async function load(){
+    const session = await Bunca.requireSession(); if(!session) return;
+    const s = slug();
+    document.getElementById('navBack').href = '/shop/'+encodeURIComponent(s);
+    document.getElementById('fabBack').href = '/shop/'+encodeURIComponent(s);
 
-    const itemsRes = await fetch('/api/check-items?shop='+encodeURIComponent(shop)).then(r=>r.json());
-    const items = itemsRes.items || [];
+    const list = await fetch('/api/check-items?shop='+encodeURIComponent(s)).then(r=>r.json());
+    const items = list.items || [];
     const form = document.getElementById('form');
     if(!items.length){
-      form.innerHTML = `<div class="card" style="grid-column:1/-1"><h3 class="card-title">No checklist yet</h3><p class="muted">Ask admin to add items in the Admin panel.</p></div>`;
+      form.innerHTML = `<div class="card" style="grid-column:1/-1"><h3 class="card-title">No checklist yet</h3>
+        <p class="muted">Ask admin to add items in the Admin panel.</p></div>`;
       return;
     }
     form.innerHTML = `
@@ -91,23 +84,15 @@
       </div>`;
 
     document.getElementById('submitBtn').addEventListener('click', async ()=>{
-      const answers = items.map(i=>{
-        const el = document.getElementById(`item_${i.id}`);
-        return { item_id: i.id, value: el ? el.value : '' };
-      });
-      const body = { shop_slug: shop, answers, note: document.getElementById('note').value };
-      const res = await fetch('/api/check-runs', {
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-csrf-token':csrf()},
-        body: JSON.stringify(body)
-      });
+      const answers = items.map(i=>({ item_id:i.id, value: (document.getElementById(`item_${i.id}`)?.value ?? '') }));
+      const body = { shop_slug:s, answers, note:document.getElementById('note').value };
+      const res = await fetch('/api/check-runs',{method:'POST',headers:{'Content-Type':'application/json','x-csrf-token':Bunca.csrf()},body:JSON.stringify(body)});
       const out = await res.json();
-      const msg = document.getElementById('msg');
-      if(out.ok){ msg.textContent='Saved ✓'; setTimeout(()=>location.href='/history/'+encodeURIComponent(shop),800); }
-      else{ msg.textContent = out.error || 'Error'; }
+      const msg=document.getElementById('msg');
+      if(out.ok){ msg.textContent='Saved ✓'; setTimeout(()=>location.href='/history/'+encodeURIComponent(s),750); }
+      else { msg.textContent=out.error||'Error'; }
     });
-  }
-  load();
+  })();
 </script>
 </body>
 </html>
