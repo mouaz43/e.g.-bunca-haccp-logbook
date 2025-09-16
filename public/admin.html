@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BUNCA · Admin</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+  <meta name="theme-color" content="#0d0f14"/>
+</head>
+<body>
+  <header class="header">
+    <div class="wrap">
+      <div class="brand"><span class="dot"></span> Admin</div>
+      <nav class="nav">
+        <a class="btn" href="/">Site</a>
+        <button id="logoutBtn" class="btn bad">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container grid cols-2">
+    <section class="card">
+      <h3 class="card-title">Create User</h3>
+      <p class="muted">Only admins can create accounts.</p>
+      <div class="row">
+        <label>Email</label>
+        <input id="uEmail" class="input" type="email" placeholder="user@bunca.de">
+      </div>
+      <div class="row">
+        <label>Password</label>
+        <input id="uPass" class="input" type="password" placeholder="••••••••">
+      </div>
+      <div class="row">
+        <label>Role</label>
+        <select id="uRole" class="input">
+          <option value="user">User</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="row cols-2">
+        <button id="createUser" class="btn primary">Create</button>
+        <div id="userMsg" class="muted"></div>
+      </div>
+      <hr style="opacity:.1;margin:16px 0">
+      <h3 class="card-title">Users</h3>
+      <table class="table" id="usersTbl">
+        <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="card">
+      <h3 class="card-title">Create Shop</h3>
+      <div class="row">
+        <label>Name</label>
+        <input id="sName" class="input" placeholder="BUNCA City">
+      </div>
+      <div class="row">
+        <label>Slug</label>
+        <input id="sSlug" class="input" placeholder="city">
+      </div>
+      <div class="row">
+        <label>Address</label>
+        <input id="sAddress" class="input" placeholder="Street 1, Frankfurt">
+      </div>
+      <div class="row">
+        <label>Phone</label>
+        <input id="sPhone" class="input" placeholder="+49 ...">
+      </div>
+      <div class="row">
+        <label>Image URL</label>
+        <input id="sImg" class="input" placeholder="https://...">
+      </div>
+      <div class="row">
+        <label>Description</label>
+        <textarea id="sDesc" rows="3" class="input" placeholder="Warm croissants, dialed-in espresso..."></textarea>
+      </div>
+      <div class="row">
+        <label>Status</label>
+        <select id="sStatus" class="input">
+          <option value="open">Open</option>
+          <option value="closed">Closed</option>
+        </select>
+      </div>
+      <div class="row cols-2">
+        <button id="createShop" class="btn primary">Save</button>
+        <div id="shopMsg" class="muted"></div>
+      </div>
+
+      <hr style="opacity:.1;margin:16px 0">
+      <h3 class="card-title">Shops</h3>
+      <table class="table" id="shopsTbl">
+        <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>© BUNCA</footer>
+
+  <script>
+    async function requireSession(){
+      const res = await fetch('/api/auth/session');
+      const data = await res.json();
+      if(!data.session || data.session.role !== 'admin'){
+        location.href='/login';
+        return null;
+      }
+      return data.session;
+    }
+
+    function csrf(){ return sessionStorage.getItem('csrf') || ''; }
+
+    async function api(url, method='GET', body){
+      const opt = { method, headers: {} };
+      if(['POST','PUT','PATCH','DELETE'].includes(method)){
+        opt.headers['Content-Type'] = 'application/json';
+        opt.headers['x-csrf-token'] = csrf();
+        opt.body = JSON.stringify(body || {});
+      }
+      const res = await fetch(url, opt);
+      return res.json();
+    }
+
+    async function loadUsers(){
+      const data = await api('/api/users');
+      const tbody = document.querySelector('#usersTbl tbody');
+      tbody.innerHTML = (data.users||[]).map(u => `
+        <tr>
+          <td>${u.email}</td>
+          <td>${u.role}</td>
+          <td>
+            <button class="btn bad" data-del-user="${u.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadShops(){
+      const data = await api('/api/shops');
+      const tbody = document.querySelector('#shopsTbl tbody');
+      tbody.innerHTML = (data.shops||[]).map(s => `
+        <tr>
+          <td>${s.name}</td>
+          <td>${s.slug}</td>
+          <td><span class="badge ${s.status==='open'?'ok':'warn'}">${s.status}</span></td>
+          <td>
+            <a class="btn" href="/shop/${encodeURIComponent(s.slug)}">View</a>
+            <button class="btn bad" data-del-shop="${s.id}">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.addEventListener('click', async (e)=>{
+      const delUser = e.target.closest('[data-del-user]');
+      if(delUser){
+        const id = delUser.getAttribute('data-del-user');
+        if(confirm('Delete user?')){
+          await api('/api/users/'+id,'DELETE');
+          loadUsers();
+        }
+      }
+      const delShop = e.target.closest('[data-del-shop]');
+      if(delShop){
+        const id = delShop.getAttribute('data-del-shop');
+        if(confirm('Delete shop?')){
+          await api('/api/shops/'+id,'DELETE');
+          loadShops();
+        }
+      }
+    });
+
+    document.getElementById('createUser').addEventListener('click', async ()=>{
+      const email = document.getElementById('uEmail').value.trim();
+      const password = document.getElementById('uPass').value;
+      const role = document.getElementById('uRole').value;
+      const msg = document.getElementById('userMsg');
+      msg.textContent='…';
+      const out = await api('/api/users','POST',{email,password,role});
+      msg.textContent = out.ok ? 'Created' : (out.error||'Error');
+      if(out.ok){ loadUsers(); }
+    });
+
+    document.getElementById('createShop').addEventListener('click', async ()=>{
+      const body = {
+        name: document.getElementById('sName').value.trim(),
+        slug: document.getElementById('sSlug').value.trim(),
+        address: document.getElementById('sAddress').value.trim(),
+        phone: document.getElementById('sPhone').value.trim(),
+        image_url: document.getElementById('sImg').value.trim(),
+        description: document.getElementById('sDesc').value.trim(),
+        status: document.getElementById('sStatus').value
+      };
+      const msg = document.getElementById('shopMsg');
+      msg.textContent='…';
+      const out = await api('/api/shops','POST', body);
+      msg.textContent = out.ok ? 'Saved' : (out.error||'Error');
+      if(out.ok){ loadShops(); }
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+      await api('/api/auth/logout','POST',{});
+      sessionStorage.removeItem('csrf');
+      location.href = '/';
+    });
+
+    (async ()=>{
+      const session = await requireSession();
+      if(!session) return;
+      // ensure we have csrf in sessionStorage; if not, refresh
+      if(!sessionStorage.getItem('csrf')) sessionStorage.setItem('csrf', session.csrf);
+      await Promise.all([loadUsers(), loadShops()]);
+    })();
+  </script>
+</body>
+</html>
