@@ -3,16 +3,18 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA · Shop</title>
+  <title>BUNCA HACCP · Shop</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
+  <meta name="theme-color" content="#10b981"/>
 </head>
 <body>
 <header class="header">
   <div class="wrap">
-    <div class="brand"><span class="dot"></span> BUNCA Shop</div>
-    <nav class="nav">
-      <a class="btn" href="/">All Shops</a>
-      <a class="btn" href="/login">Login</a>
+    <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
+    <button id="menuToggle" class="menu-btn"><span></span></button>
+    <nav id="mainNav" class="nav">
+      <a href="/">Home</a>
+      <a href="/admin">Admin</a>
     </nav>
   </div>
 </header>
@@ -21,26 +23,26 @@
   <div id="shopView" class="grid cols-2"></div>
 </main>
 
-<footer>© BUNCA</footer>
+<footer>© BUNCA HACCP</footer>
 
-<script>
-  function slugFromPath(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
-
+<script type="module">
+  import '/assets/app.js';
+  function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
   function view(shop){
     return `
       <article class="card" style="grid-column:1/-1">
         <h1 class="card-title" style="font-size:28px">${shop.name}</h1>
-        <span class="badge ${shop.status==='open'?'ok':'warn'}">${shop.status}</span>
+        <span class="badge ${shop.status==='open'?'':'warn'}">${shop.status}</span>
       </article>
       <article class="card">
-        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:14px">` : '<div class="muted">No image</div>'}
+        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:12px">` : '<div class="muted">No image</div>'}
       </article>
       <article class="card">
         <div class="row">
           <div><strong>Address:</strong><br>${shop.address || '—'}</div>
           <div><strong>Phone:</strong><br>${shop.phone || '—'}</div>
         </div>
-        <hr style="opacity:.1;margin:16px 0">
+        <hr style="opacity:.5;margin:12px 0">
         <p>${shop.description || ''}</p>
         <div class="row cols-2" style="margin-top:12px">
           <a class="btn primary" href="/check/${encodeURIComponent(shop.slug)}">Daily Check</a>
@@ -49,14 +51,12 @@
       </article>
     `;
   }
-
   async function load(){
-    const slug = slugFromPath();
-    const res = await fetch('/api/shops/'+encodeURIComponent(slug));
+    const slugv = slug();
+    const res = await fetch('/api/shops/'+encodeURIComponent(slugv));
     const data = await res.json();
     const el = document.getElementById('shopView');
-    if(data.shop) el.innerHTML = view(data.shop);
-    else el.innerHTML = `<div class="card"><h3>Not found.</h3></div>`;
+    el.innerHTML = data.shop ? view(data.shop) : `<div class="card"><h3>Not found.</h3></div>`;
   }
   load();
 </script>
