@@ -1,6 +1,6 @@
 {
   "name": "bunca-ecosystem",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "BUNCA admin + shops ecosystem",
   "main": "server.js",
   "type": "module",
@@ -16,6 +16,7 @@
     "express": "4.19.2",
     "express-rate-limit": "7.4.0",
     "helmet": "7.1.0",
+    "sqlite": "5.1.6",
     "sqlite3": "5.1.7",
     "uuid": "9.0.1"
   }
