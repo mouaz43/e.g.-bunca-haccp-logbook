@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA HACCP · History</title>
+  <title>BUNCA HACCP · Verlauf</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
   <meta name="theme-color" content="#10b981"/>
 </head>
@@ -11,44 +11,67 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menü"><span></span></button>
     <nav id="mainNav" class="nav">
-      <a id="navBack" href="/">Back</a>
-      <a href="/admin">Admin</a>
+      <a id="navBack" href="/">Zurück</a>
+      <a href="/admin">Verwaltung</a>
     </nav>
   </div>
 </header>
 
 <main class="container">
   <section class="hero">
-    <h1>Daily Checks History</h1>
-    <div class="row cols-2">
-      <div><label>From</label><input id="from" type="date" class="input"></div>
-      <div><label>To</label><input id="to" type="date" class="input"></div>
+    <h1>Tageschecks — Verlauf</h1>
+    <div class="grid cols-3">
+      <div><label>Von</label><input id="from" type="date" class="input"></div>
+      <div><label>Bis</label><input id="to" type="date" class="input"></div>
+      <div><label>Status</label>
+        <select id="status" class="input">
+          <option value="">Alle</option>
+          <option value="draft">Entwurf</option>
+          <option value="submitted">Abgesendet</option>
+          <option value="signed">Unterschrieben</option>
+          <option value="closed">Geschlossen</option>
+        </select>
+      </div>
+      <div><label>Schicht</label>
+        <select id="shift" class="input">
+          <option value="">Alle</option>
+          <option value="morning">Früh</option>
+          <option value="mid">Mitte</option>
+          <option value="closing">Schluss</option>
+        </select>
+      </div>
+      <div><label>Gerät</label><select id="equipment" class="input"><option value="">Alle</option></select></div>
     </div>
+
     <div class="row" style="margin-top:10px">
-      <button id="filterBtn" class="btn">Filter</button>
-      <a id="exportBtn" class="btn" href="#">Export CSV</a>
+      <button id="filterBtn" class="btn">Filter anwenden</button>
+      <a id="exportCsv" class="btn" href="#">CSV exportieren</a>
     </div>
   </section>
 
   <section class="card">
     <table class="table" id="runsTable">
-      <thead><tr><th>Date</th><th>OK</th><th>Issues</th><th>Note</th><th>Actions</th></tr></thead>
+      <thead><tr><th>Datum</th><th>Status</th><th>OK</th><th>Probleme</th><th>Notiz</th><th>Aktionen</th></tr></thead>
       <tbody></tbody>
     </table>
   </section>
 
   <section class="card" id="details" style="display:none">
-    <h3 class="card-title">Run Details</h3>
-    <div id="detailsBody"></div>
+    <h3 class="card-title">Details</h3>
+    <div id="detailsHead" class="row"></div>
+    <hr>
+    <div id="detailsBody" class="grid cols-2"></div>
+    <hr>
+    <div id="actionsWrap"></div>
   </section>
 </main>
 
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
-  <a id="fabBack" href="#">⬅ Back to Shop</a>
-  <a href="/admin">🛠 Admin</a>
+  <a id="fabBack" href="#">⬅ Zur Filiale</a>
+  <a href="/admin">🛠 Verwaltung</a>
 </div>
 
 <footer>© BUNCA HACCP</footer>
@@ -56,59 +79,173 @@
 <script src="/assets/helpers.js"></script>
 <script>
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
+  function setDateInputsDefault(){
+    const to = new Date();
+    const from = new Date(Date.now() - 13*24*60*60*1000);
+    byId('to').value = to.toISOString().slice(0,10);
+    byId('from').value = from.toISOString().slice(0,10);
+  }
+  function byId(id){ return document.getElementById(id); }
+  function qs(o){ return new URLSearchParams(Object.entries(o).filter(([,v])=> v!==undefined && v!==null && v!=='')).toString(); }
+  function statusBadge(s){
+    const cls = s==='signed' ? '' : (s==='submitted' ? 'warn' : (s==='draft' ? 'err' : ''));
+    const map = {draft:'Entwurf', submitted:'Abgesendet', signed:'Unterschrieben', closed:'Geschlossen'};
+    return `<span class="badge ${cls}">${map[s]||s}</span>`;
+  }
 
-  async function fetchRuns(){
-    const shop=slug();
-    const from=document.getElementById('from').value||'';
-    const to=document.getElementById('to').value||'';
-    const url=`/api/check-runs?shop=${encodeURIComponent(shop)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-    const data=await fetch(url).then(r=>r.json());
-    const tbody=document.querySelector('#runsTable tbody');
-    tbody.innerHTML=(data.runs||[]).map(r=>`
+  let EQUIP = [];
+  let RUNS = [];
+
+  function fillEquipmentSelect(){
+    const sel = byId('equipment'); sel.innerHTML = '<option value="">Alle</option>';
+    (EQUIP || []).forEach(e=>{
+      const o = document.createElement('option');
+      o.value = e.id; o.textContent = `${e.name}${e.type?` (${e.type})`:''}`;
+      sel.appendChild(o);
+    });
+  }
+
+  function renderRunsTable(rows){
+    const tbody = byId('runsTable').querySelector('tbody');
+    tbody.innerHTML = rows.map(r=>`
       <tr>
         <td>${r.run_date}</td>
+        <td>${statusBadge(r.status)}</td>
         <td>${r.ok_count||0}</td>
         <td>${r.fail_count||0}</td>
         <td>${(r.note||'').slice(0,80)}</td>
-        <td><button class="btn small" data-view="${r.id}">View</button></td>
-      </tr>`).join('') || '<tr><td colspan="5">No data.</td></tr>';
-    window.__runs=data.runs||[];
+        <td>
+          <button class="btn small" data-view="${r.id}">Anzeigen</button>
+          <a class="btn small" target="_blank" href="/api/export/pdf?run_id=${encodeURIComponent(r.id)}">PDF</a>
+        </td>
+      </tr>
+    `).join('') || '<tr><td colspan="6">Keine Daten für die gewählten Filter.</td></tr>';
+  }
+
+  function groupAnswersByEquip(answers){
+    const g = new Map();
+    answers.forEach(a=>{
+      const key = a.equipment_id || 'general';
+      if(!g.has(key)) g.set(key, []);
+      g.get(key).push(a);
+    });
+    return g;
+  }
+
+  function renderDetails(data){
+    const { run, answers, actions } = data;
+    const head = byId('detailsHead');
+    head.innerHTML = `
+      <div><strong>Datum:</strong> ${run.run_date}</div>
+      <div><strong>Status:</strong> ${statusBadge(run.status)}</div>
+      <div><strong>Unterschrieben am:</strong> ${run.signed_at || '—'}</div>
+      <div style="grid-column:1/-1"><strong>Notiz:</strong> ${run.note || '—'}</div>
+      <div><a class="btn" target="_blank" href="/api/export/pdf?run_id=${encodeURIComponent(run.id)}">PDF öffnen</a></div>
+    `;
+
+    const body = byId('detailsBody'); body.innerHTML = '';
+    const groups = groupAnswersByEquip(answers || []);
+    groups.forEach((list, key)=>{
+      const sec = document.createElement('article');
+      sec.className='card';
+      const title = key==='general' ? 'Allgemein' : (list[0].equipment_name || 'Gerät');
+      sec.innerHTML = `<h3 class="card-title">${title}</h3>` +
+        list.map(a=>`
+          <div class="row">
+            <div><strong>${a.label}</strong> <span class="badge ${a.ok?'':'warn'}">${a.ok?'OK':'Problem'}</span></div>
+            <div>${a.value}${a.kind==='temperature'?` ${a.unit||''}`:''}
+              ${a.kind==='temperature'?(a.min!=null||a.max!=null?`<span class="badge">Ziel ${a.min??''}–${a.max??''} ${a.unit||''}</span>`:''):''}
+              ${a.evidence_url?`<div class="muted">Beleg: <code>${a.evidence_url}</code></div>`:''}
+            </div>
+          </div>
+        `).join('');
+      body.appendChild(sec);
+    });
+
+    const actWrap = byId('actionsWrap');
+    actWrap.innerHTML = `<h3 class="card-title">Korrekturmaßnahmen</h3>` +
+      ((actions||[]).length ? '' : '<p class="muted">Keine</p>');
+    (actions||[]).forEach(ca=>{
+      const row = document.createElement('div'); row.className='row';
+      row.innerHTML = `
+        <div><strong>${ca.description}</strong> <span class="badge ${ca.status==='done'?'':'warn'}">${ca.status==='done'?'erledigt':'offen'}</span></div>
+        <div>Zuständig: ${ca.assigned_to || '—'} · Fällig: ${ca.due_date || '—'} ${ca.photo_url?`· <span class="muted">Foto: <code>${ca.photo_url}</code></span>`:''}</div>
+      `;
+      actWrap.appendChild(row);
+    });
+
+    byId('details').style.display='block';
+    byId('details').scrollIntoView({ behavior: 'smooth' });
+  }
+
+  async function fetchRunsFiltered(){
+    const shop = slug();
+    const params = {
+      shop,
+      from: byId('from').value || '',
+      to: byId('to').value || '',
+      status: byId('status').value || '',
+      equipment_id: byId('equipment').value || ''
+    };
+    const res = await fetch('/api/check-runs?'+qs(params));
+    const data = await res.json();
+    let rows = data.runs || [];
+
+    const shift = byId('shift').value || '';
+    if(shift){
+      const keep = [];
+      for(const r of rows){
+        const det = await fetch('/api/check-runs/'+r.id).then(r=>r.json());
+        const any = (det.answers||[]).some(a => (a.shift || 'morning') === shift);
+        if(any) keep.push(r);
+      }
+      rows = keep;
+    }
+
+    RUNS = rows;
+    renderRunsTable(RUNS);
+  }
+
+  async function fetchEquipment(){
+    const data = await fetch('/api/equipment?shop='+encodeURIComponent(slug())).then(r=>r.json());
+    EQUIP = data.equipment || [];
+    fillEquipmentSelect();
+  }
+
+  function exportCsv(e){
+    e.preventDefault();
+    const params = {
+      shop: slug(),
+      from: byId('from').value || '',
+      to: byId('to').value || '',
+      status: byId('status').value || '',
+      equipment_id: byId('equipment').value || ''
+    };
+    const url = '/api/export/csv?'+qs(params);
+    window.open(url, '_blank');
   }
 
   document.addEventListener('click', async (e)=>{
-    const btn=e.target.closest('[data-view]'); if(!btn) return;
-    const id=btn.getAttribute('data-view');
-    const data=await fetch('/api/check-runs/'+id).then(r=>r.json());
-    const box=document.getElementById('details'); const body=document.getElementById('detailsBody');
-    if(!data.run){ box.style.display='none'; return; }
-    body.innerHTML=`
-      <div class="row"><strong>Date:</strong> ${data.run.run_date}</div>
-      <div class="row"><strong>Note:</strong> ${data.run.note||'—'}</div>
-      <hr>
-      <div class="grid cols-2">
-      ${data.answers.map(a=>`
-        <div class="row">
-          <div><strong>${a.label}</strong> <span class="badge ${a.ok?'':'warn'}">${a.ok?'OK':'Issue'}</span></div>
-          <div>${a.value}${a.kind==='temperature'?` ${a.unit||''}`:''} ${a.kind==='temperature'?(a.min!=null||a.max!=null?`(target ${a.min??''}–${a.max??''} ${a.unit||''})`:``):``}</div>
-        </div>`).join('')}
-      </div>`;
-    box.style.display='block'; box.scrollIntoView({behavior:'smooth'});
+    const btn = e.target.closest('[data-view]');
+    if(btn){
+      const id = btn.getAttribute('data-view');
+      const data = await fetch('/api/check-runs/'+id).then(r=>r.json());
+      if(!data.run){ Bunca.toast('Lauf nicht gefunden','err'); return; }
+      renderDetails(data);
+    }
   });
 
-  function exportCsv(e){
-    e.preventDefault(); const rows=window.__runs||[]; let csv='date,ok,issues,note\n';
-    rows.forEach(r=>{ const n=(r.note||'').replace(/"/g,'""'); csv+=`${r.run_date},${r.ok_count||0},${r.fail_count||0},"${n}"\n`; });
-    const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
-    const a=document.createElement('a'); a.href=url; a.download=`bunca-history-${slug()}.csv`; a.click(); URL.revokeObjectURL(url);
-    Bunca.toast('Exported CSV');
-  }
-
   (async function init(){
-    const s=slug(); document.getElementById('navBack').href='/shop/'+encodeURIComponent(s);
-    document.getElementById('fabBack').href='/shop/'+encodeURIComponent(s);
-    await fetchRuns();
-    document.getElementById('filterBtn').addEventListener('click',fetchRuns);
-    document.getElementById('exportBtn').addEventListener('click',exportCsv);
+    const s = slug();
+    byId('navBack').href = '/shop/'+encodeURIComponent(s);
+    byId('fabBack').href = '/shop/'+encodeURIComponent(s);
+
+    setDateInputsDefault();
+    await fetchEquipment();
+    await fetchRunsFiltered();
+
+    byId('filterBtn').addEventListener('click', fetchRunsFiltered);
+    byId('exportCsv').addEventListener('click', exportCsv);
   })();
 </script>
 </body>
