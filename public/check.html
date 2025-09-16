@@ -96,7 +96,7 @@
   let ITEMS = [];         // items for selected shift (plus null-shift)
   let EQUIP_MAP = {};     // equipment_id -> name
   let CORR = {};          // item_id -> corrective action {description,assigned_to,due_date,photo_url}
-  let EVIDENCE = {};      // item_id -> evidence_url (if we add separate evidence later)
+  let EVIDENCE = {};      // item_id -> evidence_url (reserved)
 
   // ------- UI builders -------
   function groupByEquipment(items){
@@ -178,6 +178,7 @@
 
   // ------- corrective modal -------
   function openCorrectiveModal(item){
+    const offline = !navigator.onLine;
     const wrap = document.createElement('div');
     wrap.className='card';
     wrap.style.cssText='position:fixed;inset:0;max-width:620px;margin:auto;z-index:90;background:#fff;border:1px solid var(--line);padding:16px;border-radius:14px;box-shadow:var(--shadow)';
@@ -188,7 +189,10 @@
         <div><label>Assign to (optional)</label><input id="caAssign" class="input" placeholder="Name or email"></div>
         <div><label>Due date (optional)</label><input id="caDue" type="date" class="input"></div>
       </div>
-      <div class="row"><label>Photo (optional)</label><input id="caFile" type="file" accept="image/*" class="input"></div>
+      <div class="row"><label>Photo (optional) ${offline?'<span class="badge warn">Offline: disabled</span>':''}</label>
+        <input id="caFile" type="file" accept="image/*" class="input" ${offline?'disabled':''}>
+        <p class="muted" style="margin:6px 0 0">${offline?'You can attach a photo later from History when online.':''}</p>
+      </div>
       <div class="row cols-2" style="margin-top:10px">
         <button id="caSave" class="btn primary">Save</button>
         <button id="caCancel" class="btn">Cancel</button>
@@ -208,15 +212,16 @@
 
       let photo_url = null;
       const file = wrap.querySelector('#caFile').files[0];
-      if(file){
+      if(file && navigator.onLine){
         try{
           const sign = await Bunca.api('/api/uploads/sign','POST',{ type:file.type });
           if(sign.ok){
             await fetch(sign.url, { method:'PUT', headers:{'Content-Type':file.type}, body:file });
-            // We store the object key as photo_url; bucket should be public to view it.
-            photo_url = sign.key;
+            photo_url = sign.key; // stored key (bucket should be public)
           }
         }catch(e){ console.error(e); Bunca.toast('Upload failed (continuing)','warn'); }
+      }else if(file && !navigator.onLine){
+        Bunca.toast('Offline: photo not attached','warn');
       }
 
       CORR[item.id] = { description: desc, assigned_to, due_date, photo_url };
@@ -225,7 +230,7 @@
     };
   }
 
-  // ------- submit flow -------
+  // ------- submit flow (offline-ready) -------
   async function submitRun(){
     const s = slug();
     const note = document.getElementById('note').value;
@@ -260,8 +265,18 @@
       return;
     }
 
-    // submit
+    // request body
     const body = { shop_slug:s, answers, note, status:'submitted' };
+
+    // If offline, enqueue and exit
+    if(Bunca.enqueueIfOffline('/api/check-runs', 'POST', body)){
+      document.getElementById('msg').textContent = 'Saved offline — will sync automatically.';
+      // send them to history so they see current status
+      setTimeout(()=> location.href='/history/'+encodeURIComponent(s), 500);
+      return;
+    }
+
+    // Otherwise submit online
     const res = await fetch('/api/check-runs',{ method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':Bunca.csrf()}, body:JSON.stringify(body) });
     const out = await res.json();
     if(out.ok){
@@ -281,10 +296,10 @@
     wrap.style.cssText='position:fixed;inset:0;max-width:480px;margin:auto;z-index:90;background:#fff;border:1px solid var(--line);padding:16px;border-radius:14px;box-shadow:var(--shadow)';
     wrap.innerHTML = `
       <h3 class="card-title">Sign & lock this run</h3>
-      <p class="muted">Enter your account password to sign.</p>
-      <div class="row"><label>Password</label><input id="signPass" type="password" class="input" placeholder="••••••••"></div>
+      <p class="muted">Enter your account password to sign.${!navigator.onLine?' <span class="badge warn">Online required</span>':''}</p>
+      <div class="row"><label>Password</label><input id="signPass" type="password" class="input" placeholder="••••••••" ${!navigator.onLine?'disabled':''}></div>
       <div class="row cols-2" style="margin-top:10px">
-        <button id="signNow" class="btn primary">Sign now</button>
+        <button id="signNow" class="btn primary" ${!navigator.onLine?'disabled':''}>Sign now</button>
         <button id="signLater" class="btn">Later</button>
       </div>
     `;
