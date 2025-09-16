@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA HACCP · Login</title>
+  <title>BUNCA HACCP · Anmeldung</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
   <meta name="theme-color" content="#10b981"/>
   <style>
@@ -16,50 +16,49 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menü"><span></span></button>
     <nav id="mainNav" class="nav">
-      <a href="/">Home</a>
+      <a href="/">Startseite</a>
       <a href="/dashboard">Dashboard</a>
-      <a href="/admin">Admin</a>
-      <a class="active" href="/login">Login</a>
+      <a href="/admin">Verwaltung</a>
+      <a class="active" href="/login">Anmelden</a>
     </nav>
   </div>
 </header>
 
 <main class="container">
   <section class="hero">
-    <h1>Secure Sign-In</h1>
-    <p class="muted">Admins create accounts for staff. Use your BUNCA credentials.</p>
+    <h1>Sichere Anmeldung</h1>
+    <p class="muted">Admins legen Konten für Mitarbeitende an. Bitte BUNCA-Zugangsdaten verwenden.</p>
   </section>
 
   <form id="loginForm" class="card login-wrap" novalidate>
     <h3 class="card-title">Login</h3>
     <div class="row">
-      <label>Email</label>
-      <input class="input" name="email" type="email" placeholder="you@bunca.de" required autocomplete="username">
+      <label>E-Mail</label>
+      <input class="input" name="email" type="email" placeholder="du@bunca.de" required autocomplete="username">
     </div>
     <div class="row">
-      <label>Password</label>
+      <label>Passwort</label>
       <input class="input" name="password" type="password" placeholder="••••••••" required autocomplete="current-password">
     </div>
     <div class="row cols-2" style="align-items:center">
-      <button class="btn primary" type="submit">Login</button>
-      <a class="btn" href="/">Cancel</a>
+      <button class="btn primary" type="submit">Anmelden</button>
+      <a class="btn" href="/">Abbrechen</a>
     </div>
     <p id="loginMsg" class="muted"></p>
     <ul class="tips">
-      <li>If you’re an admin and can’t sign in, check <em>ADMIN_EMAIL</em> on Render.</li>
-      <li>After logging in, you can manage users & shops in <a href="/admin">Admin</a>.</li>
+      <li>Falls Admin-Login nicht klappt, <em>ADMIN_EMAIL</em> in Render prüfen.</li>
+      <li>Nach dem Login kannst du Benutzer & Filialen in der <a href="/admin">Verwaltung</a> pflegen.</li>
     </ul>
   </form>
 </main>
 
-<!-- Floating menu -->
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
-  <a href="/">🏠 Home</a>
+  <a href="/">🏠 Startseite</a>
   <a href="/dashboard">📊 Dashboard</a>
-  <a href="/admin">🛠 Admin</a>
+  <a href="/admin">🛠 Verwaltung</a>
 </div>
 
 <footer>© BUNCA HACCP</footer>
@@ -71,12 +70,12 @@
 
   form.addEventListener('submit', async (e)=>{
     e.preventDefault();
-    msg.textContent = 'Checking…';
+    msg.textContent = 'Prüfe Zugang…';
     const email = form.email.value.trim();
     const password = form.password.value;
     if(!email || !password){
-      msg.textContent = 'Email and password are required.';
-      Bunca.toast('Fill both fields','warn');
+      msg.textContent = 'E-Mail und Passwort sind erforderlich.';
+      Bunca.toast('Bitte beide Felder ausfüllen','warn');
       return;
     }
     try{
@@ -88,19 +87,18 @@
       const out = await res.json();
       if(out.ok){
         sessionStorage.setItem('csrf', out.csrf);
-        Bunca.toast('Welcome!');
-        // Redirect by role
+        Bunca.toast('Willkommen!');
         if(out.role === 'admin')      location.href = '/admin';
         else if(out.role === 'auditor') location.href = '/dashboard';
         else                           location.href = '/';
       }else{
-        msg.textContent = out.error || 'Login failed';
-        Bunca.toast(out.error || 'Login failed','err');
+        msg.textContent = 'Anmeldung fehlgeschlagen';
+        Bunca.toast('Ungültige Zugangsdaten','err');
       }
     }catch(err){
       console.error(err);
-      msg.textContent = 'Network error';
-      Bunca.toast('Network error','err');
+      msg.textContent = 'Netzwerkfehler';
+      Bunca.toast('Netzwerkfehler','err');
     }
   });
 </script>
