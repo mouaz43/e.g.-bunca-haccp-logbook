@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
@@ -20,12 +20,12 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menü"><span></span></button>
     <nav id="mainNav" class="nav">
-      <a href="/">Home</a>
+      <a href="/">Startseite</a>
       <a class="active" href="/dashboard">Dashboard</a>
-      <a href="/admin">Admin</a>
-      <a href="/login">Login</a>
+      <a href="/admin">Verwaltung</a>
+      <a href="/login">Anmelden</a>
     </nav>
   </div>
 </header>
@@ -35,57 +35,44 @@
     <h1>Dashboard</h1>
     <div class="row cols-2">
       <div>
-        <label>Shop</label>
+        <label>Filiale</label>
         <select id="shopSel" class="input"></select>
       </div>
       <div style="display:flex;align-items:end;gap:8px">
-        <a id="toHistory" class="btn">Open History</a>
-        <a id="toCheck" class="btn">Start Daily Check</a>
+        <a id="toHistory" class="btn">Verlauf öffnen</a>
+        <a id="toCheck" class="btn">Tagescheck starten</a>
       </div>
     </div>
   </section>
 
   <section class="kpis" id="kpiWrap">
-    <article class="card kpi">
-      <div class="label">Total Runs</div>
-      <div id="kpiRuns" class="num">—</div>
-    </article>
-    <article class="card kpi">
-      <div class="label">Signed Runs</div>
-      <div id="kpiSigned" class="num">—</div>
-    </article>
-    <article class="card kpi">
-      <div class="label">Completion Rate</div>
-      <div id="kpiRate" class="num">—</div>
-    </article>
-    <article class="card kpi">
-      <div class="label">Issues (Last 7 days)</div>
-      <div id="kpiIssues7" class="num">—</div>
-    </article>
+    <article class="card kpi"><div class="label">Läufe gesamt</div><div id="kpiRuns" class="num">—</div></article>
+    <article class="card kpi"><div class="label">Unterschriebene Läufe</div><div id="kpiSigned" class="num">—</div></article>
+    <article class="card kpi"><div class="label">Abschlussrate</div><div id="kpiRate" class="num">—</div></article>
+    <article class="card kpi"><div class="label">Probleme (7 Tage)</div><div id="kpiIssues7" class="num">—</div></article>
   </section>
 
   <section class="grid cols-2" style="margin-top:16px">
     <article class="card chart-card">
-      <h3 class="card-title">Issues — Last 7 Days</h3>
+      <h3 class="card-title">Probleme — letzte 7 Tage</h3>
       <canvas id="trend" width="900" height="260"></canvas>
       <div class="muted" id="trendHint"></div>
     </article>
 
     <article class="card">
-      <h3 class="card-title">Recent Runs</h3>
+      <h3 class="card-title">Letzte Läufe</h3>
       <table class="table" id="runsTable">
-        <thead><tr><th>Date</th><th>Status</th><th>OK</th><th>Issues</th><th></th></tr></thead>
+        <thead><tr><th>Datum</th><th>Status</th><th>OK</th><th>Probleme</th><th></th></tr></thead>
         <tbody></tbody>
       </table>
     </article>
   </section>
 </main>
 
-<!-- Floating menu -->
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
-  <a href="/">🏠 Home</a>
-  <a href="/admin">🛠 Admin</a>
+  <a href="/">🏠 Startseite</a>
+  <a href="/admin">🛠 Verwaltung</a>
 </div>
 
 <footer>© BUNCA HACCP</footer>
@@ -95,12 +82,12 @@
   function byId(id){ return document.getElementById(id); }
   function statusBadge(s){
     const cls = s==='signed' ? '' : (s==='submitted' ? 'warn' : (s==='draft' ? 'err' : ''));
-    const label = s.charAt(0).toUpperCase()+s.slice(1);
-    return `<span class="badge ${cls}">${label}</span>`;
+    const map = {draft:'Entwurf', submitted:'Abgesendet', signed:'Unterschrieben', closed:'Geschlossen'};
+    return `<span class="badge ${cls}">${map[s]||s}</span>`;
   }
 
   let SHOPS = [];
-  let CURRENT = null; // slug
+  let CURRENT = null;
 
   async function loadShops(){
     const res = await fetch('/api/shops'); const data = await res.json();
@@ -110,20 +97,17 @@
       const o=document.createElement('option'); o.value=s.slug; o.textContent=`${s.name} — ${s.slug}`;
       sel.appendChild(o);
     });
-    // choose default
-    const qs = new URLSearchParams(location.search); const asked = qs.get('shop');
+    const asked = new URLSearchParams(location.search).get('shop');
     CURRENT = asked && SHOPS.find(s=>s.slug===asked) ? asked : (SHOPS[0]?.slug || null);
     if(CURRENT) sel.value = CURRENT;
-    else { Bunca.toast('Create a shop first in Admin','warn'); }
+    else { Bunca.toast('Bitte zunächst eine Filiale in der Verwaltung anlegen','warn'); }
   }
 
   async function refresh(){
     if(!CURRENT) return;
-    // Links
     byId('toHistory').href = '/history/'+encodeURIComponent(CURRENT);
     byId('toCheck').href   = '/check/'+encodeURIComponent(CURRENT);
 
-    // KPIs + trend
     const dash = await (await fetch('/api/dashboard?shop='+encodeURIComponent(CURRENT))).json();
     const runs = Number(dash?.totals?.runs || 0);
     const signed = Number(dash?.totals?.signed || 0);
@@ -137,7 +121,6 @@
 
     drawTrend(last7);
 
-    // Recent runs (last 10)
     const since = new Date(Date.now()-7*24*3600*1000).toISOString().slice(0,10);
     const list = await (await fetch('/api/check-runs?shop='+encodeURIComponent(CURRENT)+'&from='+since)).json();
     const rows = (list.runs||[]).slice(0,10);
@@ -148,8 +131,8 @@
         <td>${statusBadge(r.status)}</td>
         <td>${r.ok_count||0}</td>
         <td>${r.fail_count||0}</td>
-        <td><a class="btn small" href="/history/${encodeURIComponent(CURRENT)}" title="Open in History">Open</a></td>
-      </tr>`).join('') || '<tr><td colspan="5">No recent runs.</td></tr>';
+        <td><a class="btn small" href="/history/${encodeURIComponent(CURRENT)}" title="Im Verlauf öffnen">Öffnen</a></td>
+      </tr>`).join('') || '<tr><td colspan="5">Keine aktuellen Läufe.</td></tr>';
   }
 
   function drawTrend(data){
@@ -159,7 +142,6 @@
     const w = c.width - padding.l - padding.r;
     const h = c.height - padding.t - padding.b;
 
-    // X labels (ensure 7 days)
     const labels = [];
     const today = new Date(); today.setHours(0,0,0,0);
     for(let i=6;i>=0;i--){
@@ -171,11 +153,9 @@
     const values = labels.map(ds=> map[ds] || 0);
     const maxV = Math.max(5, ...values);
 
-    // axes
     ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth=1;
     ctx.beginPath(); ctx.moveTo(padding.l, padding.t); ctx.lineTo(padding.l, padding.t+h); ctx.lineTo(padding.l+w, padding.t+h); ctx.stroke();
 
-    // y ticks
     ctx.fillStyle = '#6b7280'; ctx.font='12px system-ui, -apple-system, Segoe UI, Roboto, Arial';
     const steps = Math.min(maxV, 5);
     for(let i=0;i<=steps;i++){
@@ -185,14 +165,12 @@
       ctx.fillText(String(val), 8, y+4);
     }
 
-    // x labels
     labels.forEach((ds, idx)=>{
       const x = padding.l + (idx/(labels.length-1))*w;
-      const txt = ds.slice(5); // MM-DD
+      const txt = ds.slice(5);
       ctx.fillText(txt, x-10, padding.t+h+18);
     });
 
-    // line
     ctx.strokeStyle = '#10b981'; ctx.lineWidth=2; ctx.beginPath();
     values.forEach((v, idx)=>{
       const x = padding.l + (idx/(values.length-1))*w;
@@ -201,7 +179,6 @@
     });
     ctx.stroke();
 
-    // points
     ctx.fillStyle = '#10b981';
     values.forEach((v, idx)=>{
       const x = padding.l + (idx/(values.length-1))*w;
@@ -209,9 +186,8 @@
       ctx.beginPath(); ctx.arc(x,y,3,0,Math.PI*2); ctx.fill();
     });
 
-    // hint
     const sum = values.reduce((a,b)=>a+b,0);
-    byId('trendHint').textContent = sum ? '' : 'No issues recorded in the last 7 days.';
+    byId('trendHint').textContent = sum ? '' : 'Keine Probleme in den letzten 7 Tagen.';
   }
 
   (async function init(){
