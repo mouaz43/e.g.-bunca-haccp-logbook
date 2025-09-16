@@ -21,25 +21,35 @@
 </header>
 
 <main class="container layout">
+  <!-- SIDEBAR -->
   <aside class="side">
     <h4>Admin</h4>
     <a href="#" data-tab="users" class="active">👤 Users</a>
     <a href="#" data-tab="shops">🏬 Shops</a>
+    <a href="#" data-tab="equipment">🧰 Equipment</a>
     <a href="#" data-tab="checklist">✅ Checklist</a>
+    <a href="#" data-tab="audit">🕓 Audit Log</a>
     <hr>
     <a href="#" id="logoutLink">🚪 Logout</a>
   </aside>
 
+  <!-- CONTENT -->
   <section class="content">
+
     <!-- USERS -->
     <section class="section show" id="tab-users">
       <div class="card" style="max-width:760px">
         <h3 class="card-title">Create User</h3>
-        <p class="muted">Admins can create accounts for staff.</p>
+        <p class="muted">Create accounts for staff, managers, or auditors.</p>
         <div class="row"><label>Email</label><input id="uEmail" class="input" type="email" placeholder="user@bunca.de"></div>
         <div class="row"><label>Password</label><input id="uPass" class="input" type="password" placeholder="••••••••"></div>
         <div class="row"><label>Role</label>
-          <select id="uRole" class="input"><option value="user">User</option><option value="admin">Admin</option></select>
+          <select id="uRole" class="input">
+            <option value="staff">Staff</option>
+            <option value="manager">Manager</option>
+            <option value="auditor">Auditor</option>
+            <option value="admin">Admin</option>
+          </select>
         </div>
         <div class="row cols-2">
           <button id="createUser" class="btn primary">Create</button>
@@ -50,7 +60,8 @@
       <div class="card" style="margin-top:14px">
         <h3 class="card-title">Users</h3>
         <table class="table" id="usersTbl">
-          <thead><tr><th>Email</th><th>Role</th><th style="width:140px">Actions</th></tr></thead><tbody></tbody>
+          <thead><tr><th>Email</th><th>Role</th><th style="width:240px">Actions</th></tr></thead>
+          <tbody></tbody>
         </table>
       </div>
     </section>
@@ -78,9 +89,46 @@
         <div class="card">
           <h3 class="card-title">Shops</h3>
           <table class="table" id="shopsTbl">
-            <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th style="width:220px">Actions</th></tr></thead><tbody></tbody>
+            <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th style="width:260px">Actions</th></tr></thead>
+            <tbody></tbody>
           </table>
         </div>
+      </div>
+    </section>
+
+    <!-- EQUIPMENT -->
+    <section class="section" id="tab-equipment">
+      <div class="card">
+        <h3 class="card-title">Equipment per Shop</h3>
+        <div class="row cols-2">
+          <div><label>Shop</label><select id="eqShop" class="input"></select></div>
+          <div class="muted" style="display:flex;align-items:end">Create entries like Fridge 1, Oven 2, Dishwasher, etc.</div>
+        </div>
+
+        <div class="grid cols-3" style="margin-top:8px">
+          <div class="row"><label>Name</label><input id="eqName" class="input" placeholder="Fridge 1"></div>
+          <div class="row"><label>Type</label>
+            <select id="eqType" class="input">
+              <option value="fridge">Fridge</option>
+              <option value="freezer">Freezer</option>
+              <option value="oven">Oven</option>
+              <option value="dishwasher">Dishwasher</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="row"><label>Serial</label><input id="eqSerial" class="input" placeholder="SN-..."></div>
+        </div>
+
+        <div class="row cols-2" style="margin-top:8px">
+          <button id="eqAdd" class="btn primary">Add Equipment</button>
+          <div id="eqMsg" class="muted"></div>
+        </div>
+
+        <hr>
+        <table class="table" id="eqTable">
+          <thead><tr><th>Name</th><th>Type</th><th>Serial</th><th style="width:120px">Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
       </div>
     </section>
 
@@ -88,14 +136,25 @@
     <section class="section" id="tab-checklist">
       <div class="card">
         <h3 class="card-title">Checklist Templates</h3>
-        <p class="muted">Pick a shop and define daily checklist items (Fridge, Oven, Dishwasher …). Use “Position” to control order.</p>
         <div class="row cols-2">
           <div><label>Shop</label><select id="ciShop" class="input"></select></div>
-          <div class="muted" style="display:flex;align-items:end">Position 0..n (sorts ascending)</div>
+          <div class="row cols-2">
+            <div><label>Shift</label>
+              <select id="ciShift" class="input">
+                <option value="">All</option>
+                <option value="morning">Morning</option>
+                <option value="mid">Mid</option>
+                <option value="closing">Closing</option>
+              </select>
+            </div>
+            <div><label>Duplicate from</label>
+              <select id="ciCopyFrom" class="input"></select>
+            </div>
+          </div>
         </div>
 
         <div class="grid cols-3" style="margin-top:8px">
-          <div class="row"><label>Label</label><input id="ciLabel" class="input" placeholder="Fridge 1"></div>
+          <div class="row"><label>Label</label><input id="ciLabel" class="input" placeholder="Fridge 1 Temp"></div>
           <div class="row"><label>Kind</label>
             <select id="ciKind" class="input">
               <option value="temperature">Temperature</option>
@@ -104,28 +163,61 @@
               <option value="text">Text</option>
             </select>
           </div>
-          <div class="row"><label>Position</label><input id="ciPos" type="number" class="input" value="0"></div>
-          <div class="row"><label>Min (°C)</label><input id="ciMin" type="number" step="0.1" class="input"></div>
-          <div class="row"><label>Max (°C)</label><input id="ciMax" type="number" step="0.1" class="input"></div>
+          <div class="row"><label>Equipment</label><select id="ciEquip" class="input"></select></div>
+
+          <div class="row"><label>Min</label><input id="ciMin" type="number" step="0.1" class="input"></div>
+          <div class="row"><label>Max</label><input id="ciMax" type="number" step="0.1" class="input"></div>
           <div class="row"><label>Unit</label><input id="ciUnit" class="input" value="°C"></div>
+
+          <div class="row"><label>Shift</label>
+            <select id="ciItemShift" class="input">
+              <option value="morning">Morning</option>
+              <option value="mid">Mid</option>
+              <option value="closing">Closing</option>
+            </select>
+          </div>
+          <div class="row"><label>Required</label>
+            <select id="ciRequired" class="input">
+              <option value="1">Yes</option>
+              <option value="0">No</option>
+            </select>
+          </div>
+          <div class="row"><label>Position</label><input id="ciPos" type="number" class="input" value="0"></div>
         </div>
 
         <div class="row cols-2" style="margin-top:8px">
           <button id="ciAdd" class="btn primary">Add Item</button>
-          <div id="ciMsg" class="muted"></div>
+          <div class="row" style="gap:8px;align-items:center">
+            <button id="ciDuplicate" class="btn">Duplicate into this shop</button>
+            <div id="ciMsg" class="muted"></div>
+          </div>
         </div>
-      </div>
 
-      <div class="card" style="margin-top:14px">
+        <hr>
+
+        <div class="muted" style="margin-bottom:6px">Drag rows to reorder. Order saves automatically.</div>
         <table class="table" id="ciTable">
-          <thead><tr><th>Pos</th><th>Label</th><th>Kind</th><th>Limits</th><th style="width:120px">Actions</th></tr></thead>
+          <thead><tr><th style="width:56px">Pos</th><th>Label</th><th>Kind</th><th>Equipment</th><th>Shift</th><th>Req</th><th>Limits</th><th style="width:120px">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
     </section>
+
+    <!-- AUDIT -->
+    <section class="section" id="tab-audit">
+      <div class="card">
+        <h3 class="card-title">Audit Log (latest 200)</h3>
+        <table class="table" id="auditTable">
+          <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Meta</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
   </section>
 </main>
 
+<!-- Floating menu -->
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
   <a href="/">🏠 Home</a>
@@ -137,7 +229,7 @@
 
 <script src="/assets/helpers.js"></script>
 <script>
-  // ---- Tabbed sidebar ----
+  // ----- Tabbed sidebar -----
   function showTab(name){
     document.querySelectorAll('.side a[data-tab]').forEach(a=>a.classList.toggle('active', a.dataset.tab===name));
     document.querySelectorAll('.section').forEach(s=>s.classList.remove('show'));
@@ -149,20 +241,90 @@
     if(link){ e.preventDefault(); showTab(link.dataset.tab); }
   });
 
-  // ---- Admin logic ----
+  // ----- State -----
+  let SHOPS = [];
+  let USERS = [];
+  let EQUIP = [];
+  let CURRENT_SHOP_FOR_EQUIP = null;
+  let CURRENT_SHOP_FOR_CI = null;
+
+  // ----- Utils -----
+  function byId(id){ return document.getElementById(id); }
+  function option(value, label){ const o=document.createElement('option'); o.value=value; o.textContent=label; return o; }
+  function money(s){ return (s||'').replace(/[^\d.,-]/g,''); }
+
+  // Drag-sort helpers for checklist
+  function enableDragSort(tbody){
+    let dragging=null;
+    tbody.querySelectorAll('tr').forEach(row=>{
+      row.draggable = true;
+      row.addEventListener('dragstart', (e)=>{ dragging=row; row.style.opacity='.5'; });
+      row.addEventListener('dragend', ()=>{ if(dragging){ dragging.style.opacity='1'; dragging=null; } });
+      row.addEventListener('dragover', (e)=>{ e.preventDefault(); const after = getDragAfterElement(tbody, e.clientY); if(after==null) tbody.appendChild(dragging); else tbody.insertBefore(dragging, after); });
+    });
+  }
+  function getDragAfterElement(container, y){
+    const els = [...container.querySelectorAll('tr:not(.dragging)')];
+    let closest = {offset: Number.NEGATIVE_INFINITY, element: null};
+    els.forEach(el=>{
+      const box = el.getBoundingClientRect();
+      const offset = y - box.top - box.height/2;
+      if(offset < 0 && offset > closest.offset) closest = {offset, element:el};
+    });
+    return closest.element;
+  }
+  async function persistPositions(){
+    const rows = [...byId('ciTable').querySelectorAll('tbody tr')];
+    for(let i=0;i<rows.length;i++){
+      const id = rows[i].dataset.id;
+      await Bunca.api('/api/check-items/'+id,'PUT',{ position:i });
+    }
+    Bunca.toast('Order saved');
+    // reload to reflect positions
+    await loadChecklist(CURRENT_SHOP_FOR_CI, byId('ciShift').value || '');
+  }
+
+  // ----- Boot -----
   (async function init(){
     const s = await Bunca.requireSession('admin'); if(!s) return;
 
-    document.getElementById('logoutLink').addEventListener('click', logout);
-    document.getElementById('logoutFab').addEventListener('click', logout);
+    byId('logoutLink').addEventListener('click', logout);
+    byId('logoutFab').addEventListener('click', logout);
 
-    document.getElementById('createUser').addEventListener('click', createUser);
-    document.getElementById('createShop').addEventListener('click', createShop);
-    document.getElementById('ciAdd').addEventListener('click', addItem);
-    document.getElementById('ciShop').addEventListener('change', e=>loadChecklist(e.target.value));
-    document.addEventListener('click', onClickRow);
+    // Users
+    byId('createUser').addEventListener('click', createUser);
 
-    await Promise.all([loadUsers(), loadShops()]);
+    // Shops
+    byId('createShop').addEventListener('click', createShop);
+
+    // Equipment
+    byId('eqAdd').addEventListener('click', addEquip);
+    byId('eqShop').addEventListener('change', (e)=> loadEquipment(e.target.value));
+
+    // Checklist
+    byId('ciAdd').addEventListener('click', addItem);
+    byId('ciShop').addEventListener('change', async (e)=>{ CURRENT_SHOP_FOR_CI = e.target.value; await loadEquipOptions(CURRENT_SHOP_FOR_CI); await loadChecklist(CURRENT_SHOP_FOR_CI, byId('ciShift').value || ''); });
+    byId('ciShift').addEventListener('change', async (e)=> loadChecklist(CURRENT_SHOP_FOR_CI, e.target.value || ''));
+    byId('ciDuplicate').addEventListener('click', duplicateChecklist);
+
+    await Promise.all([loadShops(), loadUsers()]);
+    // default shop selections
+    if (SHOPS.length){
+      // Equipment tab
+      CURRENT_SHOP_FOR_EQUIP = SHOPS[0].id;
+      byId('eqShop').value = CURRENT_SHOP_FOR_EQUIP;
+      await loadEquipment(CURRENT_SHOP_FOR_EQUIP);
+
+      // Checklist tab
+      CURRENT_SHOP_FOR_CI = SHOPS[0].id;
+      byId('ciShop').value = CURRENT_SHOP_FOR_CI;
+      await loadEquipOptions(CURRENT_SHOP_FOR_CI);
+      await loadChecklist(CURRENT_SHOP_FOR_CI, '');
+    }
+
+    // Row button handlers (delegated)
+    document.addEventListener('click', onRowAction);
+
   })();
 
   async function logout(e){
@@ -172,23 +334,74 @@
     location.href='/';
   }
 
-  // Users
+  // ----- Users -----
   async function loadUsers(){
     const data = await Bunca.api('/api/users');
-    document.querySelector('#usersTbl tbody').innerHTML =
-      (data.users||[]).map(u=>`
-        <tr>
-          <td>${u.email}</td><td>${u.role}</td>
-          <td><button class="btn bad small" data-del-user="${u.id}">Delete</button></td>
-        </tr>`).join('');
+    USERS = data.users || [];
+    const tbody = byId('usersTbl').querySelector('tbody');
+    tbody.innerHTML = USERS.map(u=>`
+      <tr>
+        <td>${u.email}</td>
+        <td>${u.role}</td>
+        <td>
+          <button class="btn small" data-assign-user="${u.id}">Assign shops</button>
+          <button class="btn bad small" data-del-user="${u.id}">Delete</button>
+        </td>
+      </tr>`).join('') || '<tr><td colspan="3">No users.</td></tr>';
   }
 
-  // Shops
-  let shops=[];
+  async function createUser(){
+    const email = byId('uEmail').value.trim();
+    const password = byId('uPass').value;
+    const role = byId('uRole').value;
+    const msg = byId('userMsg'); msg.textContent = '…';
+    const out = await Bunca.api('/api/users','POST',{email,password,role});
+    msg.textContent = out.ok?'Created':(out.error||'Error');
+    Bunca.toast(out.ok?'User created':'Failed to create user', out.ok?'':'err');
+    if(out.ok){ byId('uEmail').value=''; byId('uPass').value=''; await loadUsers(); }
+  }
+
+  // Assign shops modal via prompt with checkboxes
+  function openAssignModal(userId){
+    const shops = SHOPS;
+    const wrapper = document.createElement('div');
+    wrapper.className='card';
+    wrapper.style.cssText='position:fixed;inset:0;max-width:520px;margin:auto;z-index:90;background:#fff;border:1px solid var(--line);padding:16px;border-radius:14px;box-shadow:var(--shadow)';
+    wrapper.innerHTML = `
+      <h3 class="card-title">Assign shops</h3>
+      <div id="assignList" class="row" style="max-height:300px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px"></div>
+      <div class="row cols-2" style="margin-top:10px">
+        <button id="assignSave" class="btn primary">Save</button>
+        <button id="assignClose" class="btn">Cancel</button>
+      </div>
+    `;
+    const overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:89';
+    document.body.appendChild(overlay);
+    document.body.appendChild(wrapper);
+
+    const list = wrapper.querySelector('#assignList');
+    list.innerHTML = shops.map(s=>`
+      <label style="display:flex;gap:8px;align-items:center">
+        <input type="checkbox" value="${s.id}"> ${s.name} — <span class="muted">${s.slug}</span>
+      </label>`).join('');
+
+    wrapper.querySelector('#assignClose').onclick = ()=>{ document.body.removeChild(wrapper); document.body.removeChild(overlay); };
+    wrapper.querySelector('#assignSave').onclick = async ()=>{
+      const ids = [...list.querySelectorAll('input[type=checkbox]:checked')].map(c=>c.value);
+      await Bunca.api('/api/users/'+userId+'/assign-shops','POST',{ shop_ids: ids });
+      Bunca.toast('Shops assigned');
+      document.body.removeChild(wrapper); document.body.removeChild(overlay);
+    };
+  }
+
+  // ----- Shops -----
   async function loadShops(){
     const res = await fetch('/api/shops'); const data = await res.json();
-    shops = data.shops || [];
-    document.querySelector('#shopsTbl tbody').innerHTML = shops.map(s=>`
+    SHOPS = data.shops || [];
+    // tables
+    const tbody = byId('shopsTbl').querySelector('tbody');
+    tbody.innerHTML = SHOPS.map(s=>`
       <tr>
         <td>${s.name}</td><td>${s.slug}</td>
         <td><span class="badge ${s.status==='open'?'':'warn'}">${s.status}</span></td>
@@ -197,74 +410,162 @@
           <a class="btn small" href="/history/${encodeURIComponent(s.slug)}">History</a>
           <button class="btn bad small" data-del-shop="${s.id}">Delete</button>
         </td>
-      </tr>`).join('');
-    const sel = document.getElementById('ciShop');
-    sel.innerHTML = shops.map(s=>`<option value="${s.id}">${s.name} — ${s.slug}</option>`).join('');
-    if(shops.length) loadChecklist(shops[0].id);
-  }
+      </tr>`).join('') || '<tr><td colspan="4">No shops yet</td></tr>';
 
-  // Checklist
-  async function loadChecklist(shopId){
-    const data = await fetch(`/api/check-items?shop_id=${encodeURIComponent(shopId)}`).then(r=>r.json());
-    document.querySelector('#ciTable tbody').innerHTML = (data.items||[]).map(i=>`
-      <tr>
-        <td>${i.position}</td><td>${i.label}</td><td>${i.kind}</td>
-        <td>${i.kind==='temperature' ? `${i.min ?? ''}–${i.max ?? ''} ${i.unit||''}` : '—'}</td>
-        <td><button class="btn bad small" data-del-item="${i.id}">Remove</button></td>
-      </tr>`).join('') || '<tr><td colspan="5">No items yet</td></tr>';
-  }
-
-  // Actions
-  async function createUser(){
-    const email=document.getElementById('uEmail').value.trim();
-    const password=document.getElementById('uPass').value;
-    const role=document.getElementById('uRole').value;
-    const msg=document.getElementById('userMsg'); msg.textContent='…';
-    const out = await Bunca.api('/api/users','POST',{email,password,role});
-    msg.textContent = out.ok?'Created':(out.error||'Error');
-    Bunca.toast(out.ok?'User created':'Failed to create user', out.ok?'':'err');
-    if(out.ok) loadUsers();
+    // selects
+    const eqShop = byId('eqShop'); const ciShop = byId('ciShop'); const ciCopyFrom = byId('ciCopyFrom');
+    [eqShop, ciShop, ciCopyFrom].forEach(sel => { sel.innerHTML=''; });
+    SHOPS.forEach(s=>{
+      eqShop.appendChild(option(s.id, `${s.name} — ${s.slug}`));
+      ciShop.appendChild(option(s.id, `${s.name} — ${s.slug}`));
+      ciCopyFrom.appendChild(option(s.id, `${s.name} — ${s.slug}`));
+    });
   }
 
   async function createShop(){
     const body = {
-      name:document.getElementById('sName').value.trim(),
-      slug:document.getElementById('sSlug').value.trim(),
-      address:document.getElementById('sAddress').value.trim(),
-      phone:document.getElementById('sPhone').value.trim(),
-      image_url:document.getElementById('sImg').value.trim(),
-      description:document.getElementById('sDesc').value.trim(),
-      status:document.getElementById('sStatus').value
+      name: byId('sName').value.trim(),
+      slug: byId('sSlug').value.trim(),
+      address: byId('sAddress').value.trim(),
+      phone: byId('sPhone').value.trim(),
+      image_url: byId('sImg').value.trim(),
+      description: byId('sDesc').value.trim(),
+      status: byId('sStatus').value
     };
-    const msg=document.getElementById('shopMsg'); msg.textContent='…';
+    const msg = byId('shopMsg'); msg.textContent='…';
     const out = await Bunca.api('/api/shops','POST', body);
-    msg.textContent = out.ok?'Saved':(out.error||'Error');
+    msg.textContent = out.ok ? 'Saved' : (out.error||'Error');
     Bunca.toast(out.ok?'Shop saved':'Failed to save shop', out.ok?'':'err');
-    if(out.ok) loadShops();
+    if(out.ok){ byId('sName').value=''; byId('sSlug').value=''; await loadShops(); }
+  }
+
+  // ----- Equipment -----
+  async function loadEquipment(shopId){
+    CURRENT_SHOP_FOR_EQUIP = shopId;
+    const data = await (await fetch(`/api/equipment?shop_id=${encodeURIComponent(shopId)}`)).json();
+    EQUIP = data.equipment || [];
+    const tbody = byId('eqTable').querySelector('tbody');
+    tbody.innerHTML = EQUIP.map(e=>`
+      <tr>
+        <td>${e.name}</td><td>${e.type||''}</td><td>${e.serial||''}</td>
+        <td><button class="btn bad small" data-del-eq="${e.id}">Delete</button></td>
+      </tr>`).join('') || '<tr><td colspan="4">No equipment yet</td></tr>';
+
+    // also refresh equipment select in Checklist tab
+    await loadEquipOptions(CURRENT_SHOP_FOR_CI || shopId);
+  }
+
+  async function addEquip(){
+    const shop_id = byId('eqShop').value;
+    const name = byId('eqName').value.trim();
+    const type = byId('eqType').value;
+    const serial = byId('eqSerial').value.trim();
+    const msg = byId('eqMsg'); msg.textContent='…';
+    const out = await Bunca.api('/api/equipment','POST',{ shop_id, name, type, serial });
+    msg.textContent = out.ok?'Added':(out.error||'Error');
+    Bunca.toast(out.ok?'Equipment added':'Failed to add', out.ok?'':'err');
+    if(out.ok){ byId('eqName').value=''; byId('eqSerial').value=''; await loadEquipment(shop_id); }
+  }
+
+  async function loadEquipOptions(shopId){
+    if(!shopId) return;
+    const data = await (await fetch(`/api/equipment?shop_id=${encodeURIComponent(shopId)}`)).json();
+    const sel = byId('ciEquip'); sel.innerHTML = '';
+    sel.appendChild(option('', '— None —'));
+    (data.equipment || []).forEach(e => sel.appendChild(option(e.id, e.name + (e.type?` (${e.type})`:''))));
+  }
+
+  // ----- Checklist -----
+  async function loadChecklist(shopId, shift){
+    const q = new URLSearchParams({ shop_id: shopId });
+    if(shift) q.set('shift', shift);
+    const data = await (await fetch(`/api/check-items?${q.toString()}`)).json();
+    const items = data.items || [];
+    const tbody = byId('ciTable').querySelector('tbody');
+    tbody.innerHTML = items.map(i=>`
+      <tr data-id="${i.id}">
+        <td>${i.position}</td>
+        <td>${i.label}</td>
+        <td>${i.kind}</td>
+        <td>${i.equipment_id ? ( (EQUIP.find(e=>e.id===i.equipment_id)?.name) || '—' ) : '—'}</td>
+        <td>${i.shift || 'morning'}</td>
+        <td>${i.required ? 'Yes' : 'No'}</td>
+        <td>${i.kind==='temperature' ? `${i.min ?? ''}–${i.max ?? ''} ${i.unit||''}` : '—'}</td>
+        <td><button class="btn bad small" data-del-item="${i.id}">Remove</button></td>
+      </tr>`).join('') || '<tr><td colspan="8">No items yet</td></tr>';
+
+    enableDragSort(tbody);
+    // save order after a small delay when mouse up (cheap approach)
+    let orderTimer;
+    tbody.addEventListener('drop', ()=>{ clearTimeout(orderTimer); orderTimer=setTimeout(persistPositions, 250); }, { once:true });
   }
 
   async function addItem(){
-    const shop_id=document.getElementById('ciShop').value;
-    const label=document.getElementById('ciLabel').value.trim();
-    const kind=document.getElementById('ciKind').value;
-    const position=Number(document.getElementById('ciPos').value||0);
-    const min=document.getElementById('ciMin').value!==''?Number(document.getElementById('ciMin').value):null;
-    const max=document.getElementById('ciMax').value!==''?Number(document.getElementById('ciMax').value):null;
-    const unit=document.getElementById('ciUnit').value.trim()||'°C';
-    const msg=document.getElementById('ciMsg'); msg.textContent='…';
-    const out = await Bunca.api('/api/check-items','POST',{shop_id,label,kind,position,min,max,unit});
+    const shop_id = byId('ciShop').value;
+    const label = byId('ciLabel').value.trim();
+    const kind = byId('ciKind').value;
+    const equipment_id = byId('ciEquip').value || null;
+    const position = Number(byId('ciPos').value || 0);
+    const min = byId('ciMin').value !== '' ? Number(byId('ciMin').value) : null;
+    const max = byId('ciMax').value !== '' ? Number(byId('ciMax').value) : null;
+    const unit = byId('ciUnit').value.trim() || '°C';
+    const shift = byId('ciItemShift').value;
+    const required = Number(byId('ciRequired').value) ? 1 : 0;
+    const msg = byId('ciMsg'); msg.textContent='…';
+    const out = await Bunca.api('/api/check-items','POST',{ shop_id, label, kind, position, min, max, unit, equipment_id, shift, required });
     msg.textContent = out.ok?'Added':(out.error||'Error');
     Bunca.toast(out.ok?'Item added':'Failed to add item', out.ok?'':'err');
-    if(out.ok){ loadChecklist(shop_id); document.getElementById('ciLabel').value=''; }
+    if(out.ok){ byId('ciLabel').value=''; await loadChecklist(shop_id, byId('ciShift').value || ''); }
   }
 
-  async function onClickRow(e){
+  async function duplicateChecklist(){
+    const to_shop_id = byId('ciShop').value;
+    const from_shop_id = byId('ciCopyFrom').value;
+    if(!from_shop_id || !to_shop_id){ Bunca.toast('Pick both shops','warn'); return; }
+    if(from_shop_id === to_shop_id){ Bunca.toast('Source and target cannot match','warn'); return; }
+    const out = await Bunca.api('/api/checklists/duplicate','POST',{ from_shop_id, to_shop_id });
+    if(out.ok){ Bunca.toast('Checklist duplicated'); await loadChecklist(to_shop_id, byId('ciShift').value || ''); }
+    else { Bunca.toast(out.error || 'Duplicate failed','err'); }
+  }
+
+  // ----- Audit -----
+  async function loadAudit(){
+    const data = await Bunca.api('/api/audit');
+    const mapUsers = Object.fromEntries(USERS.map(u=>[u.id,u.email]));
+    const tbody = byId('auditTable').querySelector('tbody');
+    tbody.innerHTML = (data.items||[]).map(a=>`
+      <tr>
+        <td>${a.created_at.replace('T',' ').slice(0,19)}</td>
+        <td>${mapUsers[a.user_id] || '—'}</td>
+        <td>${a.action}</td>
+        <td><code>${(a.meta_json||'').slice(0,120)}</code></td>
+      </tr>`).join('') || '<tr><td colspan="4">No audit entries.</td></tr>';
+  }
+
+  // ----- Delegated row actions -----
+  async function onRowAction(e){
+    // delete user
     const u = e.target.closest('[data-del-user]');
-    if(u && confirm('Delete user?')){ await Bunca.api('/api/users/'+u.dataset.delUser,'DELETE'); loadUsers(); Bunca.toast('User deleted'); }
+    if(u && confirm('Delete user?')){ await Bunca.api('/api/users/'+u.dataset.delUser,'DELETE'); await loadUsers(); Bunca.toast('User deleted'); }
+
+    // assign shops
+    const assignBtn = e.target.closest('[data-assign-user]');
+    if(assignBtn){ openAssignModal(assignBtn.dataset.assignUser); }
+
+    // delete shop
     const s = e.target.closest('[data-del-shop]');
-    if(s && confirm('Delete shop?')){ await Bunca.api('/api/shops/'+s.dataset.delShop,'DELETE'); loadShops(); Bunca.toast('Shop deleted'); }
-    const i = e.target.closest('[data-del-item]');
-    if(i && confirm('Remove item from checklist?')){ await Bunca.api('/api/check-items/'+i.dataset.delItem,'DELETE'); loadChecklist(document.getElementById('ciShop').value); Bunca.toast('Item removed'); }
+    if(s && confirm('Delete shop?')){ await Bunca.api('/api/shops/'+s.dataset.delShop,'DELETE'); await loadShops(); Bunca.toast('Shop deleted'); }
+
+    // delete equipment
+    const de = e.target.closest('[data-del-eq]');
+    if(de && confirm('Delete equipment?')){ await Bunca.api('/api/equipment/'+de.dataset.delEq,'DELETE'); await loadEquipment(CURRENT_SHOP_FOR_EQUIP); Bunca.toast('Equipment deleted'); }
+
+    // delete checklist item
+    const di = e.target.closest('[data-del-item]');
+    if(di && confirm('Remove item from checklist?')){ await Bunca.api('/api/check-items/'+di.dataset.delItem,'DELETE'); await loadChecklist(CURRENT_SHOP_FOR_CI, byId('ciShift').value || ''); Bunca.toast('Item removed'); }
+
+    // switching to Audit tab triggers load
+    if(e.target.matches('.side a[data-tab="audit"]')){ await loadAudit(); }
   }
 </script>
 </body>
