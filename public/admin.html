@@ -20,86 +20,109 @@
   </div>
 </header>
 
-<main class="container grid cols-2">
-  <!-- Users -->
-  <section class="card">
-    <h3 class="card-title">Create User</h3>
-    <p class="muted">Admins can create accounts for staff.</p>
-    <div class="row"><label>Email</label><input id="uEmail" class="input" type="email" placeholder="user@bunca.de"></div>
-    <div class="row"><label>Password</label><input id="uPass" class="input" type="password" placeholder="••••••••"></div>
-    <div class="row"><label>Role</label>
-      <select id="uRole" class="input"><option value="user">User</option><option value="admin">Admin</option></select>
-    </div>
-    <div class="row cols-2">
-      <button id="createUser" class="btn primary">Create</button>
-      <div id="userMsg" class="muted"></div>
-    </div>
+<main class="container layout">
+  <aside class="side">
+    <h4>Admin</h4>
+    <a href="#" data-tab="users" class="active">👤 Users</a>
+    <a href="#" data-tab="shops">🏬 Shops</a>
+    <a href="#" data-tab="checklist">✅ Checklist</a>
     <hr>
-    <h3 class="card-title">Users</h3>
-    <table class="table" id="usersTbl">
-      <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead><tbody></tbody>
-    </table>
-  </section>
+    <a href="#" id="logoutLink">🚪 Logout</a>
+  </aside>
 
-  <!-- Shops -->
-  <section class="card">
-    <h3 class="card-title">Create Shop</h3>
-    <div class="row"><label>Name</label><input id="sName" class="input" placeholder="BUNCA City"></div>
-    <div class="row"><label>Slug</label><input id="sSlug" class="input" placeholder="city"></div>
-    <div class="row"><label>Address</label><input id="sAddress" class="input" placeholder="Street 1, Frankfurt"></div>
-    <div class="row"><label>Phone</label><input id="sPhone" class="input" placeholder="+49 ..."></div>
-    <div class="row"><label>Image URL</label><input id="sImg" class="input" placeholder="https://..."></div>
-    <div class="row"><label>Description</label><textarea id="sDesc" rows="3" class="input" placeholder="Warm croissants, dialed-in espresso..."></textarea></div>
-    <div class="row"><label>Status</label>
-      <select id="sStatus" class="input"><option value="open">Open</option><option value="closed">Closed</option></select>
-    </div>
-    <div class="row cols-2">
-      <button id="createShop" class="btn primary">Save</button>
-      <div id="shopMsg" class="muted"></div>
-    </div>
-    <hr>
-    <h3 class="card-title">Shops</h3>
-    <table class="table" id="shopsTbl">
-      <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody>
-    </table>
-  </section>
-
-  <!-- Checklist templates -->
-  <section class="card" style="grid-column:1/-1">
-    <h3 class="card-title">Checklist Templates</h3>
-    <p class="muted">Pick a shop and define daily checklist items (Fridge, Oven, Dishwasher …). Use “Position” to control order.</p>
-
-    <div class="row cols-2">
-      <div><label>Shop</label><select id="ciShop" class="input"></select></div>
-      <div class="muted" style="display:flex;align-items:end">Position 0..n (sorts ascending)</div>
-    </div>
-
-    <div class="grid cols-3" style="margin-top:8px">
-      <div class="row"><label>Label</label><input id="ciLabel" class="input" placeholder="Fridge 1"></div>
-      <div class="row"><label>Kind</label>
-        <select id="ciKind" class="input">
-          <option value="temperature">Temperature</option>
-          <option value="boolean">Yes / No</option>
-          <option value="number">Number</option>
-          <option value="text">Text</option>
-        </select>
+  <section class="content">
+    <!-- USERS -->
+    <section class="section show" id="tab-users">
+      <div class="card" style="max-width:760px">
+        <h3 class="card-title">Create User</h3>
+        <p class="muted">Admins can create accounts for staff.</p>
+        <div class="row"><label>Email</label><input id="uEmail" class="input" type="email" placeholder="user@bunca.de"></div>
+        <div class="row"><label>Password</label><input id="uPass" class="input" type="password" placeholder="••••••••"></div>
+        <div class="row"><label>Role</label>
+          <select id="uRole" class="input"><option value="user">User</option><option value="admin">Admin</option></select>
+        </div>
+        <div class="row cols-2">
+          <button id="createUser" class="btn primary">Create</button>
+          <div id="userMsg" class="muted"></div>
+        </div>
       </div>
-      <div class="row"><label>Position</label><input id="ciPos" type="number" class="input" value="0"></div>
-      <div class="row"><label>Min (°C)</label><input id="ciMin" type="number" step="0.1" class="input"></div>
-      <div class="row"><label>Max (°C)</label><input id="ciMax" type="number" step="0.1" class="input"></div>
-      <div class="row"><label>Unit</label><input id="ciUnit" class="input" value="°C"></div>
-    </div>
 
-    <div class="row cols-2" style="margin-top:8px">
-      <button id="ciAdd" class="btn primary">Add Item</button>
-      <div id="ciMsg" class="muted"></div>
-    </div>
+      <div class="card" style="margin-top:14px">
+        <h3 class="card-title">Users</h3>
+        <table class="table" id="usersTbl">
+          <thead><tr><th>Email</th><th>Role</th><th style="width:140px">Actions</th></tr></thead><tbody></tbody>
+        </table>
+      </div>
+    </section>
 
-    <hr>
-    <table class="table" id="ciTable">
-      <thead><tr><th>Pos</th><th>Label</th><th>Kind</th><th>Limits</th><th>Actions</th></tr></thead>
-      <tbody></tbody>
-    </table>
+    <!-- SHOPS -->
+    <section class="section" id="tab-shops">
+      <div class="grid cols-2">
+        <div class="card">
+          <h3 class="card-title">Create Shop</h3>
+          <div class="row"><label>Name</label><input id="sName" class="input" placeholder="BUNCA City"></div>
+          <div class="row"><label>Slug</label><input id="sSlug" class="input" placeholder="city"></div>
+          <div class="row"><label>Address</label><input id="sAddress" class="input" placeholder="Street 1, Frankfurt"></div>
+          <div class="row"><label>Phone</label><input id="sPhone" class="input" placeholder="+49 ..."></div>
+          <div class="row"><label>Image URL</label><input id="sImg" class="input" placeholder="https://..."></div>
+          <div class="row"><label>Description</label><textarea id="sDesc" rows="3" class="input" placeholder="Warm croissants, dialed-in espresso..."></textarea></div>
+          <div class="row"><label>Status</label>
+            <select id="sStatus" class="input"><option value="open">Open</option><option value="closed">Closed</option></select>
+          </div>
+          <div class="row cols-2">
+            <button id="createShop" class="btn primary">Save</button>
+            <div id="shopMsg" class="muted"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3 class="card-title">Shops</h3>
+          <table class="table" id="shopsTbl">
+            <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th style="width:220px">Actions</th></tr></thead><tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- CHECKLIST -->
+    <section class="section" id="tab-checklist">
+      <div class="card">
+        <h3 class="card-title">Checklist Templates</h3>
+        <p class="muted">Pick a shop and define daily checklist items (Fridge, Oven, Dishwasher …). Use “Position” to control order.</p>
+        <div class="row cols-2">
+          <div><label>Shop</label><select id="ciShop" class="input"></select></div>
+          <div class="muted" style="display:flex;align-items:end">Position 0..n (sorts ascending)</div>
+        </div>
+
+        <div class="grid cols-3" style="margin-top:8px">
+          <div class="row"><label>Label</label><input id="ciLabel" class="input" placeholder="Fridge 1"></div>
+          <div class="row"><label>Kind</label>
+            <select id="ciKind" class="input">
+              <option value="temperature">Temperature</option>
+              <option value="boolean">Yes / No</option>
+              <option value="number">Number</option>
+              <option value="text">Text</option>
+            </select>
+          </div>
+          <div class="row"><label>Position</label><input id="ciPos" type="number" class="input" value="0"></div>
+          <div class="row"><label>Min (°C)</label><input id="ciMin" type="number" step="0.1" class="input"></div>
+          <div class="row"><label>Max (°C)</label><input id="ciMax" type="number" step="0.1" class="input"></div>
+          <div class="row"><label>Unit</label><input id="ciUnit" class="input" value="°C"></div>
+        </div>
+
+        <div class="row cols-2" style="margin-top:8px">
+          <button id="ciAdd" class="btn primary">Add Item</button>
+          <div id="ciMsg" class="muted"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <table class="table" id="ciTable">
+          <thead><tr><th>Pos</th><th>Label</th><th>Kind</th><th>Limits</th><th style="width:120px">Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
   </section>
 </main>
 
@@ -114,21 +137,42 @@
 
 <script src="/assets/helpers.js"></script>
 <script>
+  // ---- Tabbed sidebar ----
+  function showTab(name){
+    document.querySelectorAll('.side a[data-tab]').forEach(a=>a.classList.toggle('active', a.dataset.tab===name));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('show'));
+    const active = document.getElementById('tab-'+name);
+    if(active) active.classList.add('show');
+  }
+  document.addEventListener('click', (e)=>{
+    const link = e.target.closest('.side a[data-tab]');
+    if(link){ e.preventDefault(); showTab(link.dataset.tab); }
+  });
+
+  // ---- Admin logic ----
   (async function init(){
     const s = await Bunca.requireSession('admin'); if(!s) return;
+
+    document.getElementById('logoutLink').addEventListener('click', logout);
+    document.getElementById('logoutFab').addEventListener('click', logout);
 
     document.getElementById('createUser').addEventListener('click', createUser);
     document.getElementById('createShop').addEventListener('click', createShop);
     document.getElementById('ciAdd').addEventListener('click', addItem);
     document.getElementById('ciShop').addEventListener('change', e=>loadChecklist(e.target.value));
-    document.addEventListener('click', onClick);
-    document.getElementById('logoutFab').addEventListener('click', async (e)=>{
-      e.preventDefault(); await Bunca.api('/api/auth/logout','POST',{}); sessionStorage.removeItem('csrf'); location.href='/';
-    });
+    document.addEventListener('click', onClickRow);
 
     await Promise.all([loadUsers(), loadShops()]);
   })();
 
+  async function logout(e){
+    e.preventDefault();
+    await Bunca.api('/api/auth/logout','POST',{});
+    sessionStorage.removeItem('csrf');
+    location.href='/';
+  }
+
+  // Users
   async function loadUsers(){
     const data = await Bunca.api('/api/users');
     document.querySelector('#usersTbl tbody').innerHTML =
@@ -139,6 +183,7 @@
         </tr>`).join('');
   }
 
+  // Shops
   let shops=[];
   async function loadShops(){
     const res = await fetch('/api/shops'); const data = await res.json();
@@ -158,6 +203,7 @@
     if(shops.length) loadChecklist(shops[0].id);
   }
 
+  // Checklist
   async function loadChecklist(shopId){
     const data = await fetch(`/api/check-items?shop_id=${encodeURIComponent(shopId)}`).then(r=>r.json());
     document.querySelector('#ciTable tbody').innerHTML = (data.items||[]).map(i=>`
@@ -168,6 +214,7 @@
       </tr>`).join('') || '<tr><td colspan="5">No items yet</td></tr>';
   }
 
+  // Actions
   async function createUser(){
     const email=document.getElementById('uEmail').value.trim();
     const password=document.getElementById('uPass').value;
@@ -175,6 +222,7 @@
     const msg=document.getElementById('userMsg'); msg.textContent='…';
     const out = await Bunca.api('/api/users','POST',{email,password,role});
     msg.textContent = out.ok?'Created':(out.error||'Error');
+    Bunca.toast(out.ok?'User created':'Failed to create user', out.ok?'':'err');
     if(out.ok) loadUsers();
   }
 
@@ -191,6 +239,7 @@
     const msg=document.getElementById('shopMsg'); msg.textContent='…';
     const out = await Bunca.api('/api/shops','POST', body);
     msg.textContent = out.ok?'Saved':(out.error||'Error');
+    Bunca.toast(out.ok?'Shop saved':'Failed to save shop', out.ok?'':'err');
     if(out.ok) loadShops();
   }
 
@@ -205,16 +254,17 @@
     const msg=document.getElementById('ciMsg'); msg.textContent='…';
     const out = await Bunca.api('/api/check-items','POST',{shop_id,label,kind,position,min,max,unit});
     msg.textContent = out.ok?'Added':(out.error||'Error');
+    Bunca.toast(out.ok?'Item added':'Failed to add item', out.ok?'':'err');
     if(out.ok){ loadChecklist(shop_id); document.getElementById('ciLabel').value=''; }
   }
 
-  async function onClick(e){
-    const delUser = e.target.closest('[data-del-user]');
-    if(delUser && confirm('Delete user?')){ await Bunca.api('/api/users/'+delUser.dataset.delUser,'DELETE'); loadUsers(); }
-    const delShop = e.target.closest('[data-del-shop]');
-    if(delShop && confirm('Delete shop?')){ await Bunca.api('/api/shops/'+delShop.dataset.delShop,'DELETE'); loadShops(); }
-    const delItem = e.target.closest('[data-del-item]');
-    if(delItem && confirm('Remove item from checklist?')){ await Bunca.api('/api/check-items/'+delItem.dataset.delItem,'DELETE'); loadChecklist(document.getElementById('ciShop').value); }
+  async function onClickRow(e){
+    const u = e.target.closest('[data-del-user]');
+    if(u && confirm('Delete user?')){ await Bunca.api('/api/users/'+u.dataset.delUser,'DELETE'); loadUsers(); Bunca.toast('User deleted'); }
+    const s = e.target.closest('[data-del-shop]');
+    if(s && confirm('Delete shop?')){ await Bunca.api('/api/shops/'+s.dataset.delShop,'DELETE'); loadShops(); Bunca.toast('Shop deleted'); }
+    const i = e.target.closest('[data-del-item]');
+    if(i && confirm('Remove item from checklist?')){ await Bunca.api('/api/check-items/'+i.dataset.delItem,'DELETE'); loadChecklist(document.getElementById('ciShop').value); Bunca.toast('Item removed'); }
   }
 </script>
 </body>
