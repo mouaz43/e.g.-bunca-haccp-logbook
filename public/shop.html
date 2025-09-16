@@ -41,7 +41,7 @@
         <span class="badge ${shop.status==='open'?'':'warn'}">${shop.status}</span>
       </article>
       <article class="card">
-        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:12px">` : '<div class="muted">No image</div>'}
+        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:12px;height:260px;object-fit:cover">` : '<div class="muted">No image</div>'}
       </article>
       <article class="card">
         <div class="row">
@@ -56,13 +56,13 @@
         </div>
       </article>`;
   }
-  (async function load(){
+  (async ()=>{
     const s = slug();
-    const res = await fetch('/api/shops/'+encodeURIComponent(s)); const data = await res.json();
+    const r = await fetch('/api/shops/'+encodeURIComponent(s)); const d = await r.json();
     const el = document.getElementById('shopView');
-    el.innerHTML = data.shop ? view(data.shop) : `<div class="card"><h3>Not found.</h3></div>`;
+    el.innerHTML = d.shop ? view(d.shop) : `<div class="card"><h3>Not found.</h3></div>`;
     document.getElementById('fabCheck').href = '/check/'+encodeURIComponent(s);
-    document.getElementById('fabHist').href = '/history/'+encodeURIComponent(s);
+    document.getElementById('fabHist').href  = '/history/'+encodeURIComponent(s);
   })();
 </script>
 </body>
