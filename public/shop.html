@@ -11,7 +11,7 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
     <nav id="mainNav" class="nav">
       <a href="/">Home</a>
       <a href="/admin">Admin</a>
@@ -23,10 +23,16 @@
   <div id="shopView" class="grid cols-2"></div>
 </main>
 
+<button id="fab" class="fab">≡</button>
+<div id="fabMenu" class="fab-menu">
+  <a id="fabCheck" href="#">📝 Daily Check</a>
+  <a id="fabHist" href="#">📜 History</a>
+</div>
+
 <footer>© BUNCA HACCP</footer>
 
-<script type="module">
-  import '/assets/app.js';
+<script src="/assets/helpers.js"></script>
+<script>
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
   function view(shop){
     return `
@@ -42,23 +48,22 @@
           <div><strong>Address:</strong><br>${shop.address || '—'}</div>
           <div><strong>Phone:</strong><br>${shop.phone || '—'}</div>
         </div>
-        <hr style="opacity:.5;margin:12px 0">
+        <hr style="margin:12px 0">
         <p>${shop.description || ''}</p>
         <div class="row cols-2" style="margin-top:12px">
           <a class="btn primary" href="/check/${encodeURIComponent(shop.slug)}">Daily Check</a>
           <a class="btn" href="/history/${encodeURIComponent(shop.slug)}">History</a>
         </div>
-      </article>
-    `;
+      </article>`;
   }
-  async function load(){
-    const slugv = slug();
-    const res = await fetch('/api/shops/'+encodeURIComponent(slugv));
-    const data = await res.json();
+  (async function load(){
+    const s = slug();
+    const res = await fetch('/api/shops/'+encodeURIComponent(s)); const data = await res.json();
     const el = document.getElementById('shopView');
     el.innerHTML = data.shop ? view(data.shop) : `<div class="card"><h3>Not found.</h3></div>`;
-  }
-  load();
+    document.getElementById('fabCheck').href = '/check/'+encodeURIComponent(s);
+    document.getElementById('fabHist').href = '/history/'+encodeURIComponent(s);
+  })();
 </script>
 </body>
 </html>
