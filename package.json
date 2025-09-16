@@ -1,9 +1,12 @@
 {
   "name": "bunca-ecosystem",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "BUNCA admin + shops ecosystem",
   "main": "server.js",
   "type": "module",
+  "engines": {
+    "node": "20.x"
+  },
   "scripts": {
     "start": "node server.js",
     "dev": "NODE_ENV=development node server.js",
@@ -16,7 +19,7 @@
     "express": "4.19.2",
     "express-rate-limit": "7.4.0",
     "helmet": "7.1.0",
-    "sqlite": "5.1.6",
+    "sqlite": "5.1.1",
     "sqlite3": "5.1.7",
     "uuid": "9.0.1"
   }
