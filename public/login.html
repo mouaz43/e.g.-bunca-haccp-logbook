@@ -3,38 +3,30 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA · Login</title>
+  <title>BUNCA HACCP · Login</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
-  <meta name="theme-color" content="#0d0f14"/>
-  <style>
-    .bg-video{position:fixed;inset:0;z-index:-1;overflow:hidden}
-    .bg-video video{min-width:100%;min-height:100%;object-fit:cover;filter:brightness(.35) saturate(1.1)}
-    .login-card{max-width:420px;margin:40px auto}
-  </style>
+  <meta name="theme-color" content="#10b981"/>
 </head>
 <body>
   <header class="header">
     <div class="wrap">
-      <div class="brand"><span class="dot"></span> BUNCA · Secure Access</div>
-      <nav class="nav"><a href="/" class="btn ghost">Home</a></nav>
+      <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
+      <button id="menuToggle" class="menu-btn"><span></span></button>
+      <nav id="mainNav" class="nav">
+        <a href="/">Home</a>
+        <a href="/admin">Admin</a>
+      </nav>
     </div>
   </header>
 
-  <div class="bg-video">
-    <!-- Replace src with your own short loop (muted) -->
-    <video autoplay muted loop playsinline>
-      <source src="https://cdn.coverr.co/videos/coverr-coffee-foam-8944/1080p.mp4" type="video/mp4"/>
-    </video>
-  </div>
-
   <main class="container">
-    <div class="hero card">
-      <h1>Welcome back</h1>
-      <p>Sign in to manage users, shops, and content. Only admins can create accounts.</p>
-    </div>
+    <section class="hero">
+      <h1>Secure Sign-In</h1>
+      <p class="muted">Only admins can create accounts. Use your BUNCA credentials.</p>
+    </section>
 
-    <form id="loginForm" class="card login-card">
-      <h3 class="card-title">Anmelden</h3>
+    <form id="loginForm" class="card" style="max-width:480px;margin:18px auto">
+      <h3 class="card-title">Login</h3>
       <div class="row">
         <label>Email</label>
         <input class="input" name="email" type="email" placeholder="you@bunca.de" required />
@@ -45,19 +37,18 @@
       </div>
       <div class="row cols-2" style="align-items:center">
         <button class="btn primary" type="submit">Login</button>
-        <a href="/" class="btn">Cancel</a>
+        <a class="btn" href="/">Cancel</a>
       </div>
       <p class="muted" id="loginMsg"></p>
     </form>
   </main>
 
-  <footer>© BUNCA</footer>
+  <footer>© BUNCA HACCP</footer>
 
-  <script>
+  <script type="module">
     async function login(data){
       const res = await fetch('/api/auth/login', {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify(data)
       });
       return res.json();
@@ -72,16 +63,12 @@
       try{
         const out = await login({email,password});
         if(out.ok){
-          // save CSRF token for later API calls
           sessionStorage.setItem('csrf', out.csrf);
-          if(out.role === 'admin') location.href = '/admin';
-          else location.href = '/';
+          location.href = out.role === 'admin' ? '/admin' : '/';
         }else{
           msg.textContent = out.error || 'Login failed';
         }
-      }catch(err){
-        msg.textContent = 'Network error';
-      }
+      }catch{ msg.textContent = 'Network error'; }
     });
   </script>
 </body>
