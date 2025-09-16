@@ -8,14 +8,15 @@
   <meta name="theme-color" content="#10b981"/>
 </head>
 <body>
+  <!-- NAVBAR -->
   <header class="header">
     <div class="wrap">
       <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-      <button id="menuToggle" class="menu-btn"><span></span></button>
+      <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
       <nav id="mainNav" class="nav">
         <a class="active" href="/">Home</a>
-        <a href="/login">Login</a>
         <a href="/admin">Admin</a>
+        <a href="/login">Login</a>
       </nav>
     </div>
   </header>
@@ -23,44 +24,47 @@
   <main class="container">
     <section class="hero">
       <h1>Shops</h1>
-      <p class="muted">Choose a shop. Daily checks and history live inside each shop.</p>
+      <p class="muted">Open a shop to perform the daily check or view the history.</p>
     </section>
 
     <section class="grid cols-3" id="shopsGrid"></section>
   </main>
 
+  <!-- Floating quick menu (mobile) -->
+  <button id="fab" class="fab">≡</button>
+  <div id="fabMenu" class="fab-menu">
+    <a href="/">🏠 Home</a>
+    <a href="/admin">🛠 Admin</a>
+    <a href="/login">🔐 Login</a>
+  </div>
+
   <footer>© BUNCA HACCP</footer>
 
-  <script type="module">
-    import '/assets/app.js';
+  <script src="/assets/helpers.js"></script>
+  <script>
     function shopCard(s){
-      const statusCls = s.status === 'open' ? 'badge' : 'badge warn';
-      const statusTxt = s.status === 'open' ? 'Open' : 'Closed';
+      const cls = s.status==='open'?'badge':'badge warn';
       return `
         <article class="card">
           <div style="display:grid;gap:10px">
             ${s.image_url ? `<img src="${s.image_url}" alt="${s.name}" style="border-radius:12px">` : ''}
             <h3 class="card-title">${s.name}</h3>
-            <span class="${statusCls}">${statusTxt}</span>
+            <span class="${cls}">${s.status}</span>
             <p class="muted">${s.description || ''}</p>
             <div class="row cols-2">
               <a class="btn primary" href="/shop/${encodeURIComponent(s.slug)}">Open</a>
               <a class="btn" href="/history/${encodeURIComponent(s.slug)}">History</a>
             </div>
           </div>
-        </article>
-      `;
+        </article>`;
     }
-
-    async function loadShops(){
-      const res = await fetch('/api/shops');
-      const data = await res.json();
+    (async function load(){
+      const res = await fetch('/api/shops'); const data = await res.json();
       const grid = document.getElementById('shopsGrid');
-      grid.innerHTML = (data.shops || []).map(shopCard).join('') || `
+      grid.innerHTML = (data.shops||[]).map(shopCard).join('') || `
         <div class="card"><h3 class="card-title">No shops yet</h3>
-        <p class="muted">Login as admin and add your first shop.</p></div>`;
-    }
-    loadShops();
+        <p class="muted">Login as admin and add your first shop in <a href="/admin">Admin</a>.</p></div>`;
+    })();
   </script>
 </body>
 </html>
