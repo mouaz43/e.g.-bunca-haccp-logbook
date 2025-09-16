@@ -6,62 +6,110 @@
   <title>BUNCA HACCP · Shops</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
   <meta name="theme-color" content="#10b981"/>
+  <style>
+    .toolbar{display:grid;gap:10px;grid-template-columns:2fr 1fr 1fr}
+    @media (max-width:860px){.toolbar{grid-template-columns:1fr}}
+    .shop-card img{height:160px;object-fit:cover;border-radius:12px}
+  </style>
 </head>
 <body>
-  <header class="header">
-    <div class="wrap">
-      <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-      <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
-      <nav id="mainNav" class="nav">
-        <a class="active" href="/">Home</a>
-        <a href="/admin">Admin</a>
-        <a href="/login">Login</a>
-      </nav>
-    </div>
-  </header>
-
-  <main class="container">
-    <section class="hero">
-      <h1>Shops</h1>
-      <p class="muted">Open a shop to perform the daily check or view the history.</p>
-    </section>
-
-    <section class="grid cols-3" id="shopsGrid"></section>
-  </main>
-
-  <button id="fab" class="fab">≡</button>
-  <div id="fabMenu" class="fab-menu">
-    <a href="/">🏠 Home</a>
-    <a href="/admin">🛠 Admin</a>
-    <a href="/login">🔐 Login</a>
+<header class="header">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
+    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
+    <nav id="mainNav" class="nav">
+      <a class="active" href="/">Home</a>
+      <a href="/dashboard">Dashboard</a>
+      <a href="/admin">Admin</a>
+      <a href="/login">Login</a>
+    </nav>
   </div>
+</header>
 
-  <footer>© BUNCA HACCP</footer>
+<main class="container">
+  <section class="hero">
+    <h1>Shops</h1>
+    <p class="muted">Open a shop to perform the daily check, view history, or see the dashboard.</p>
+    <div class="toolbar">
+      <input id="q" class="input" placeholder="Search shops by name or slug…">
+      <select id="status" class="input">
+        <option value="">All statuses</option>
+        <option value="open">Open</option>
+        <option value="closed">Closed</option>
+      </select>
+      <select id="sort" class="input">
+        <option value="name">Sort by name</option>
+        <option value="status">Sort by status</option>
+        <option value="new">Newest first</option>
+      </select>
+    </div>
+  </section>
 
-  <script src="/assets/helpers.js"></script>
-  <script>
-    function card(s){
-      const cls = s.status==='open'?'badge':'badge warn';
-      return `<article class="card">
-        <div style="display:grid;gap:10px">
-          ${s.image_url ? `<img src="${s.image_url}" alt="${s.name}" style="border-radius:12px;height:160px;object-fit:cover">` : ''}
-          <h3 class="card-title">${s.name}</h3>
+  <section class="grid cols-3" id="shopsGrid"></section>
+</main>
+
+<!-- Floating menu -->
+<button id="fab" class="fab">≡</button>
+<div id="fabMenu" class="fab-menu">
+  <a href="/dashboard">📊 Dashboard</a>
+  <a href="/admin">🛠 Admin</a>
+  <a href="/login">🔐 Login</a>
+</div>
+
+<footer>© BUNCA HACCP</footer>
+
+<script src="/assets/helpers.js"></script>
+<script>
+  let ALL = [];
+  function card(s){
+    const cls = s.status==='open'?'badge':'badge warn';
+    return `<article class="card shop-card">
+      <div style="display:grid;gap:10px">
+        ${s.image_url ? `<img src="${s.image_url}" alt="${s.name}">` : ''}
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <h3 class="card-title" style="margin:0">${s.name}</h3>
           <span class="${cls}">${s.status}</span>
-          <p class="muted">${s.description || ''}</p>
-          <div class="row cols-2">
-            <a class="btn primary" href="/shop/${encodeURIComponent(s.slug)}">Open</a>
-            <a class="btn" href="/history/${encodeURIComponent(s.slug)}">History</a>
-          </div>
         </div>
-      </article>`;
-    }
-    (async ()=>{
-      const r = await fetch('/api/shops'); const d = await r.json();
-      const grid = document.getElementById('shopsGrid');
-      grid.innerHTML = (d.shops||[]).map(card).join('') || `
-        <div class="card"><h3 class="card-title">No shops yet</h3>
-        <p class="muted">Login as admin and add your first shop in <a href="/admin">Admin</a>.</p></div>`;
-    })();
-  </script>
+        <p class="muted" style="margin-top:-4px">${s.slug}${s.address?` • ${s.address}`:''}</p>
+        <p>${s.description || ''}</p>
+        <div class="row cols-2">
+          <a class="btn primary" href="/check/${encodeURIComponent(s.slug)}">Daily Check</a>
+          <a class="btn" href="/history/${encodeURIComponent(s.slug)}">History</a>
+        </div>
+        <div class="row cols-2">
+          <a class="btn" href="/shop/${encodeURIComponent(s.slug)}">Open</a>
+          <a class="btn" href="/dashboard?shop=${encodeURIComponent(s.slug)}">Dashboard</a>
+        </div>
+      </div>
+    </article>`;
+  }
+
+  function render(){
+    const q = document.getElementById('q').value.toLowerCase().trim();
+    const status = document.getElementById('status').value;
+    const sort = document.getElementById('sort').value;
+
+    let list = ALL.slice(0);
+    if(q){ list = list.filter(s => s.name.toLowerCase().includes(q) || s.slug.toLowerCase().includes(q)); }
+    if(status){ list = list.filter(s => s.status === status); }
+    if(sort==='name'){ list.sort((a,b)=> a.name.localeCompare(b.name)); }
+    else if(sort==='status'){ list.sort((a,b)=> a.status.localeCompare(b.status) || a.name.localeCompare(b.name)); }
+    else if(sort==='new'){ /* list already returned newest first from API per created_at DESC */ }
+
+    const grid = document.getElementById('shopsGrid');
+    grid.innerHTML = list.map(card).join('') || `
+      <div class="card"><h3 class="card-title">No shops found</h3>
+      <p class="muted">Try clearing filters or create a shop in <a href="/admin">Admin</a>.</p></div>`;
+  }
+
+  (async ()=>{
+    const r = await fetch('/api/shops'); const d = await r.json();
+    ALL = d.shops || [];
+    render();
+    document.getElementById('q').addEventListener('input', render);
+    document.getElementById('status').addEventListener('change', render);
+    document.getElementById('sort').addEventListener('change', render);
+  })();
+</script>
 </body>
 </html>
