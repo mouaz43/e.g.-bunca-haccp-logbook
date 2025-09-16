@@ -1,5 +1,8 @@
 /* ============================================================================
    BUNCA HACCP — Pure HTML + JavaScript SPA
+   - First-run Admin Setup on the login view
+   - Hard Reset from login
+   - Everything else same: Admin full control, Worker checks, History, CSV
    ============================================================================ */
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -18,18 +21,10 @@ const el = (tag, attrs = {}, children = []) => {
 };
 const todayISO = () => new Date().toISOString().slice(0,10);
 const cloneTpl = id => document.importNode($(`template#${id}`).content, true);
-
-const flashes = [];
-function flash(type, msg, timeout = 3000) {
-  flashes.push({ type, msg });
-  renderFlashes();
-  if (timeout) setTimeout(()=>{ flashes.shift(); renderFlashes(); }, timeout);
-}
-function renderFlashes() {
-  const host = $("#flashHost");
-  host.innerHTML = flashes.map(f => `<div class="flash ${f.type}">${escapeHtml(f.msg)}</div>`).join("");
-}
 const escapeHtml = s => String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+const flashes = [];
+function flash(type, msg, timeout = 3000) { flashes.push({ type, msg }); renderFlashes(); if (timeout) setTimeout(()=>{ flashes.shift(); renderFlashes(); }, timeout); }
+function renderFlashes() { $("#flashHost").innerHTML = flashes.map(f => `<div class="flash ${f.type}">${escapeHtml(f.msg)}</div>`).join(""); }
 function formToObj(form){ return Object.fromEntries(new FormData(form).entries()); }
 
 // ------------------------------- Storage ------------------------------------
@@ -78,7 +73,7 @@ function login(email,password){
 }
 function logout(){ setSession(null); }
 
-// Admin-only helper for creating users (used inside Admin UI)
+// Admin-only creation
 function adminCreateUser({email,password,role,shopCode}){
   if(db.users.some(u=>u.email.toLowerCase()===String(email).toLowerCase())) throw new Error("E-Mail existiert bereits");
   const id=++db.seq.user;
@@ -87,17 +82,6 @@ function adminCreateUser({email,password,role,shopCode}){
   if(shopCode){ const s=ensureShopByCode(shopCode, shopCode); assignUserToShop(user.id, s.id); }
   saveStore(db);
   return user;
-}
-
-// Nav visibility
-function toggleNavByAuth(){
-  const s=currentSession();
-  const outLinks=$$('[data-auth="out"]'), inLinks=$$('[data-auth="in"]'), adminLinks=$$('[data-role="admin"]'), workerLinks=$$('[data-role="worker"]');
-  const logoutLink=$("#logoutLink");
-  if(s){ outLinks.forEach(x=>x.classList.add("hide")); inLinks.forEach(x=>x.classList.remove("hide")); logoutLink.classList.remove("hide"); }
-  else{ outLinks.forEach(x=>x.classList.remove("hide")); inLinks.forEach(x=>x.classList.add("hide")); logoutLink.classList.add("hide"); }
-  adminLinks.forEach(x=>x.classList.toggle("hide",!s||s.role!=="admin"));
-  workerLinks.forEach(x=>x.classList.toggle("hide",!s||s.role!=="worker"));
 }
 
 // ----------------------------- Domain Logic ---------------------------------
@@ -125,19 +109,43 @@ const routes={
   "/admin": renderAdmin, "/worker": renderWorker, "/history": renderHistory,
   "/info": renderInfo, "/impressum": ()=>injectView("tpl-legal-impressum"), "/datenschutz": ()=>injectView("tpl-legal-datenschutz")
 };
-function router(){ const hash=location.hash.replace(/^#/,""); const path=(hash||"/").split("?")[0]; (routes[path]||(()=>injectView("tpl-404")))(); }
+function router(){ const hash=location.hash.replace(/^#/,""); const [path,queryStr] = (hash||"/").split("?"); query = parseQuery(queryStr); (routes[path]||(()=>injectView("tpl-404")))(); }
+let query = {};
+function parseQuery(q){ if(!q) return {}; return Object.fromEntries(new URLSearchParams(q).entries()); }
 window.addEventListener("hashchange", router);
 window.addEventListener("load", ()=>{ toggleNavByAuth(); router(); });
 
 // ----------------------------- Rendering ------------------------------------
 function injectView(tplId){ const host=$("#viewHost"); host.innerHTML=""; host.append(cloneTpl(tplId)); }
 
+// Nav visibility
+function toggleNavByAuth(){
+  const s=currentSession();
+  const outLinks=$$('[data-auth="out"]'), inLinks=$$('[data-auth="in"]'), adminLinks=$$('[data-role="admin"]'), workerLinks=$$('[data-role="worker"]');
+  const logoutLink=$("#logoutLink");
+  if(s){ outLinks.forEach(x=>x.classList.add("hide")); inLinks.forEach(x=>x.classList.remove("hide")); logoutLink.classList.remove("hide"); }
+  else{ outLinks.forEach(x=>x.classList.remove("hide")); inLinks.forEach(x=>x.classList.add("hide")); logoutLink.classList.add("hide"); }
+  adminLinks.forEach(x=>x.classList.toggle("hide",!s||s.role!=="admin"));
+  workerLinks.forEach(x=>x.classList.toggle("hide",!s||s.role!=="worker"));
+}
+
 // Home
 function renderHome(){ injectView("tpl-home"); }
 
-// Login (no registration)
+// ---------- Login (with First-Setup + Hard Reset) ----------
+function isFirstRun(){
+  // show setup if no users OR only fallback admin exists
+  if(!db.users || db.users.length===0) return true;
+  if(db.users.length===1 && db.users[0].email.toLowerCase()==="admin@bunca.de") return true;
+  return false;
+}
 function renderLogin(){
   injectView("tpl-login");
+
+  // Query-string shortcuts: #/login?hardreset=1 or ?setup=1
+  if(query.hardreset==="1"){ if(confirm("Hard Reset durchführen? Alle lokalen Daten werden gelöscht.")) return resetStore(); }
+  if(query.setup==="1" && isFirstRun()){ return openFirstSetup(); }
+
   const loginForm=$("#loginForm");
   loginForm.addEventListener("submit",(e)=>{
     e.preventDefault();
@@ -146,9 +154,39 @@ function renderLogin(){
     if(!u) return flash("fail","Login fehlgeschlagen.");
     flash("ok",`Willkommen ${u.email}`); location.hash = u.role==="admin" ? "#/admin" : "#/worker";
   });
+
+  const btnSetup=$("#btnFirstSetup");
+  const btnHardReset=$("#btnHardReset");
+  if(isFirstRun()) btnSetup.classList.remove("hide");
+  btnSetup?.addEventListener("click", openFirstSetup);
+  btnHardReset?.addEventListener("click", ()=>{ if(confirm("Alle lokalen Daten löschen und neu starten?")) resetStore(); });
 }
 
-// Admin
+function openFirstSetup(){
+  // Simple prompts to keep HTML+JS only
+  const email = prompt("Erst-Setup: Admin-E-Mail eingeben:","mouaz@bunca.de");
+  if(email==null) return renderLogin();
+  if(!email.includes("@")){ flash("fail","Ungültige E-Mail."); return renderLogin(); }
+  const password = prompt("Passwort für Admin setzen:","");
+  if(password==null) return renderLogin();
+  if(!password || password.length<4){ flash("fail","Passwort zu kurz."); return renderLogin(); }
+
+  // Create admin and assign CITY shop. Optionally deactivate fallback admin.
+  try{
+    const admin = adminCreateUser({email,password,role:"admin",shopCode:"CITY"});
+    // Deactivate fallback admin if present
+    const fallback = db.users.find(u=>u.email.toLowerCase()==="admin@bunca.de" && u.id!==admin.id);
+    if(fallback) fallback.active = 0;
+    saveStore(db);
+    flash("ok","Admin angelegt. Du kannst dich jetzt einloggen.");
+    location.hash = "#/login";
+  }catch(err){
+    flash("fail", err.message || "Setup fehlgeschlagen.");
+    renderLogin();
+  }
+}
+
+// ----------------------------- Admin ----------------------------------------
 function renderAdmin(){
   const ses=requireAuth("admin"); if(!ses) return;
   injectView("tpl-admin");
@@ -164,7 +202,6 @@ function renderAdmin(){
   const inputImport=$("#inputImportJson");
   const btnReset=$("#btnResetAll");
 
-  // ----- Shops -----
   function refreshShops(){
     tblShops.innerHTML="";
     db.shops.filter(s=>s.active).forEach(s=>{
@@ -175,7 +212,7 @@ function renderAdmin(){
         el("td",{},[
           el("button",{class:"btn btn-ghost",onclick:()=>{selShopForItems.value=String(s.id); loadItems();}},["Items"]),
           el("button",{class:"btn btn-ghost",onclick:()=>editShop(s)},["Bearbeiten"]),
-          el("button",{class:"btn btn-danger",onclick:()=>{ if(!confirm("Shop wirklich löschen?"))return; s.active=0; saveStore(db); refreshShops(); flash("ok","Shop gelöscht."); }},["Löschen"]),
+          el("button",{class:"btn btn-danger",onclick:()=>{ if(!confirm("Shop wirklich löschen?"))return; s.active=0; saveStore(db); refreshShops(); flash("ok","Shop gelöscht."); }},["Löschen"])
         ])
       ]);
       tblShops.append(tr);
@@ -199,7 +236,6 @@ function renderAdmin(){
     saveStore(db); formCreateShop.reset(); refreshShops(); flash("ok","Shop erstellt.");
   });
 
-  // ----- Users -----
   function shopsBadgesForUser(uid){
     const ids=db.user_shops.filter(x=>x.user_id===uid).map(x=>x.shop_id);
     return ids.map(id=>{ const s=db.shops.find(x=>x.id===id); return s?`<span class="pill">${escapeHtml(s.code||s.name)}</span>`:""; }).join(" ");
@@ -241,13 +277,10 @@ function renderAdmin(){
   formCreateUser.addEventListener("submit",(e)=>{
     e.preventDefault();
     const {email,password,role,shopCode}=formToObj(formCreateUser);
-    try{
-      const u=adminCreateUser({email,password,role,shopCode});
-      formCreateUser.reset(); refreshUsers(); flash("ok","Benutzer erstellt.");
-    }catch(err){ flash("fail", err.message||"Fehler."); }
+    try{ adminCreateUser({email,password,role,shopCode}); formCreateUser.reset(); refreshUsers(); flash("ok","Benutzer erstellt."); }
+    catch(err){ flash("fail", err.message||"Fehler."); }
   });
 
-  // ----- Items -----
   function loadItems(){
     const shopId=Number(selShopForItems.value||db.shops[0]?.id);
     tblItems.innerHTML="";
@@ -289,14 +322,14 @@ function renderAdmin(){
   });
   if(db.shops.length){ selShopForItems.value=String(db.shops[0].id); loadItems(); }
 
-  // ----- Admin Tools -----
-  btnExport.addEventListener("click", ()=>{
+  // Admin tools
+  $("#btnExportJson").addEventListener("click", ()=>{
     const json=JSON.stringify(db,null,2);
     const blob=new Blob([json],{type:"application/json"});
     const url=URL.createObjectURL(blob);
     const a=el("a",{href:url,download:"bunca-haccp-backup.json"}); document.body.append(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   });
-  inputImport.addEventListener("change",(e)=>{
+  $("#inputImportJson").addEventListener("change",(e)=>{
     const file=e.target.files?.[0]; if(!file) return;
     const reader=new FileReader();
     reader.onload=()=>{ try{
@@ -306,10 +339,10 @@ function renderAdmin(){
     }catch(err){ flash("fail", err.message||"Import fehlgeschlagen."); } };
     reader.readAsText(file);
   });
-  btnReset.addEventListener("click", ()=>{ if(confirm("Alle Daten wirklich löschen?")) resetStore(); });
+  $("#btnResetAll").addEventListener("click", ()=>{ if(confirm("Alle Daten wirklich löschen?")) resetStore(); });
 }
 
-// Worker
+// ----------------------------- Worker ---------------------------------------
 function renderWorker(){
   const ses=requireAuth("worker")||requireAuth("admin"); if(!ses) return;
   injectView("tpl-worker");
@@ -355,7 +388,7 @@ function renderWorker(){
   });
 }
 
-// History
+// ----------------------------- History --------------------------------------
 function renderHistory(){
   const ses=requireAuth(); if(!ses) return;
   injectView("tpl-history");
