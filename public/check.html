@@ -22,7 +22,7 @@
 <main class="container">
   <section class="hero">
     <h1>Daily Checklist</h1>
-    <p class="muted">Enter all values. Temperature fields are validated against limits.</p>
+    <p class="muted">Enter all values. Temperature fields are validated against min/max targets.</p>
   </section>
   <form id="form" class="grid cols-2"></form>
 </main>
@@ -58,7 +58,7 @@
       <input class="input" id="${id}"></div>`;
   }
 
-  (async function load(){
+  (async ()=>{
     const session = await Bunca.requireSession(); if(!session) return;
     const s = slug();
     document.getElementById('navBack').href = '/shop/'+encodeURIComponent(s);
@@ -89,8 +89,8 @@
       const res = await fetch('/api/check-runs',{method:'POST',headers:{'Content-Type':'application/json','x-csrf-token':Bunca.csrf()},body:JSON.stringify(body)});
       const out = await res.json();
       const msg=document.getElementById('msg');
-      if(out.ok){ msg.textContent='Saved ✓'; setTimeout(()=>location.href='/history/'+encodeURIComponent(s),750); }
-      else { msg.textContent=out.error||'Error'; }
+      if(out.ok){ msg.textContent='Saved ✓'; Bunca.toast('Checklist saved'); setTimeout(()=>location.href='/history/'+encodeURIComponent(s),700); }
+      else { msg.textContent=out.error||'Error'; Bunca.toast('Failed to save','err'); }
     });
   })();
 </script>
