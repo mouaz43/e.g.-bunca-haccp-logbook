@@ -10,7 +10,6 @@
   <style>
     /* ============================================================
        BUNCA HACCP — minimal design system (pure CSS, no libs)
-       We keep CSS here (HTML + JS only) and reuse across “views”.
        ============================================================ */
     :root{
       --bg:#0e0f12;--panel:#14161b;--soft:#1a1d23;--text:#e9eef7;--muted:#a8b0bf;
@@ -81,7 +80,7 @@
 </head>
 <body>
   <!-- ============================================================
-       Sticky Header
+       Header
        ============================================================ -->
   <header class="site-header">
     <div class="wrap nav">
@@ -100,25 +99,13 @@
     </div>
   </header>
 
-  <!-- ============================================================
-       Main content region; views are injected here by app.js
-       ============================================================ -->
   <main id="app" class="page">
     <div class="wrap" id="flashHost"></div>
-    <div class="wrap" id="viewHost">
-      <!-- Hydrated by JS. Static fallback below is hidden via .hide. -->
-      <noscript>
-        <div class="card">
-          <div class="h2">Bitte JavaScript aktivieren</div>
-          <p class="muted">Diese Anwendung läuft vollständig im Browser.</p>
-        </div>
-      </noscript>
-    </div>
+    <div class="wrap" id="viewHost"><noscript>
+      <div class="card"><div class="h2">Bitte JavaScript aktivieren</div><p class="muted">Diese Anwendung läuft vollständig im Browser.</p></div>
+    </noscript></div>
   </main>
 
-  <!-- ============================================================
-       Footer
-       ============================================================ -->
   <footer class="footer">
     <div class="wrap row" style="justify-content:space-between">
       <div class="row">
@@ -134,7 +121,7 @@
   </footer>
 
   <!-- ============================================================
-       View Templates (HTML only, no logic). app.js clones/injects.
+       View Templates
        ============================================================ -->
   <template id="tpl-home">
     <section class="hero">
@@ -160,62 +147,45 @@
             <div class="stat"><span class="label">Trainings</span><span class="value">Rechtliches Basics + kurzer Wissenstest</span></div>
             <div class="stat"><span class="label">Best Practices</span><span class="value">Grenzwerte & Eskalation</span></div>
           </div>
-          <p class="muted" style="margin-top:10px">Hinweis: Diese Demo arbeitet lokal im Browser (localStorage) und benötigt keinen Server.</p>
+          <p class="muted" style="margin-top:10px">Demo läuft lokal (localStorage) — kein Server notwendig.</p>
         </div>
       </div>
     </section>
     <section class="wrap grid-3">
-      <div class="card">
-        <div class="h2">Daily Checks</div>
-        <p class="muted">Standard-Items: Kühlschrank, Ofen, Espressomaschine, Espresso-Temperatur, Bohnenzustand, Spülmaschine. Admin kann eigene Items je Shop ergänzen.</p>
-      </div>
-      <div class="card">
-        <div class="h2">History & Export</div>
-        <p class="muted">Filterbar nach Shop, Datum, Status. Export als CSV-Datei per Klick.</p>
-      </div>
-      <div class="card">
-        <div class="h2">Rollen</div>
-        <p class="muted">Admins erstellen Shops & User und weisen Worker zu. Worker sehen nur ihre Shops.</p>
-      </div>
+      <div class="card"><div class="h2">Daily Checks</div><p class="muted">Standard-Items plus eigene Punkte je Shop.</p></div>
+      <div class="card"><div class="h2">History & Export</div><p class="muted">Filter + CSV Export.</p></div>
+      <div class="card"><div class="h2">Rollen</div><p class="muted">Admin verwaltet alles. Worker tragen nur Werte ein.</p></div>
     </section>
   </template>
 
+  <!-- LOGIN (no registration here) -->
   <template id="tpl-login">
     <div class="wrap grid-2">
       <div>
         <h1 class="h1">Anmelden</h1>
-        <p class="muted">Standard-Admin bei Erststart: <span class="kbd">admin@bunca.de</span> / <span class="kbd">Admin!123</span> (falls kein eigener Benutzer existiert).</p>
+        <p class="muted">
+          Anmeldung für Admins & Mitarbeiter. Benutzer werden ausschließlich vom <strong>Admin im Admin-Bereich</strong> angelegt.
+          Erster Start: <span class="kbd">admin@bunca.de</span> / <span class="kbd">Admin!123</span>
+        </p>
       </div>
       <div class="card" style="max-width:520px">
         <form class="form" id="loginForm">
           <label><span>E-Mail</span><input class="input" name="email" type="email" required placeholder="dein.name@bunca.de" /></label>
           <label><span>Passwort</span><input class="input" name="password" type="password" required placeholder="Passwort" /></label>
           <button class="btn btn-primary" type="submit">Login</button>
-          <button class="btn btn-ghost" id="toRegister" type="button">Registrieren</button>
         </form>
       </div>
     </div>
     <div class="wrap grid-2">
       <div class="card">
-        <div class="h2">Registrieren</div>
-        <p class="muted">Nur Admins können neue Benutzer freischalten/zuweisen. Für die Demo ersetzt Registrierung direkt das Anlegen.</p>
-        <form class="form" id="registerForm">
-          <label><span>E-Mail</span><input class="input" name="email" type="email" required /></label>
-          <label><span>Passwort</span><input class="input" name="password" type="password" required /></label>
-          <label><span>Rolle</span>
-            <select name="role" class="input">
-              <option value="worker">worker</option>
-              <option value="admin">admin</option>
-            </select>
-          </label>
-          <button class="btn btn-ghost" type="submit">Registrieren</button>
-        </form>
+        <div class="h2">Kein Konto?</div>
+        <p class="muted">Bitte wende dich an den Administrator deiner BUNCA-Filiale. Benutzerkonten werden intern vergeben.</p>
       </div>
       <div class="card">
         <div class="h2">Tipps</div>
         <ul>
-          <li>Als Admin kannst du unter <span class="kbd">Admin</span> Shops & Items verwalten.</li>
-          <li>Als Worker findest du dein Formular unter <span class="kbd">Daily Check</span>.</li>
+          <li>Admin-Bereich: Shops, Benutzer, Items, Zuweisungen, Ex-/Import.</li>
+          <li>Worker-Bereich: Daily Check für zugewiesene Shops.</li>
         </ul>
       </div>
     </div>
@@ -224,14 +194,17 @@
   <template id="tpl-admin">
     <div class="wrap">
       <h1 class="h1">Admin</h1>
-      <p class="muted">Shops, Benutzer & Check-Items verwalten. Alles wird im Browser gespeichert.</p>
+      <p class="muted">Voller Zugriff: Shops, Benutzer, Zuweisungen, Check-Items sowie Backup/Restore des gesamten Datensatzes.</p>
     </div>
+
     <section class="wrap grid-2">
+      <!-- SHOPS -->
       <div class="card">
         <div class="h2">Shops</div>
-        <div class="spacer"></div>
-        <table class="table" id="tblShops"><thead>
-          <tr><th>Name</th><th>Code</th><th>Adresse</th><th>Aktionen</th></tr></thead><tbody></tbody></table>
+        <table class="table" id="tblShops">
+          <thead><tr><th>Name</th><th>Code</th><th>Adresse</th><th>Aktionen</th></tr></thead>
+          <tbody></tbody>
+        </table>
         <div class="spacer"></div>
         <form class="form" id="formCreateShop">
           <div class="h2">Neuen Shop anlegen</div>
@@ -241,10 +214,14 @@
           <button class="btn btn-primary">Shop erstellen</button>
         </form>
       </div>
+
+      <!-- USERS -->
       <div class="card">
         <div class="h2">Benutzer</div>
-        <table class="table" id="tblUsers"><thead>
-          <tr><th>E-Mail</th><th>Rolle</th><th>Aktiv</th><th>Shops</th><th>Aktionen</th></tr></thead><tbody></tbody></table>
+        <table class="table" id="tblUsers">
+          <thead><tr><th>E-Mail</th><th>Rolle</th><th>Aktiv</th><th>Shops</th><th>Aktionen</th></tr></thead>
+          <tbody></tbody>
+        </table>
         <div class="spacer"></div>
         <form class="form" id="formCreateUser">
           <div class="h2">Benutzer anlegen</div>
@@ -262,6 +239,7 @@
       </div>
     </section>
 
+    <!-- ITEMS -->
     <section class="wrap">
       <div class="card">
         <div class="h2">Check-Items je Shop</div>
@@ -271,9 +249,10 @@
         </form>
         <div id="itemsEditor" class="grid-2">
           <div class="card">
-            <table class="table"><thead>
-              <tr><th>#</th><th>Name</th><th>Typ</th><th>Min</th><th>Max</th><th>Einheit</th><th></th></tr>
-            </thead><tbody id="tblItems"></tbody></table>
+            <table class="table">
+              <thead><tr><th>#</th><th>Name</th><th>Typ</th><th>Min</th><th>Max</th><th>Einheit</th><th></th></tr></thead>
+              <tbody id="tblItems"></tbody>
+            </table>
           </div>
           <div class="card">
             <form class="form" id="formCreateItem">
@@ -293,6 +272,29 @@
             </form>
           </div>
         </div>
+      </div>
+    </section>
+
+    <!-- ADMIN TOOLS -->
+    <section class="wrap grid-2">
+      <div class="card">
+        <div class="h2">Werkzeuge</div>
+        <div class="row">
+          <button class="btn btn-ghost" id="btnExportJson">Daten exportieren (JSON)</button>
+          <label class="btn btn-ghost" style="cursor:pointer">
+            <input type="file" id="inputImportJson" accept="application/json" style="display:none"/>
+            Daten importieren (JSON)
+          </label>
+          <button class="btn btn-danger" id="btnResetAll">Alles zurücksetzen</button>
+        </div>
+        <p class="muted">Export erzeugt eine JSON-Sicherungsdatei. Import ersetzt den aktuellen Datenbestand. Zurücksetzen löscht alles.</p>
+      </div>
+      <div class="card">
+        <div class="h2">Hinweise</div>
+        <ul>
+          <li>„E-Mail ändern“, „PW setzen“, „Shop zuweisen“ findest du bei den Benutzer-Aktionen.</li>
+          <li>Shops lassen sich bearbeiten (Name/Code/Adresse) oder löschen.</li>
+        </ul>
       </div>
     </section>
   </template>
@@ -377,7 +379,7 @@
           <li>Automatische Bewertung (ok/warn/fail) anhand Grenzwerte</li>
           <li>History mit Filtern + CSV-Export</li>
         </ul>
-        <p class="muted">Diese Seite ist rein informativ; die eigentliche Arbeit passiert unter <span class="kbd">Daily Check</span> und <span class="kbd">History</span>.</p>
+        <p class="muted">Diese Seite ist informativ; die Arbeit passiert unter <span class="kbd">Daily Check</span> und <span class="kbd">History</span>.</p>
       </div>
     </section>
   </template>
@@ -403,9 +405,6 @@
     </div>
   </template>
 
-  <!-- ============================================================
-       App script. All dynamic behavior lives in app.js.
-       ============================================================ -->
   <script src="./app.js"></script>
 </body>
 </html>
