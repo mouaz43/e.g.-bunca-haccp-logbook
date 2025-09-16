@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="de">
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA HACCP · Shop</title>
+  <title>BUNCA HACCP · Filiale</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
   <meta name="theme-color" content="#10b981"/>
   <style>
@@ -17,55 +17,50 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menü"><span></span></button>
     <nav id="mainNav" class="nav">
-      <a href="/">Home</a>
+      <a href="/">Startseite</a>
       <a href="/dashboard">Dashboard</a>
-      <a href="/admin">Admin</a>
+      <a href="/admin">Verwaltung</a>
     </nav>
   </div>
 </header>
 
 <main class="container">
   <section id="hero" class="hero">
-    <h1 id="shopName">Shop</h1>
-    <p class="muted" id="shopMeta">Loading…</p>
+    <h1 id="shopName">Filiale</h1>
+    <p class="muted" id="shopMeta">Lade…</p>
   </section>
 
-  <section class="grid cols-2" id="shopGrid">
-    <!-- left: image + quick actions; right: info -->
-  </section>
+  <section class="grid cols-2" id="shopGrid"></section>
 
   <section class="grid cols-2" style="margin-top:16px">
     <article class="card" id="todayCard">
-      <h3 class="card-title">Today’s Status</h3>
-      <div id="todayRows" class="row">
-        <div class="muted">Loading…</div>
-      </div>
+      <h3 class="card-title">Heutiger Status</h3>
+      <div id="todayRows" class="row"><div class="muted">Lade…</div></div>
       <div class="row" style="margin-top:10px">
-        <a id="toCheckMorning" class="btn">Start Morning Check</a>
-        <a id="toHistory" class="btn">Open History</a>
+        <a id="toCheckMorning" class="btn">Frühschicht starten</a>
+        <a id="toHistory" class="btn">Verlauf öffnen</a>
       </div>
     </article>
 
     <article class="card">
-      <h3 class="card-title">Equipment</h3>
+      <h3 class="card-title">Geräte</h3>
       <table class="table equip-table" id="eqTable">
-        <thead><tr><th>Name</th><th>Type</th><th>Serial</th></tr></thead>
-        <tbody><tr><td colspan="3">Loading…</td></tr></tbody>
+        <thead><tr><th>Name</th><th>Typ</th><th>Seriennr.</th></tr></thead>
+        <tbody><tr><td colspan="3">Lade…</td></tr></tbody>
       </table>
       <div class="row" style="margin-top:10px">
-        <a id="toAdminEquip" class="btn">Manage in Admin</a>
+        <a id="toAdminEquip" class="btn">In Verwaltung bearbeiten</a>
       </div>
     </article>
   </section>
 </main>
 
-<!-- Floating menu -->
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
-  <a id="fabCheck" href="#">📝 Daily Check</a>
-  <a id="fabHist" href="#">📜 History</a>
+  <a id="fabCheck" href="#">📝 Tagescheck</a>
+  <a id="fabHist" href="#">📜 Verlauf</a>
   <a id="fabDash" href="#">📊 Dashboard</a>
 </div>
 
@@ -75,53 +70,46 @@
 <script>
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
   function byId(id){ return document.getElementById(id); }
-  function badge(status){ return '<span class="badge '+(status==='open'?'':'warn')+'">'+status+'</span>'; }
+  function badge(status){ return '<span class="badge '+(status==='open'?'':'warn')+'">'+(status==='open'?'Geöffnet':'Geschlossen')+'</span>'; }
   function todayStr(){ return new Date().toISOString().slice(0,10); }
 
   async function loadShop(){
     const s = slug();
     const r = await fetch('/api/shops/'+encodeURIComponent(s)); const d = await r.json();
-    if(!d.shop){
-      byId('hero').innerHTML = '<h1>Not found</h1>';
-      return null;
-    }
+    if(!d.shop){ byId('hero').innerHTML = '<h1>Nicht gefunden</h1>'; return null; }
     const shop = d.shop;
 
-    // Fill hero
     byId('shopName').textContent = shop.name;
     byId('shopMeta').innerHTML = `${badge(shop.status)} · ${shop.slug}${shop.address ? ' • ' + shop.address : ''}`;
 
-    // Cards
     const grid = byId('shopGrid');
     grid.innerHTML = `
       <article class="card">
-        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:12px;height:280px;object-fit:cover">` : '<div class="muted">No image</div>'}
+        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:12px;height:280px;object-fit:cover">` : '<div class="muted">Kein Bild</div>'}
         <div class="row cols-2" style="margin-top:10px">
-          <a class="btn primary" id="btnCheck" href="/check/${encodeURIComponent(shop.slug)}">Daily Check</a>
-          <a class="btn" id="btnHistory" href="/history/${encodeURIComponent(shop.slug)}">History</a>
+          <a class="btn primary" id="btnCheck" href="/check/${encodeURIComponent(shop.slug)}">Tagescheck</a>
+          <a class="btn" id="btnHistory" href="/history/${encodeURIComponent(shop.slug)}">Verlauf</a>
         </div>
         <div class="row cols-2" style="margin-top:8px">
           <a class="btn" id="btnDashboard" href="/dashboard?shop=${encodeURIComponent(shop.slug)}">Dashboard</a>
-          <a class="btn" href="/">All Shops</a>
+          <a class="btn" href="/">Alle Filialen</a>
         </div>
       </article>
 
       <article class="card">
         <div class="row">
-          <div><strong>Address</strong><br>${shop.address || '—'}</div>
-          <div><strong>Phone</strong><br>${shop.phone || '—'}</div>
+          <div><strong>Adresse</strong><br>${shop.address || '—'}</div>
+          <div><strong>Telefon</strong><br>${shop.phone || '—'}</div>
         </div>
         <hr style="margin:12px 0">
         <p>${shop.description || ''}</p>
       </article>
     `;
 
-    // FAB links
     byId('fabCheck').href = '/check/'+encodeURIComponent(shop.slug);
     byId('fabHist').href  = '/history/'+encodeURIComponent(shop.slug);
     byId('fabDash').href  = '/dashboard?shop='+encodeURIComponent(shop.slug);
 
-    // Quick links
     byId('toCheckMorning').href = '/check/'+encodeURIComponent(shop.slug)+'?shift=morning';
     byId('toHistory').href = '/history/'+encodeURIComponent(shop.slug);
     byId('toAdminEquip').href = '/admin';
@@ -135,20 +123,18 @@
     const tbody = byId('eqTable').querySelector('tbody');
     tbody.innerHTML = items.length ? items.map(e=>`
       <tr><td>${e.name}</td><td>${e.type||'—'}</td><td>${e.serial||'—'}</td></tr>
-    `).join('') : '<tr><td colspan="3">No equipment added yet.</td></tr>';
+    `).join('') : '<tr><td colspan="3">Keine Geräte hinzugefügt.</td></tr>';
   }
 
-  // Compute today's status per shift by inspecting today's runs and their answers
   async function loadToday(shop){
     const today = todayStr();
     const list = await (await fetch('/api/check-runs?shop='+encodeURIComponent(shop.slug)+'&from='+today+'&to='+today)).json();
     const rows = list.runs || [];
     if(!rows.length){
-      byId('todayRows').innerHTML = `<div class="muted">No submissions today yet.</div>`;
+      byId('todayRows').innerHTML = `<div class="muted">Heute noch keine Einreichungen.</div>`;
       return;
     }
-    // For each run, fetch details to know which shift its answers belong to.
-    const best = {}; // shift -> {created_at, run, ok_count, fail_count}
+    const best = {};
     for(const r of rows){
       const det = await (await fetch('/api/check-runs/'+r.id)).json();
       const shifts = new Set((det.answers||[]).map(a => (a.shift || 'morning')));
@@ -159,20 +145,18 @@
         }
       });
     }
-
     function rowFor(shift){
       const rec = best[shift];
-      if(!rec) return `<div class="row"><span class="stat-dot"></span><strong>${cap(shift)}</strong> — none</div>`;
+      const map = {morning:'Früh', mid:'Mitte', closing:'Schluss'};
+      if(!rec) return `<div class="row"><span class="stat-dot"></span><strong>${map[shift]}</strong> — keine</div>`;
       const cls = rec.run.status==='signed' ? '' : (rec.fail_count>0 ? 'err' : (rec.run.status==='submitted' ? 'warn' : ''));
-      const label = rec.run.status==='signed' ? 'Signed' : (rec.run.status==='submitted' ? 'Submitted' : 'Draft');
+      const label = rec.run.status==='signed' ? 'Unterschrieben' : (rec.run.status==='submitted' ? 'Abgesendet' : 'Entwurf');
       return `<div class="row" style="align-items:center;gap:10px">
         <span class="stat-dot ${cls}"></span>
-        <div style="flex:1"><strong>${cap(shift)}</strong> — ${label} • OK ${rec.ok_count} • Issues ${rec.fail_count}</div>
-        <a class="btn small" href="/history/${encodeURIComponent(shop.slug)}">View</a>
+        <div style="flex:1"><strong>${map[shift]}</strong> — ${label} • OK ${rec.ok_count} • Probleme ${rec.fail_count}</div>
+        <a class="btn small" href="/history/${encodeURIComponent(shop.slug)}">Anzeigen</a>
       </div>`;
     }
-    function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
-
     byId('todayRows').innerHTML = rowFor('morning') + rowFor('mid') + rowFor('closing');
   }
 
