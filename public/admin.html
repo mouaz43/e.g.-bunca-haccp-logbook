@@ -8,210 +8,277 @@
   <meta name="theme-color" content="#0d0f14"/>
 </head>
 <body>
-  <header class="header">
-    <div class="wrap">
-      <div class="brand"><span class="dot"></span> Admin</div>
-      <nav class="nav">
-        <a class="btn" href="/">Site</a>
-        <button id="logoutBtn" class="btn bad">Logout</button>
-      </nav>
+<header class="header">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span> Admin</div>
+    <nav class="nav">
+      <a class="btn" href="/">Site</a>
+      <button id="logoutBtn" class="btn bad">Logout</button>
+    </nav>
+  </div>
+</header>
+
+<main class="container grid cols-2">
+  <!-- USERS -->
+  <section class="card">
+    <h3 class="card-title">Create User</h3>
+    <p class="muted">Admins can create accounts for staff.</p>
+    <div class="row">
+      <label>Email</label>
+      <input id="uEmail" class="input" type="email" placeholder="user@bunca.de">
     </div>
-  </header>
+    <div class="row">
+      <label>Password</label>
+      <input id="uPass" class="input" type="password" placeholder="••••••••">
+    </div>
+    <div class="row">
+      <label>Role</label>
+      <select id="uRole" class="input">
+        <option value="user">User</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="row cols-2">
+      <button id="createUser" class="btn primary">Create</button>
+      <div id="userMsg" class="muted"></div>
+    </div>
+    <hr style="opacity:.1;margin:16px 0">
+    <h3 class="card-title">Users</h3>
+    <table class="table" id="usersTbl">
+      <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
 
-  <main class="container grid cols-2">
-    <section class="card">
-      <h3 class="card-title">Create User</h3>
-      <p class="muted">Only admins can create accounts.</p>
+  <!-- SHOPS -->
+  <section class="card">
+    <h3 class="card-title">Create Shop</h3>
+    <div class="row"><label>Name</label><input id="sName" class="input" placeholder="BUNCA City"></div>
+    <div class="row"><label>Slug</label><input id="sSlug" class="input" placeholder="city"></div>
+    <div class="row"><label>Address</label><input id="sAddress" class="input" placeholder="Street 1, Frankfurt"></div>
+    <div class="row"><label>Phone</label><input id="sPhone" class="input" placeholder="+49 ..."></div>
+    <div class="row"><label>Image URL</label><input id="sImg" class="input" placeholder="https://..."></div>
+    <div class="row"><label>Description</label><textarea id="sDesc" rows="3" class="input" placeholder="Warm croissants, dialed-in espresso..."></textarea></div>
+    <div class="row"><label>Status</label>
+      <select id="sStatus" class="input"><option value="open">Open</option><option value="closed">Closed</option></select>
+    </div>
+    <div class="row cols-2">
+      <button id="createShop" class="btn primary">Save</button>
+      <div id="shopMsg" class="muted"></div>
+    </div>
+
+    <hr style="opacity:.1;margin:16px 0">
+    <h3 class="card-title">Shops</h3>
+    <table class="table" id="shopsTbl">
+      <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- CHECKLIST BUILDER -->
+  <section class="card" style="grid-column:1/-1">
+    <h3 class="card-title">Checklist · Templates</h3>
+    <p class="muted">Pick a shop to define daily checklist items (Fridge, Oven, Dishwasher...).</p>
+
+    <div class="row cols-2">
+      <div>
+        <label>Shop</label>
+        <select id="ciShop" class="input"></select>
+      </div>
+      <div class="muted">Use the form to add items. Drag order is coming later; for now use the "Position" number.</div>
+    </div>
+
+    <div class="grid cols-3" style="margin-top:12px">
       <div class="row">
-        <label>Email</label>
-        <input id="uEmail" class="input" type="email" placeholder="user@bunca.de">
+        <label>Label</label>
+        <input id="ciLabel" class="input" placeholder="Fridge 1">
       </div>
       <div class="row">
-        <label>Password</label>
-        <input id="uPass" class="input" type="password" placeholder="••••••••">
-      </div>
-      <div class="row">
-        <label>Role</label>
-        <select id="uRole" class="input">
-          <option value="user">User</option>
-          <option value="admin">Admin</option>
+        <label>Kind</label>
+        <select id="ciKind" class="input">
+          <option value="temperature">Temperature</option>
+          <option value="boolean">Yes / No</option>
+          <option value="number">Number</option>
+          <option value="text">Text</option>
         </select>
       </div>
-      <div class="row cols-2">
-        <button id="createUser" class="btn primary">Create</button>
-        <div id="userMsg" class="muted"></div>
-      </div>
-      <hr style="opacity:.1;margin:16px 0">
-      <h3 class="card-title">Users</h3>
-      <table class="table" id="usersTbl">
-        <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-
-    <section class="card">
-      <h3 class="card-title">Create Shop</h3>
       <div class="row">
-        <label>Name</label>
-        <input id="sName" class="input" placeholder="BUNCA City">
-      </div>
-      <div class="row">
-        <label>Slug</label>
-        <input id="sSlug" class="input" placeholder="city">
-      </div>
-      <div class="row">
-        <label>Address</label>
-        <input id="sAddress" class="input" placeholder="Street 1, Frankfurt">
-      </div>
-      <div class="row">
-        <label>Phone</label>
-        <input id="sPhone" class="input" placeholder="+49 ...">
-      </div>
-      <div class="row">
-        <label>Image URL</label>
-        <input id="sImg" class="input" placeholder="https://...">
-      </div>
-      <div class="row">
-        <label>Description</label>
-        <textarea id="sDesc" rows="3" class="input" placeholder="Warm croissants, dialed-in espresso..."></textarea>
-      </div>
-      <div class="row">
-        <label>Status</label>
-        <select id="sStatus" class="input">
-          <option value="open">Open</option>
-          <option value="closed">Closed</option>
-        </select>
-      </div>
-      <div class="row cols-2">
-        <button id="createShop" class="btn primary">Save</button>
-        <div id="shopMsg" class="muted"></div>
+        <label>Position</label>
+        <input id="ciPos" type="number" class="input" value="0">
       </div>
 
-      <hr style="opacity:.1;margin:16px 0">
-      <h3 class="card-title">Shops</h3>
-      <table class="table" id="shopsTbl">
-        <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </section>
-  </main>
+      <div class="row">
+        <label>Min (for temperature)</label>
+        <input id="ciMin" type="number" step="0.1" class="input" placeholder="">
+      </div>
+      <div class="row">
+        <label>Max (for temperature)</label>
+        <input id="ciMax" type="number" step="0.1" class="input" placeholder="">
+      </div>
+      <div class="row">
+        <label>Unit</label>
+        <input id="ciUnit" class="input" value="°C">
+      </div>
+    </div>
 
-  <footer>© BUNCA</footer>
+    <div class="row cols-2" style="margin-top:10px">
+      <button id="ciAdd" class="btn primary">Add Item</button>
+      <div id="ciMsg" class="muted"></div>
+    </div>
 
-  <script>
-    async function requireSession(){
-      const res = await fetch('/api/auth/session');
-      const data = await res.json();
-      if(!data.session || data.session.role !== 'admin'){
-        location.href='/login';
-        return null;
-      }
-      return data.session;
+    <hr style="opacity:.1;margin:16px 0">
+    <table class="table" id="ciTable">
+      <thead><tr><th>Pos</th><th>Label</th><th>Kind</th><th>Limits</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<footer>© BUNCA</footer>
+
+<script>
+  function csrf(){ return sessionStorage.getItem('csrf') || ''; }
+
+  async function requireAdmin(){
+    const res = await fetch('/api/auth/session');
+    const data = await res.json();
+    if(!data.session || data.session.role !== 'admin'){ location.href='/login'; return null; }
+    if(!sessionStorage.getItem('csrf')) sessionStorage.setItem('csrf', data.session.csrf);
+    return data.session;
+  }
+
+  async function api(url, method='GET', body){
+    const opt = { method, headers: {} };
+    if(['POST','PUT','PATCH','DELETE'].includes(method)){
+      opt.headers['Content-Type'] = 'application/json';
+      opt.headers['x-csrf-token'] = csrf();
+      opt.body = JSON.stringify(body || {});
     }
+    const res = await fetch(url, opt);
+    return res.json();
+  }
 
-    function csrf(){ return sessionStorage.getItem('csrf') || ''; }
+  // Users
+  async function loadUsers(){
+    const data = await api('/api/users');
+    const tbody = document.querySelector('#usersTbl tbody');
+    tbody.innerHTML = (data.users||[]).map(u => `
+      <tr>
+        <td>${u.email}</td>
+        <td>${u.role}</td>
+        <td><button class="btn bad" data-del-user="${u.id}">Delete</button></td>
+      </tr>`).join('');
+  }
 
-    async function api(url, method='GET', body){
-      const opt = { method, headers: {} };
-      if(['POST','PUT','PATCH','DELETE'].includes(method)){
-        opt.headers['Content-Type'] = 'application/json';
-        opt.headers['x-csrf-token'] = csrf();
-        opt.body = JSON.stringify(body || {});
+  // Shops
+  let shops = [];
+  async function loadShops(){
+    const data = await fetch('/api/shops').then(r=>r.json());
+    shops = data.shops || [];
+    const tbody = document.querySelector('#shopsTbl tbody');
+    tbody.innerHTML = shops.map(s => `
+      <tr>
+        <td>${s.name}</td>
+        <td>${s.slug}</td>
+        <td><span class="badge ${s.status==='open'?'ok':'warn'}">${s.status}</span></td>
+        <td>
+          <a class="btn" href="/shop/${encodeURIComponent(s.slug)}">View</a>
+          <a class="btn" href="/history/${encodeURIComponent(s.slug)}">History</a>
+          <button class="btn bad" data-del-shop="${s.id}">Delete</button>
+        </td>
+      </tr>`).join('');
+
+    const sel = document.getElementById('ciShop');
+    sel.innerHTML = shops.map(s=>`<option value="${s.id}">${s.name} — ${s.slug}</option>`).join('');
+    if (shops.length) loadChecklist(shops[0].id);
+  }
+
+  // Checklist templates
+  async function loadChecklist(shopId){
+    const data = await fetch(`/api/check-items?shop_id=${encodeURIComponent(shopId)}`).then(r=>r.json());
+    const tbody = document.querySelector('#ciTable tbody');
+    tbody.innerHTML = (data.items||[]).map(i=>`
+      <tr>
+        <td>${i.position}</td>
+        <td>${i.label}</td>
+        <td>${i.kind}</td>
+        <td>${i.kind==='temperature' ? `${i.min ?? ''}–${i.max ?? ''} ${i.unit || ''}` : '—'}</td>
+        <td><button class="btn bad" data-del-item="${i.id}">Remove</button></td>
+      </tr>`).join('') || '<tr><td colspan="5">No items yet</td></tr>';
+  }
+
+  document.addEventListener('click', async (e)=>{
+    const delUser = e.target.closest('[data-del-user]');
+    if(delUser){ if(confirm('Delete user?')){ await api('/api/users/'+delUser.dataset.delUser,'DELETE'); loadUsers(); } }
+
+    const delShop = e.target.closest('[data-del-shop]');
+    if(delShop){ if(confirm('Delete shop?')){ await api('/api/shops/'+delShop.dataset.delShop,'DELETE'); loadShops(); } }
+
+    const delItem = e.target.closest('[data-del-item]');
+    if(delItem){
+      if(confirm('Remove item from checklist?')){
+        await api('/api/check-items/'+delItem.dataset.delItem,'DELETE');
+        loadChecklist(document.getElementById('ciShop').value);
       }
-      const res = await fetch(url, opt);
-      return res.json();
     }
+  });
 
-    async function loadUsers(){
-      const data = await api('/api/users');
-      const tbody = document.querySelector('#usersTbl tbody');
-      tbody.innerHTML = (data.users||[]).map(u => `
-        <tr>
-          <td>${u.email}</td>
-          <td>${u.role}</td>
-          <td>
-            <button class="btn bad" data-del-user="${u.id}">Delete</button>
-          </td>
-        </tr>
-      `).join('');
-    }
+  document.getElementById('createUser').addEventListener('click', async ()=>{
+    const email = document.getElementById('uEmail').value.trim();
+    const password = document.getElementById('uPass').value;
+    const role = document.getElementById('uRole').value;
+    const msg = document.getElementById('userMsg');
+    msg.textContent='…';
+    const out = await api('/api/users','POST',{email,password,role});
+    msg.textContent = out.ok ? 'Created' : (out.error||'Error');
+    if(out.ok){ loadUsers(); }
+  });
 
-    async function loadShops(){
-      const data = await api('/api/shops');
-      const tbody = document.querySelector('#shopsTbl tbody');
-      tbody.innerHTML = (data.shops||[]).map(s => `
-        <tr>
-          <td>${s.name}</td>
-          <td>${s.slug}</td>
-          <td><span class="badge ${s.status==='open'?'ok':'warn'}">${s.status}</span></td>
-          <td>
-            <a class="btn" href="/shop/${encodeURIComponent(s.slug)}">View</a>
-            <button class="btn bad" data-del-shop="${s.id}">Delete</button>
-          </td>
-        </tr>
-      `).join('');
-    }
+  document.getElementById('createShop').addEventListener('click', async ()=>{
+    const body = {
+      name: document.getElementById('sName').value.trim(),
+      slug: document.getElementById('sSlug').value.trim(),
+      address: document.getElementById('sAddress').value.trim(),
+      phone: document.getElementById('sPhone').value.trim(),
+      image_url: document.getElementById('sImg').value.trim(),
+      description: document.getElementById('sDesc').value.trim(),
+      status: document.getElementById('sStatus').value
+    };
+    const msg = document.getElementById('shopMsg');
+    msg.textContent='…';
+    const out = await api('/api/shops','POST', body);
+    msg.textContent = out.ok ? 'Saved' : (out.error||'Error');
+    if(out.ok){ loadShops(); }
+  });
 
-    document.addEventListener('click', async (e)=>{
-      const delUser = e.target.closest('[data-del-user]');
-      if(delUser){
-        const id = delUser.getAttribute('data-del-user');
-        if(confirm('Delete user?')){
-          await api('/api/users/'+id,'DELETE');
-          loadUsers();
-        }
-      }
-      const delShop = e.target.closest('[data-del-shop]');
-      if(delShop){
-        const id = delShop.getAttribute('data-del-shop');
-        if(confirm('Delete shop?')){
-          await api('/api/shops/'+id,'DELETE');
-          loadShops();
-        }
-      }
-    });
+  document.getElementById('ciAdd').addEventListener('click', async ()=>{
+    const shop_id = document.getElementById('ciShop').value;
+    const label = document.getElementById('ciLabel').value.trim();
+    const kind = document.getElementById('ciKind').value;
+    const position = Number(document.getElementById('ciPos').value || 0);
+    const min = document.getElementById('ciMin').value !== '' ? Number(document.getElementById('ciMin').value) : null;
+    const max = document.getElementById('ciMax').value !== '' ? Number(document.getElementById('ciMax').value) : null;
+    const unit = document.getElementById('ciUnit').value.trim() || '°C';
+    const msg = document.getElementById('ciMsg');
+    msg.textContent='…';
+    const out = await api('/api/check-items','POST',{shop_id,label,kind,position,min,max,unit});
+    msg.textContent = out.ok ? 'Added' : (out.error||'Error');
+    if(out.ok){ loadChecklist(shop_id); document.getElementById('ciLabel').value=''; }
+  });
 
-    document.getElementById('createUser').addEventListener('click', async ()=>{
-      const email = document.getElementById('uEmail').value.trim();
-      const password = document.getElementById('uPass').value;
-      const role = document.getElementById('uRole').value;
-      const msg = document.getElementById('userMsg');
-      msg.textContent='…';
-      const out = await api('/api/users','POST',{email,password,role});
-      msg.textContent = out.ok ? 'Created' : (out.error||'Error');
-      if(out.ok){ loadUsers(); }
-    });
+  document.getElementById('ciShop').addEventListener('change', e => loadChecklist(e.target.value));
 
-    document.getElementById('createShop').addEventListener('click', async ()=>{
-      const body = {
-        name: document.getElementById('sName').value.trim(),
-        slug: document.getElementById('sSlug').value.trim(),
-        address: document.getElementById('sAddress').value.trim(),
-        phone: document.getElementById('sPhone').value.trim(),
-        image_url: document.getElementById('sImg').value.trim(),
-        description: document.getElementById('sDesc').value.trim(),
-        status: document.getElementById('sStatus').value
-      };
-      const msg = document.getElementById('shopMsg');
-      msg.textContent='…';
-      const out = await api('/api/shops','POST', body);
-      msg.textContent = out.ok ? 'Saved' : (out.error||'Error');
-      if(out.ok){ loadShops(); }
-    });
+  document.getElementById('logoutBtn').addEventListener('click', async ()=>{
+    await api('/api/auth/logout','POST',{});
+    sessionStorage.removeItem('csrf');
+    location.href = '/';
+  });
 
-    document.getElementById('logoutBtn').addEventListener('click', async ()=>{
-      await api('/api/auth/logout','POST',{});
-      sessionStorage.removeItem('csrf');
-      location.href = '/';
-    });
-
-    (async ()=>{
-      const session = await requireSession();
-      if(!session) return;
-      // ensure we have csrf in sessionStorage; if not, refresh
-      if(!sessionStorage.getItem('csrf')) sessionStorage.setItem('csrf', session.csrf);
-      await Promise.all([loadUsers(), loadShops()]);
-    })();
-  </script>
+  (async ()=>{
+    const session = await requireAdmin();
+    if(!session) return;
+    await Promise.all([loadUsers(), loadShops()]);
+  })();
+</script>
 </body>
 </html>
