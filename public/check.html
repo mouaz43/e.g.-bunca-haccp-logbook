@@ -22,11 +22,33 @@
 <main class="container">
   <section class="hero">
     <h1>Daily Checklist</h1>
-    <p class="muted">Enter all values. Temperature fields are validated against min/max targets.</p>
+    <div class="row cols-2">
+      <div>
+        <label>Shift</label>
+        <select id="shiftSel" class="input">
+          <option value="morning">Morning</option>
+          <option value="mid">Mid</option>
+          <option value="closing">Closing</option>
+        </select>
+      </div>
+      <div>
+        <label>Notes (optional)</label>
+        <input id="note" class="input" placeholder="Anything to report?">
+      </div>
+    </div>
   </section>
-  <form id="form" class="grid cols-2"></form>
+
+  <div id="formWrap"></div>
+
+  <section class="card" style="margin-top:12px">
+    <div class="row cols-2">
+      <button id="submitBtn" class="btn primary">Submit</button>
+      <div id="msg" class="muted"></div>
+    </div>
+  </section>
 </main>
 
+<!-- Floating menu -->
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
   <a id="fabBack" href="#">⬅ Back to Shop</a>
@@ -37,61 +59,299 @@
 
 <script src="/assets/helpers.js"></script>
 <script>
+  // ------- helpers -------
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
-  function field(i){
-    const id=`item_${i.id}`;
-    if(i.kind==='temperature'){
-      return `<div class="card">
-        <label class="muted">Target ${i.min ?? ''}–${i.max ?? ''} ${i.unit||'°C'}</label>
-        <div class="row"><label><strong>${i.label}</strong></label>
-        <input type="number" step="0.1" class="input" id="${id}" placeholder="${i.unit||'°C'}"></div></div>`;
-    }
+  function qs(name){ const u=new URL(location.href); return u.searchParams.get(name); }
+  function fmtTarget(i){ 
+    const hasMin = (i.min!==null && i.min!==undefined && i.min!=='');
+    const hasMax = (i.max!==null && i.max!==undefined && i.max!=='');
+    if(!hasMin && !hasMax) return '';
+    const u = i.unit || (i.kind==='temperature' ? '°C' : '');
+    return `${hasMin?i.min:''}${hasMin||hasMax?'–':''}${hasMax?i.max:''} ${u}`.trim();
+  }
+  function computeOk(i, val){
     if(i.kind==='boolean'){
-      return `<div class="card"><label><strong>${i.label}</strong></label>
-        <select id="${id}" class="input"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select></div>`;
+      const v=String(val||'').toLowerCase();
+      return (v==='true' || v==='yes' || v==='1');
     }
-    if(i.kind==='number'){
-      return `<div class="card"><label><strong>${i.label}</strong></label>
-        <input type="number" step="1" class="input" id="${id}"></div>`;
+    if(i.kind==='temperature' || i.kind==='number'){
+      if(val==='' || val===null || val===undefined) return false;
+      const n = Number(val);
+      if(Number.isNaN(n)) return false;
+      if(i.min!=null && n < Number(i.min)) return false;
+      if(i.max!=null && n > Number(i.max)) return false;
+      return true;
     }
-    return `<div class="card"><label><strong>${i.label}</strong></label>
-      <input class="input" id="${id}"></div>`;
+    // text
+    return String(val||'').trim().length>0;
+  }
+  function el(tag, attrs={}, html=''){
+    const e=document.createElement(tag);
+    Object.entries(attrs).forEach(([k,v])=> e.setAttribute(k, v));
+    e.innerHTML = html;
+    return e;
   }
 
-  (async ()=>{
+  // ------- state -------
+  let ITEMS = [];         // items for selected shift (plus null-shift)
+  let EQUIP_MAP = {};     // equipment_id -> name
+  let CORR = {};          // item_id -> corrective action {description,assigned_to,due_date,photo_url}
+  let EVIDENCE = {};      // item_id -> evidence_url (if we add separate evidence later)
+
+  // ------- UI builders -------
+  function groupByEquipment(items){
+    const groups = new Map(); // key: equipment_id or "general"
+    items.forEach(i=>{
+      const key = i.equipment_id || 'general';
+      if(!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(i);
+    });
+    return groups;
+  }
+
+  function renderGroups(){
+    const wrap = document.getElementById('formWrap');
+    if(!ITEMS.length){
+      wrap.innerHTML = `<section class="card"><h3 class="card-title">No checklist for this shift</h3>
+        <p class="muted">Ask admin to add items in the Admin panel.</p></section>`;
+      return;
+    }
+    const groups = groupByEquipment(ITEMS);
+    wrap.innerHTML = '';
+    groups.forEach((list, key)=>{
+      const title = key==='general' ? 'General' : (EQUIP_MAP[key] || 'Equipment');
+      const sec = el('section', { class:'card' });
+      sec.innerHTML = `<h3 class="card-title">${title}</h3>`;
+      const grid = el('div', { class:'grid cols-2' });
+      list.forEach(i => grid.appendChild(renderField(i)));
+      sec.appendChild(grid);
+      wrap.appendChild(sec);
+    });
+  }
+
+  function renderField(i){
+    const card = el('article', { class:'card', 'data-item-id': i.id, 'data-kind': i.kind, 'data-required': i.required ? '1' : '0', 'data-min': i.min ?? '', 'data-max': i.max ?? '', 'data-unit': i.unit || '' });
+    const req = i.required ? ' <span class="badge err">Required</span>' : '';
+    const target = i.kind==='temperature' || i.kind==='number' ? fmtTarget(i) : '';
+    const hint = target ? `<span class="badge">${target}</span>` : '';
+    const head = `<div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+      <label><strong>${i.label}</strong>${req}</label>
+      <span id="st_${i.id}" class="badge">—</span>
+    </div>`;
+
+    let control = '';
+    if(i.kind==='temperature'){
+      control = `<input id="v_${i.id}" type="number" step="0.1" class="input" placeholder="${i.unit||'°C'}">`;
+    } else if(i.kind==='boolean'){
+      control = `<select id="v_${i.id}" class="input"><option value="">—</option><option value="yes">Yes</option><option value="no">No</option></select>`;
+    } else if(i.kind==='number'){
+      control = `<input id="v_${i.id}" type="number" step="1" class="input">`;
+    } else {
+      control = `<input id="v_${i.id}" class="input">`;
+    }
+
+    const corrBtn = `<div class="row" style="margin-top:6px"><button class="btn small" data-corr="${i.id}" style="display:none">Add corrective action</button> ${hint}</div>`;
+    card.innerHTML = `${head}<div class="row" style="margin-top:6px">${control}</div>${corrBtn}`;
+    return card;
+  }
+
+  function updateStatus(i){
+    const val = document.getElementById('v_'+i.id)?.value ?? '';
+    const ok = computeOk(i, val);
+    const s = document.getElementById('st_'+i.id);
+    s.className = 'badge ' + (ok ? '' : 'warn');
+    s.textContent = ok ? 'OK' : (val==='' && !i.required ? '—' : 'Issue');
+    const btn = document.querySelector(`[data-corr="${i.id}"]`);
+    if(btn) btn.style.display = ok ? 'none' : 'inline-flex';
+    return ok;
+  }
+
+  function attachListeners(){
+    ITEMS.forEach(i=>{
+      const input = document.getElementById('v_'+i.id);
+      if(!input) return;
+      input.addEventListener('input', ()=> updateStatus(i));
+      input.addEventListener('change', ()=> updateStatus(i));
+    });
+    document.addEventListener('click', onClick);
+  }
+
+  // ------- corrective modal -------
+  function openCorrectiveModal(item){
+    const wrap = document.createElement('div');
+    wrap.className='card';
+    wrap.style.cssText='position:fixed;inset:0;max-width:620px;margin:auto;z-index:90;background:#fff;border:1px solid var(--line);padding:16px;border-radius:14px;box-shadow:var(--shadow)';
+    wrap.innerHTML = `
+      <h3 class="card-title">Corrective Action — ${item.label}</h3>
+      <div class="row"><label>Description</label><textarea id="caDesc" rows="3" class="input" placeholder="What did you do?"></textarea></div>
+      <div class="row cols-2">
+        <div><label>Assign to (optional)</label><input id="caAssign" class="input" placeholder="Name or email"></div>
+        <div><label>Due date (optional)</label><input id="caDue" type="date" class="input"></div>
+      </div>
+      <div class="row"><label>Photo (optional)</label><input id="caFile" type="file" accept="image/*" class="input"></div>
+      <div class="row cols-2" style="margin-top:10px">
+        <button id="caSave" class="btn primary">Save</button>
+        <button id="caCancel" class="btn">Cancel</button>
+      </div>
+    `;
+    const overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:89';
+    document.body.appendChild(overlay);
+    document.body.appendChild(wrap);
+
+    wrap.querySelector('#caCancel').onclick = ()=>{ document.body.removeChild(wrap); document.body.removeChild(overlay); };
+    wrap.querySelector('#caSave').onclick = async ()=>{
+      const desc = wrap.querySelector('#caDesc').value.trim();
+      const assigned_to = wrap.querySelector('#caAssign').value.trim() || null;
+      const due_date = wrap.querySelector('#caDue').value || null;
+      if(!desc){ Bunca.toast('Add a short description','warn'); return; }
+
+      let photo_url = null;
+      const file = wrap.querySelector('#caFile').files[0];
+      if(file){
+        try{
+          const sign = await Bunca.api('/api/uploads/sign','POST',{ type:file.type });
+          if(sign.ok){
+            await fetch(sign.url, { method:'PUT', headers:{'Content-Type':file.type}, body:file });
+            // We store the object key as photo_url; bucket should be public to view it.
+            photo_url = sign.key;
+          }
+        }catch(e){ console.error(e); Bunca.toast('Upload failed (continuing)','warn'); }
+      }
+
+      CORR[item.id] = { description: desc, assigned_to, due_date, photo_url };
+      Bunca.toast('Corrective action saved');
+      document.body.removeChild(wrap); document.body.removeChild(overlay);
+    };
+  }
+
+  // ------- submit flow -------
+  async function submitRun(){
+    const s = slug();
+    const note = document.getElementById('note').value;
+    const answers = ITEMS.map(i=>{
+      const v = document.getElementById('v_'+i.id)?.value ?? '';
+      const entry = { item_id:i.id, value:v };
+      if(CORR[i.id]) entry.corrective = { ...CORR[i.id] };
+      if(EVIDENCE[i.id]) entry.evidence_url = EVIDENCE[i.id];
+      return entry;
+    });
+
+    // required validation
+    const missing = ITEMS.filter(i=> i.required && (String(document.getElementById('v_'+i.id)?.value ?? '').trim()===''));
+    if(missing.length){
+      missing.forEach(i=>{ document.getElementById('v_'+i.id).style.borderColor = 'var(--bad)'; });
+      Bunca.toast(`Missing required: ${missing.map(i=>i.label).join(', ')}`, 'err');
+      document.getElementById('msg').textContent = 'Fill all required items.';
+      return;
+    }
+
+    // make sure all failed have corrective action
+    const failedNoCorr = ITEMS.filter(i=>{
+      const v = document.getElementById('v_'+i.id)?.value ?? '';
+      return !computeOk(i, v) && !CORR[i.id];
+    });
+    if(failedNoCorr.length){
+      Bunca.toast('Add corrective actions for issues','warn');
+      document.getElementById('msg').textContent = 'Issues found — add corrective actions.';
+      // scroll to first
+      const first = failedNoCorr[0];
+      document.querySelector(`[data-corr="${first.id}"]`)?.scrollIntoView({behavior:'smooth', block:'center'});
+      return;
+    }
+
+    // submit
+    const body = { shop_slug:s, answers, note, status:'submitted' };
+    const res = await fetch('/api/check-runs',{ method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':Bunca.csrf()}, body:JSON.stringify(body) });
+    const out = await res.json();
+    if(out.ok){
+      Bunca.toast('Checklist submitted ✓');
+      document.getElementById('msg').textContent = 'Saved ✓';
+      // prompt sign now
+      openSignModal(out.run_id);
+    }else{
+      Bunca.toast(out.error || 'Save failed','err');
+      document.getElementById('msg').textContent = out.error || 'Error';
+    }
+  }
+
+  function openSignModal(runId){
+    const wrap = document.createElement('div');
+    wrap.className='card';
+    wrap.style.cssText='position:fixed;inset:0;max-width:480px;margin:auto;z-index:90;background:#fff;border:1px solid var(--line);padding:16px;border-radius:14px;box-shadow:var(--shadow)';
+    wrap.innerHTML = `
+      <h3 class="card-title">Sign & lock this run</h3>
+      <p class="muted">Enter your account password to sign.</p>
+      <div class="row"><label>Password</label><input id="signPass" type="password" class="input" placeholder="••••••••"></div>
+      <div class="row cols-2" style="margin-top:10px">
+        <button id="signNow" class="btn primary">Sign now</button>
+        <button id="signLater" class="btn">Later</button>
+      </div>
+    `;
+    const overlay = document.createElement('div');
+    overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:89';
+    document.body.appendChild(overlay);
+    document.body.appendChild(wrap);
+
+    wrap.querySelector('#signLater').onclick = ()=>{
+      document.body.removeChild(wrap); document.body.removeChild(overlay);
+      location.href = '/history/'+encodeURIComponent(slug());
+    };
+    wrap.querySelector('#signNow').onclick = async ()=>{
+      const password = wrap.querySelector('#signPass').value;
+      const res = await fetch('/api/check-runs/'+runId+'/sign',{ method:'POST', headers:{'Content-Type':'application/json','x-csrf-token':Bunca.csrf()}, body:JSON.stringify({ password }) });
+      const out = await res.json();
+      if(out.ok){ Bunca.toast('Signed ✓'); document.body.removeChild(wrap); document.body.removeChild(overlay); location.href='/history/'+encodeURIComponent(slug()); }
+      else { Bunca.toast(out.error||'Sign failed','err'); }
+    };
+  }
+
+  // ------- event handlers -------
+  async function onClick(e){
+    const btn = e.target.closest('[data-corr]');
+    if(btn){
+      const id = btn.getAttribute('data-corr');
+      const item = ITEMS.find(x=>x.id===id);
+      if(item) openCorrectiveModal(item);
+    }
+  }
+
+  // ------- boot -------
+  (async function init(){
     const session = await Bunca.requireSession(); if(!session) return;
     const s = slug();
     document.getElementById('navBack').href = '/shop/'+encodeURIComponent(s);
     document.getElementById('fabBack').href = '/shop/'+encodeURIComponent(s);
 
-    const list = await fetch('/api/check-items?shop='+encodeURIComponent(s)).then(r=>r.json());
-    const items = list.items || [];
-    const form = document.getElementById('form');
-    if(!items.length){
-      form.innerHTML = `<div class="card" style="grid-column:1/-1"><h3 class="card-title">No checklist yet</h3>
-        <p class="muted">Ask admin to add items in the Admin panel.</p></div>`;
-      return;
-    }
-    form.innerHTML = `
-      ${items.map(field).join('')}
-      <div class="card" style="grid-column:1/-1">
-        <label>Problems / Notes</label>
-        <textarea id="note" rows="4" class="input" placeholder="Anything to report?"></textarea>
-        <div class="row cols-2" style="margin-top:10px">
-          <button id="submitBtn" class="btn primary" type="button">Submit</button>
-          <div id="msg" class="muted"></div>
-        </div>
-      </div>`;
+    // shift from query or default by time
+    const qShift = (qs('shift')||'').toLowerCase();
+    const nowH = new Date().getHours();
+    const guess = nowH < 12 ? 'morning' : (nowH < 18 ? 'mid' : 'closing');
+    const shift = ['morning','mid','closing'].includes(qShift) ? qShift : guess;
+    document.getElementById('shiftSel').value = shift;
 
-    document.getElementById('submitBtn').addEventListener('click', async ()=>{
-      const answers = items.map(i=>({ item_id:i.id, value: (document.getElementById(`item_${i.id}`)?.value ?? '') }));
-      const body = { shop_slug:s, answers, note:document.getElementById('note').value };
-      const res = await fetch('/api/check-runs',{method:'POST',headers:{'Content-Type':'application/json','x-csrf-token':Bunca.csrf()},body:JSON.stringify(body)});
-      const out = await res.json();
-      const msg=document.getElementById('msg');
-      if(out.ok){ msg.textContent='Saved ✓'; Bunca.toast('Checklist saved'); setTimeout(()=>location.href='/history/'+encodeURIComponent(s),700); }
-      else { msg.textContent=out.error||'Error'; Bunca.toast('Failed to save','err'); }
+    // load equipment map
+    const eq = await (await fetch('/api/equipment?shop='+encodeURIComponent(s))).json();
+    EQUIP_MAP = Object.fromEntries((eq.equipment||[]).map(e=>[e.id, e.name]));
+
+    // load items for shift (plus null shift)
+    async function loadItemsForShift(sh){
+      const list = await fetch('/api/check-items?shop='+encodeURIComponent(s)+'&shift='+encodeURIComponent(sh)).then(r=>r.json());
+      ITEMS = (list.items||[]).sort((a,b)=> (a.position ?? 0) - (b.position ?? 0));
+      renderGroups();
+      attachListeners();
+      // initial status
+      ITEMS.forEach(updateStatus);
+    }
+
+    await loadItemsForShift(shift);
+
+    document.getElementById('shiftSel').addEventListener('change', async (e)=>{
+      CORR = {}; EVIDENCE = {};
+      await loadItemsForShift(e.target.value);
     });
+
+    document.getElementById('submitBtn').addEventListener('click', submitRun);
   })();
 </script>
 </body>
