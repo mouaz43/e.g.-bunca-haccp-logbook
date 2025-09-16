@@ -3,16 +3,18 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>BUNCA · History</title>
+  <title>BUNCA HACCP · History</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
+  <meta name="theme-color" content="#10b981"/>
 </head>
 <body>
 <header class="header">
   <div class="wrap">
-    <div class="brand"><span class="dot"></span> History</div>
-    <nav class="nav">
-      <a class="btn" id="backBtn">Back</a>
-      <a class="btn" href="/login">Login</a>
+    <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
+    <button id="menuToggle" class="menu-btn"><span></span></button>
+    <nav id="mainNav" class="nav">
+      <a id="backShop" href="/">Back</a>
+      <a href="/admin">Admin</a>
     </nav>
   </div>
 </header>
@@ -21,17 +23,12 @@
   <section class="hero">
     <h1>Daily Checks History</h1>
     <div class="row cols-2">
-      <div>
-        <label>From</label>
-        <input id="from" type="date" class="input">
-      </div>
-      <div>
-        <label>To</label>
-        <input id="to" type="date" class="input">
-      </div>
+      <div><label>From</label><input id="from" type="date" class="input"></div>
+      <div><label>To</label><input id="to" type="date" class="input"></div>
     </div>
     <div class="row" style="margin-top:10px">
       <button id="filterBtn" class="btn">Filter</button>
+      <a id="exportBtn" class="btn" href="#">Export CSV</a>
     </div>
   </section>
 
@@ -48,16 +45,20 @@
   </section>
 </main>
 
-<footer>© BUNCA</footer>
+<footer>© BUNCA HACCP</footer>
 
-<script>
+<script type="module">
+  import '/assets/app.js';
+
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
 
   async function load(){
     const shop = slug();
-    document.getElementById('backBtn').setAttribute('href','/shop/'+encodeURIComponent(shop));
+    document.getElementById('backShop').setAttribute('href','/shop/'+encodeURIComponent(shop));
     await fetchRuns();
     document.getElementById('filterBtn').addEventListener('click', fetchRuns);
+    document.addEventListener('click', onClick);
+    document.getElementById('exportBtn').addEventListener('click', exportCsv);
   }
 
   async function fetchRuns(){
@@ -73,11 +74,12 @@
         <td>${r.ok_count||0}</td>
         <td>${r.fail_count||0}</td>
         <td>${(r.note||'').slice(0,80)}</td>
-        <td><button class="btn" data-view="${r.id}">View</button></td>
+        <td><button class="btn small" data-view="${r.id}">View</button></td>
       </tr>`).join('') || '<tr><td colspan="5">No data.</td></tr>';
+    window.__runs = data.runs || [];
   }
 
-  document.addEventListener('click', async (e)=>{
+  async function onClick(e){
     const btn = e.target.closest('[data-view]');
     if(!btn) return;
     const id = btn.getAttribute('data-view');
@@ -88,18 +90,32 @@
     body.innerHTML = `
       <div class="row"><strong>Date:</strong> ${data.run.run_date}</div>
       <div class="row"><strong>Note:</strong> ${data.run.note || '—'}</div>
-      <hr style="opacity:.1;margin:10px 0">
+      <hr style="opacity:.5;margin:10px 0">
       <div class="grid cols-2">
       ${data.answers.map(a => `
         <div class="row">
-          <div><strong>${a.label}</strong> <span class="badge ${a.ok? 'ok':'warn'}">${a.ok?'OK':'Issue'}</span></div>
+          <div><strong>${a.label}</strong> <span class="badge ${a.ok? '':'warn'}">${a.ok?'OK':'Issue'}</span></div>
           <div>${a.value}${a.kind==='temperature' ? ` ${a.unit||''}` : ''} ${a.kind==='temperature'?(a.min!=null||a.max!=null?`(target ${a.min??''}–${a.max??''} ${a.unit||''})`:``):``}</div>
-        </div>
-      `).join('')}
+        </div>`).join('')}
       </div>`;
     box.style.display='block';
     box.scrollIntoView({behavior:'smooth'});
-  });
+  }
+
+  function exportCsv(e){
+    e.preventDefault();
+    const rows = window.__runs || [];
+    let csv = 'date,ok,issues,note\n';
+    rows.forEach(r=>{
+      const n = (r.note||'').replace(/"/g,'""');
+      csv += `${r.run_date},${r.ok_count||0},${r.fail_count||0},"${n}"\n`;
+    });
+    const blob = new Blob([csv],{type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = `bunca-history-${slug()}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
 
   load();
 </script>
