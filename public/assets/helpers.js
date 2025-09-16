@@ -1,4 +1,4 @@
-// Global helpers + nav + toasts + PWA bootstrap. Exposes window.Bunca
+// Globale Helfer + Navigation + Toasts + PWA Bootstrap (DE)
 (function(){
   // ---------- CSRF / Auth ----------
   function csrf(){ return sessionStorage.getItem('csrf') || ''; }
@@ -10,7 +10,7 @@
     return d.session;
   }
 
-  // ---------- Fetch wrapper (unchanged semantics) ----------
+  // ---------- Fetch Wrapper ----------
   async function api(url, method='GET', body){
     const opt = { method, headers:{} };
     if(['POST','PUT','PATCH','DELETE'].includes(method)){
@@ -34,13 +34,13 @@
     setTimeout(()=> root.removeChild(el), 3000);
   }
 
-  // ---------- Minimal offline queue (foundation) ----------
+  // ---------- Minimal Offline-Warteschlange ----------
   const QKEY = 'bunca.queue.v1';
   function loadQueue(){ try{ return JSON.parse(localStorage.getItem(QKEY)||'[]'); }catch{ return []; } }
   function saveQueue(arr){ localStorage.setItem(QKEY, JSON.stringify(arr)); }
   function addToQueue(entry){
     const q = loadQueue(); q.push({ ...entry, enqueued_at: Date.now() }); saveQueue(q);
-    toast('Saved offline. Will sync when online.');
+    toast('Offline gespeichert. Synchronisiert automatisch, sobald online.');
   }
   async function flushQueue(){
     if(!navigator.onLine) return;
@@ -55,53 +55,46 @@
         });
         if(!res.ok) throw new Error('HTTP '+res.status);
       }catch(e){
-        // keep if still failing
         keep.push(job);
       }
     }
     saveQueue(keep);
     if(q.length !== keep.length){
-      toast(`Synced ${q.length - keep.length} item(s).`);
+      toast(`${q.length - keep.length} Element(e) synchronisiert.`);
     }
   }
-
-  // Optional helper you can call from pages later:
-  // if offline and this is a run submission, enqueue instead of failing outright.
   function enqueueIfOffline(url, method, body){
-    if(navigator.onLine) return false; // no-op, go normal
+    if(navigator.onLine) return false;
     addToQueue({ url, method, body });
     return true;
-  }
+    }
 
-  // ---------- PWA: Service Worker + Manifest ----------
+  // ---------- PWA ----------
   async function registerSW(){
     if(!('serviceWorker' in navigator)) return;
     try{
       await navigator.serviceWorker.register('/sw.js');
-      // Try to flush any queued work after SW is ready
       navigator.serviceWorker.ready.then(()=> flushQueue());
-    }catch(e){ /* silent */ }
+    }catch(e){ /* still */ }
   }
-
   function ensureManifest(){
     if(document.querySelector('link[rel="manifest"]')) return;
     const link = document.createElement('link');
     link.rel = 'manifest'; link.href = '/manifest.webmanifest';
     document.head.appendChild(link);
   }
-
   function handleOnlineStatus(){
     const set = ()=> {
       document.documentElement.dataset.online = String(navigator.onLine);
-      if(navigator.onLine){ toast('Back online'); flushQueue(); }
-      else { toast('You are offline','warn'); }
+      if(navigator.onLine){ toast('Wieder online'); flushQueue(); }
+      else { toast('Du bist offline','warn'); }
     };
     window.addEventListener('online', set);
     window.addEventListener('offline', set);
     set();
   }
 
-  // ---------- Navbar + mobile menu + FAB ----------
+  // ---------- Navbar / Mobile / FAB ----------
   function initNav(){
     const btn = document.querySelector('#menuToggle');
     const nav = document.querySelector('#mainNav');
@@ -124,14 +117,11 @@
   // ---------- Expose ----------
   window.Bunca = {
     csrf, requireSession, api, toast,
-    // PWA helpers
     registerSW, ensureManifest, flushQueue,
-    // Offline queue (to be used by pages we’ll upgrade)
     queue: { add: addToQueue, list: loadQueue, flush: flushQueue },
     enqueueIfOffline
   };
 
-  // ---------- Boot ----------
   document.addEventListener('DOMContentLoaded', ()=>{
     initNav();
     ensureManifest();
