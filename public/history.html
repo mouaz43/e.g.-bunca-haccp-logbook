@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BUNCA · History</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+</head>
+<body>
+<header class="header">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span> History</div>
+    <nav class="nav">
+      <a class="btn" id="backBtn">Back</a>
+      <a class="btn" href="/login">Login</a>
+    </nav>
+  </div>
+</header>
+
+<main class="container">
+  <section class="hero">
+    <h1>Daily Checks History</h1>
+    <div class="row cols-2">
+      <div>
+        <label>From</label>
+        <input id="from" type="date" class="input">
+      </div>
+      <div>
+        <label>To</label>
+        <input id="to" type="date" class="input">
+      </div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button id="filterBtn" class="btn">Filter</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <table class="table" id="runsTable">
+      <thead><tr><th>Date</th><th>OK</th><th>Issues</th><th>Note</th><th>Actions</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <section class="card" id="details" style="display:none">
+    <h3 class="card-title">Run Details</h3>
+    <div id="detailsBody"></div>
+  </section>
+</main>
+
+<footer>© BUNCA</footer>
+
+<script>
+  function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
+
+  async function load(){
+    const shop = slug();
+    document.getElementById('backBtn').setAttribute('href','/shop/'+encodeURIComponent(shop));
+    await fetchRuns();
+    document.getElementById('filterBtn').addEventListener('click', fetchRuns);
+  }
+
+  async function fetchRuns(){
+    const shop = slug();
+    const from = document.getElementById('from').value || '';
+    const to = document.getElementById('to').value || '';
+    const url = `/api/check-runs?shop=${encodeURIComponent(shop)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const data = await fetch(url).then(r=>r.json());
+    const tbody = document.querySelector('#runsTable tbody');
+    tbody.innerHTML = (data.runs||[]).map(r=>`
+      <tr>
+        <td>${r.run_date}</td>
+        <td>${r.ok_count||0}</td>
+        <td>${r.fail_count||0}</td>
+        <td>${(r.note||'').slice(0,80)}</td>
+        <td><button class="btn" data-view="${r.id}">View</button></td>
+      </tr>`).join('') || '<tr><td colspan="5">No data.</td></tr>';
+  }
+
+  document.addEventListener('click', async (e)=>{
+    const btn = e.target.closest('[data-view]');
+    if(!btn) return;
+    const id = btn.getAttribute('data-view');
+    const data = await fetch('/api/check-runs/'+id).then(r=>r.json());
+    const box = document.getElementById('details');
+    const body = document.getElementById('detailsBody');
+    if(!data.run){ box.style.display='none'; return; }
+    body.innerHTML = `
+      <div class="row"><strong>Date:</strong> ${data.run.run_date}</div>
+      <div class="row"><strong>Note:</strong> ${data.run.note || '—'}</div>
+      <hr style="opacity:.1;margin:10px 0">
+      <div class="grid cols-2">
+      ${data.answers.map(a => `
+        <div class="row">
+          <div><strong>${a.label}</strong> <span class="badge ${a.ok? 'ok':'warn'}">${a.ok?'OK':'Issue'}</span></div>
+          <div>${a.value}${a.kind==='temperature' ? ` ${a.unit||''}` : ''} ${a.kind==='temperature'?(a.min!=null||a.max!=null?`(target ${a.min??''}–${a.max??''} ${a.unit||''})`:``):``}</div>
+        </div>
+      `).join('')}
+      </div>`;
+    box.style.display='block';
+    box.scrollIntoView({behavior:'smooth'});
+  });
+
+  load();
+</script>
+</body>
+</html>
