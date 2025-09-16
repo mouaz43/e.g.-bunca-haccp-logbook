@@ -11,9 +11,9 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
     <nav id="mainNav" class="nav">
-      <a id="backShop" href="/">Back</a>
+      <a id="navBack" href="/">Back</a>
       <a href="/admin">Admin</a>
     </nav>
   </div>
@@ -45,30 +45,26 @@
   </section>
 </main>
 
+<button id="fab" class="fab">≡</button>
+<div id="fabMenu" class="fab-menu">
+  <a id="fabBack" href="#">⬅ Back to Shop</a>
+  <a href="/admin">🛠 Admin</a>
+</div>
+
 <footer>© BUNCA HACCP</footer>
 
-<script type="module">
-  import '/assets/app.js';
-
+<script src="/assets/helpers.js"></script>
+<script>
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
 
-  async function load(){
-    const shop = slug();
-    document.getElementById('backShop').setAttribute('href','/shop/'+encodeURIComponent(shop));
-    await fetchRuns();
-    document.getElementById('filterBtn').addEventListener('click', fetchRuns);
-    document.addEventListener('click', onClick);
-    document.getElementById('exportBtn').addEventListener('click', exportCsv);
-  }
-
   async function fetchRuns(){
-    const shop = slug();
-    const from = document.getElementById('from').value || '';
-    const to = document.getElementById('to').value || '';
-    const url = `/api/check-runs?shop=${encodeURIComponent(shop)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-    const data = await fetch(url).then(r=>r.json());
-    const tbody = document.querySelector('#runsTable tbody');
-    tbody.innerHTML = (data.runs||[]).map(r=>`
+    const shop=slug();
+    const from=document.getElementById('from').value||'';
+    const to=document.getElementById('to').value||'';
+    const url=`/api/check-runs?shop=${encodeURIComponent(shop)}&from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+    const data=await fetch(url).then(r=>r.json());
+    const tbody=document.querySelector('#runsTable tbody');
+    tbody.innerHTML=(data.runs||[]).map(r=>`
       <tr>
         <td>${r.run_date}</td>
         <td>${r.ok_count||0}</td>
@@ -76,48 +72,43 @@
         <td>${(r.note||'').slice(0,80)}</td>
         <td><button class="btn small" data-view="${r.id}">View</button></td>
       </tr>`).join('') || '<tr><td colspan="5">No data.</td></tr>';
-    window.__runs = data.runs || [];
+    window.__runs=data.runs||[];
   }
 
-  async function onClick(e){
-    const btn = e.target.closest('[data-view]');
-    if(!btn) return;
-    const id = btn.getAttribute('data-view');
-    const data = await fetch('/api/check-runs/'+id).then(r=>r.json());
-    const box = document.getElementById('details');
-    const body = document.getElementById('detailsBody');
+  document.addEventListener('click', async (e)=>{
+    const btn=e.target.closest('[data-view]'); if(!btn) return;
+    const id=btn.getAttribute('data-view');
+    const data=await fetch('/api/check-runs/'+id).then(r=>r.json());
+    const box=document.getElementById('details'); const body=document.getElementById('detailsBody');
     if(!data.run){ box.style.display='none'; return; }
-    body.innerHTML = `
+    body.innerHTML=`
       <div class="row"><strong>Date:</strong> ${data.run.run_date}</div>
-      <div class="row"><strong>Note:</strong> ${data.run.note || '—'}</div>
-      <hr style="opacity:.5;margin:10px 0">
+      <div class="row"><strong>Note:</strong> ${data.run.note||'—'}</div>
+      <hr>
       <div class="grid cols-2">
-      ${data.answers.map(a => `
+      ${data.answers.map(a=>`
         <div class="row">
-          <div><strong>${a.label}</strong> <span class="badge ${a.ok? '':'warn'}">${a.ok?'OK':'Issue'}</span></div>
-          <div>${a.value}${a.kind==='temperature' ? ` ${a.unit||''}` : ''} ${a.kind==='temperature'?(a.min!=null||a.max!=null?`(target ${a.min??''}–${a.max??''} ${a.unit||''})`:``):``}</div>
+          <div><strong>${a.label}</strong> <span class="badge ${a.ok?'':'warn'}">${a.ok?'OK':'Issue'}</span></div>
+          <div>${a.value}${a.kind==='temperature'?` ${a.unit||''}`:''} ${a.kind==='temperature'?(a.min!=null||a.max!=null?`(target ${a.min??''}–${a.max??''} ${a.unit||''})`:``):``}</div>
         </div>`).join('')}
       </div>`;
-    box.style.display='block';
-    box.scrollIntoView({behavior:'smooth'});
-  }
+    box.style.display='block'; box.scrollIntoView({behavior:'smooth'});
+  });
 
   function exportCsv(e){
-    e.preventDefault();
-    const rows = window.__runs || [];
-    let csv = 'date,ok,issues,note\n';
-    rows.forEach(r=>{
-      const n = (r.note||'').replace(/"/g,'""');
-      csv += `${r.run_date},${r.ok_count||0},${r.fail_count||0},"${n}"\n`;
-    });
-    const blob = new Blob([csv],{type:'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `bunca-history-${slug()}.csv`; a.click();
-    URL.revokeObjectURL(url);
+    e.preventDefault(); const rows=window.__runs||[]; let csv='date,ok,issues,note\n';
+    rows.forEach(r=>{ const n=(r.note||'').replace(/"/g,'""'); csv+=`${r.run_date},${r.ok_count||0},${r.fail_count||0},"${n}"\n`; });
+    const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`bunca-history-${slug()}.csv`; a.click(); URL.revokeObjectURL(url);
   }
 
-  load();
+  (async function init(){
+    const s=slug(); document.getElementById('navBack').href='/shop/'+encodeURIComponent(s);
+    document.getElementById('fabBack').href='/shop/'+encodeURIComponent(s);
+    await fetchRuns();
+    document.getElementById('filterBtn').addEventListener('click',fetchRuns);
+    document.getElementById('exportBtn').addEventListener('click',exportCsv);
+  })();
 </script>
 </body>
 </html>
