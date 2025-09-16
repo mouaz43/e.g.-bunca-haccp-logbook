@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>BUNCA · Shops</title>
+  <link rel="stylesheet" href="/assets/styles.css"/>
+  <meta name="theme-color" content="#0d0f14"/>
+</head>
+<body>
+  <header class="header">
+    <div class="wrap">
+      <div class="brand"><span class="dot"></span> BUNCA</div>
+      <nav class="nav">
+        <a class="btn" href="/login">Login</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <h1>BUNCA Shops</h1>
+      <p class="muted">Browse locations below. Details are managed by the admin panel.</p>
+    </section>
+
+    <section class="grid cols-3" id="shopsGrid"></section>
+  </main>
+
+  <footer>© BUNCA</footer>
+
+  <script>
+    function shopCard(s){
+      const statusCls = s.status === 'open' ? 'ok' : 'warn';
+      const statusTxt = s.status === 'open' ? 'Open' : 'Closed';
+      return `
+        <article class="card">
+          <div style="display:grid;gap:10px">
+            ${s.image_url ? `<img src="${s.image_url}" alt="${s.name}" style="border-radius:14px">` : ''}
+            <h3 class="card-title">${s.name}</h3>
+            <span class="badge ${statusCls}">${statusTxt}</span>
+            <p class="muted">${s.description || ''}</p>
+            <div class="row cols-2">
+              <a class="btn primary" href="/shop/${encodeURIComponent(s.slug)}">View</a>
+              <div class="btn">${s.phone ? s.phone : ''}</div>
+            </div>
+          </div>
+        </article>
+      `;
+    }
+
+    async function loadShops(){
+      const res = await fetch('/api/shops');
+      const data = await res.json();
+      const grid = document.getElementById('shopsGrid');
+      grid.innerHTML = (data.shops || []).map(shopCard).join('') || `
+        <div class="card">
+          <h3 class="card-title">No shops yet</h3>
+          <p class="muted">Login as admin and add your first shop.</p>
+        </div>`;
+    }
+    loadShops();
+  </script>
+</body>
+</html>
