@@ -11,16 +11,17 @@
 <header class="header">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>BUNCA HACCP</span></div>
-    <button id="menuToggle" class="menu-btn"><span></span></button>
+    <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
     <nav id="mainNav" class="nav">
       <a href="/">Home</a>
       <a class="active" href="/admin">Admin</a>
+      <a href="/login">Login</a>
     </nav>
   </div>
 </header>
 
 <main class="container grid cols-2">
-  <!-- USERS -->
+  <!-- Users -->
   <section class="card">
     <h3 class="card-title">Create User</h3>
     <p class="muted">Admins can create accounts for staff.</p>
@@ -33,15 +34,14 @@
       <button id="createUser" class="btn primary">Create</button>
       <div id="userMsg" class="muted"></div>
     </div>
-    <hr style="opacity:.5;margin:16px 0">
+    <hr>
     <h3 class="card-title">Users</h3>
     <table class="table" id="usersTbl">
-      <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
-      <tbody></tbody>
+      <thead><tr><th>Email</th><th>Role</th><th>Actions</th></tr></thead><tbody></tbody>
     </table>
   </section>
 
-  <!-- SHOPS -->
+  <!-- Shops -->
   <section class="card">
     <h3 class="card-title">Create Shop</h3>
     <div class="row"><label>Name</label><input id="sName" class="input" placeholder="BUNCA City"></div>
@@ -57,23 +57,21 @@
       <button id="createShop" class="btn primary">Save</button>
       <div id="shopMsg" class="muted"></div>
     </div>
-
-    <hr style="opacity:.5;margin:16px 0">
+    <hr>
     <h3 class="card-title">Shops</h3>
     <table class="table" id="shopsTbl">
-      <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody></tbody>
+      <thead><tr><th>Name</th><th>Slug</th><th>Status</th><th>Actions</th></tr></thead><tbody></tbody>
     </table>
   </section>
 
-  <!-- CHECKLIST BUILDER -->
+  <!-- Checklist templates -->
   <section class="card" style="grid-column:1/-1">
     <h3 class="card-title">Checklist Templates</h3>
-    <p class="muted">Pick a shop and define daily checklist items (Fridge, Oven, Dishwasher …).</p>
+    <p class="muted">Pick a shop and define daily checklist items (Fridge, Oven, Dishwasher …). Use “Position” to control order.</p>
 
     <div class="row cols-2">
       <div><label>Shop</label><select id="ciShop" class="input"></select></div>
-      <div class="muted">Use “Position” to control order.</div>
+      <div class="muted" style="display:flex;align-items:end">Position 0..n (sorts ascending)</div>
     </div>
 
     <div class="grid cols-3" style="margin-top:8px">
@@ -97,7 +95,7 @@
       <div id="ciMsg" class="muted"></div>
     </div>
 
-    <hr style="opacity:.5;margin:16px 0">
+    <hr>
     <table class="table" id="ciTable">
       <thead><tr><th>Pos</th><th>Label</th><th>Kind</th><th>Limits</th><th>Actions</th></tr></thead>
       <tbody></tbody>
@@ -105,24 +103,34 @@
   </section>
 </main>
 
+<button id="fab" class="fab">≡</button>
+<div id="fabMenu" class="fab-menu">
+  <a href="/">🏠 Home</a>
+  <a href="/admin">🛠 Admin</a>
+  <a id="logoutFab" href="#">🚪 Logout</a>
+</div>
+
 <footer>© BUNCA HACCP</footer>
 
-<script type="module">
-  import { requireSession, api } from '/assets/app.js';
+<script src="/assets/helpers.js"></script>
+<script>
+  (async function init(){
+    const s = await Bunca.requireSession('admin'); if(!s) return;
 
-  async function init(){
-    const session = await requireSession('admin');
-    if(!session) return;
-    await Promise.all([loadUsers(), loadShops()]);
     document.getElementById('createUser').addEventListener('click', createUser);
     document.getElementById('createShop').addEventListener('click', createShop);
     document.getElementById('ciAdd').addEventListener('click', addItem);
     document.getElementById('ciShop').addEventListener('change', e=>loadChecklist(e.target.value));
     document.addEventListener('click', onClick);
-  }
+    document.getElementById('logoutFab').addEventListener('click', async (e)=>{
+      e.preventDefault(); await Bunca.api('/api/auth/logout','POST',{}); sessionStorage.removeItem('csrf'); location.href='/';
+    });
+
+    await Promise.all([loadUsers(), loadShops()]);
+  })();
 
   async function loadUsers(){
-    const data = await api('/api/users');
+    const data = await Bunca.api('/api/users');
     document.querySelector('#usersTbl tbody').innerHTML =
       (data.users||[]).map(u=>`
         <tr>
@@ -161,55 +169,53 @@
   }
 
   async function createUser(){
-    const email = document.getElementById('uEmail').value.trim();
-    const password = document.getElementById('uPass').value;
-    const role = document.getElementById('uRole').value;
-    const msg = document.getElementById('userMsg'); msg.textContent='…';
-    const out = await api('/api/users','POST',{email,password,role});
-    msg.textContent = out.ok ? 'Created' : (out.error||'Error');
-    if(out.ok){ loadUsers(); }
+    const email=document.getElementById('uEmail').value.trim();
+    const password=document.getElementById('uPass').value;
+    const role=document.getElementById('uRole').value;
+    const msg=document.getElementById('userMsg'); msg.textContent='…';
+    const out = await Bunca.api('/api/users','POST',{email,password,role});
+    msg.textContent = out.ok?'Created':(out.error||'Error');
+    if(out.ok) loadUsers();
   }
 
   async function createShop(){
     const body = {
-      name: document.getElementById('sName').value.trim(),
-      slug: document.getElementById('sSlug').value.trim(),
-      address: document.getElementById('sAddress').value.trim(),
-      phone: document.getElementById('sPhone').value.trim(),
-      image_url: document.getElementById('sImg').value.trim(),
-      description: document.getElementById('sDesc').value.trim(),
-      status: document.getElementById('sStatus').value
+      name:document.getElementById('sName').value.trim(),
+      slug:document.getElementById('sSlug').value.trim(),
+      address:document.getElementById('sAddress').value.trim(),
+      phone:document.getElementById('sPhone').value.trim(),
+      image_url:document.getElementById('sImg').value.trim(),
+      description:document.getElementById('sDesc').value.trim(),
+      status:document.getElementById('sStatus').value
     };
-    const msg = document.getElementById('shopMsg'); msg.textContent='…';
-    const out = await api('/api/shops','POST', body);
-    msg.textContent = out.ok ? 'Saved' : (out.error||'Error');
-    if(out.ok){ loadShops(); }
+    const msg=document.getElementById('shopMsg'); msg.textContent='…';
+    const out = await Bunca.api('/api/shops','POST', body);
+    msg.textContent = out.ok?'Saved':(out.error||'Error');
+    if(out.ok) loadShops();
   }
 
   async function addItem(){
-    const shop_id = document.getElementById('ciShop').value;
-    const label = document.getElementById('ciLabel').value.trim();
-    const kind = document.getElementById('ciKind').value;
-    const position = Number(document.getElementById('ciPos').value || 0);
-    const min = document.getElementById('ciMin').value !== '' ? Number(document.getElementById('ciMin').value) : null;
-    const max = document.getElementById('ciMax').value !== '' ? Number(document.getElementById('ciMax').value) : null;
-    const unit = document.getElementById('ciUnit').value.trim() || '°C';
-    const msg = document.getElementById('ciMsg'); msg.textContent='…';
-    const out = await api('/api/check-items','POST',{shop_id,label,kind,position,min,max,unit});
-    msg.textContent = out.ok ? 'Added' : (out.error||'Error');
+    const shop_id=document.getElementById('ciShop').value;
+    const label=document.getElementById('ciLabel').value.trim();
+    const kind=document.getElementById('ciKind').value;
+    const position=Number(document.getElementById('ciPos').value||0);
+    const min=document.getElementById('ciMin').value!==''?Number(document.getElementById('ciMin').value):null;
+    const max=document.getElementById('ciMax').value!==''?Number(document.getElementById('ciMax').value):null;
+    const unit=document.getElementById('ciUnit').value.trim()||'°C';
+    const msg=document.getElementById('ciMsg'); msg.textContent='…';
+    const out = await Bunca.api('/api/check-items','POST',{shop_id,label,kind,position,min,max,unit});
+    msg.textContent = out.ok?'Added':(out.error||'Error');
     if(out.ok){ loadChecklist(shop_id); document.getElementById('ciLabel').value=''; }
   }
 
   async function onClick(e){
     const delUser = e.target.closest('[data-del-user]');
-    if(delUser && confirm('Delete user?')){ await api('/api/users/'+delUser.dataset.delUser,'DELETE'); loadUsers(); }
+    if(delUser && confirm('Delete user?')){ await Bunca.api('/api/users/'+delUser.dataset.delUser,'DELETE'); loadUsers(); }
     const delShop = e.target.closest('[data-del-shop]');
-    if(delShop && confirm('Delete shop?')){ await api('/api/shops/'+delShop.dataset.delShop,'DELETE'); loadShops(); }
+    if(delShop && confirm('Delete shop?')){ await Bunca.api('/api/shops/'+delShop.dataset.delShop,'DELETE'); loadShops(); }
     const delItem = e.target.closest('[data-del-item]');
-    if(delItem && confirm('Remove item from checklist?')){ await api('/api/check-items/'+delItem.dataset.delItem,'DELETE'); loadChecklist(document.getElementById('ciShop').value); }
+    if(delItem && confirm('Remove item from checklist?')){ await Bunca.api('/api/check-items/'+delItem.dataset.delItem,'DELETE'); loadChecklist(document.getElementById('ciShop').value); }
   }
-
-  init();
 </script>
 </body>
 </html>
