@@ -8,9 +8,6 @@
   <meta name="description" content="BUNCA HACCP — Daily checks per shop with admin & worker roles. Pure HTML+JS." />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%233E2723'/%3E%3Ctext x='50%25' y='54%25' text-anchor='middle' font-size='28' font-family='system-ui' fill='%23F5EDE3'%3EB%3C/text%3E%3C/svg%3E" />
   <style>
-    /* ============================================================
-       BUNCA HACCP — minimal design system (pure CSS, no libs)
-       ============================================================ */
     :root{
       --bg:#0e0f12;--panel:#14161b;--soft:#1a1d23;--text:#e9eef7;--muted:#a8b0bf;
       --brand:#3E2723;--cream:#F5EDE3;--gold:#C6A15B;--ok:#38b000;--warn:#ffb703;--fail:#e63946;
@@ -75,18 +72,13 @@
     .pill{font-size:12px;border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:4px 8px;margin-left:6px;color:var(--muted)}
     .stat{display:flex;flex-direction:column;background:linear-gradient(180deg,var(--soft),#0e0f12);border:1px solid rgba(255,255,255,.06);border-radius:16px;padding:14px}
     .stat .label{font-size:12px;color:var(--muted)} .stat .value{font-weight:900;font-size:20px}
-    .kbd{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;font-size:12px;background:#0c0d11;border:1px solid rgba(255,255,255,.08);border-bottom-width:2px;border-radius:6px;padding:2px 6px}
+    .kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:12px;background:#0c0d11;border:1px solid rgba(255,255,255,.08);border-bottom-width:2px;border-radius:6px;padding:2px 6px}
   </style>
 </head>
 <body>
-  <!-- ============================================================
-       Header
-       ============================================================ -->
   <header class="site-header">
     <div class="wrap nav">
-      <a class="brand" href="#/">
-        <div class="logo">B</div><span>BUNCA HACCP</span>
-      </a>
+      <a class="brand" href="#/"><div class="logo">B</div><span>BUNCA HACCP</span></a>
       <nav class="row">
         <a class="link" href="#/">Start</a>
         <a class="link" href="#/info">HACCP Info</a>
@@ -108,37 +100,21 @@
 
   <footer class="footer">
     <div class="wrap row" style="justify-content:space-between">
-      <div class="row">
-        <div class="logo" style="inline-size:26px;block-size:26px;border-radius:8px">B</div>
-        <span>BUNCA HACCP</span>
-      </div>
-      <div class="row">
-        <a class="link" href="#/impressum">Impressum</a>
-        <span>·</span>
-        <a class="link" href="#/datenschutz">Datenschutz</a>
-      </div>
+      <div class="row"><div class="logo" style="inline-size:26px;block-size:26px;border-radius:8px">B</div><span>BUNCA HACCP</span></div>
+      <div class="row"><a class="link" href="#/impressum">Impressum</a><span>·</span><a class="link" href="#/datenschutz">Datenschutz</a></div>
     </div>
   </footer>
 
-  <!-- ============================================================
-       View Templates
-       ============================================================ -->
+  <!-- Views -->
   <template id="tpl-home">
     <section class="hero">
       <div class="wrap grid-2">
         <div>
           <h1 class="h1">Digitale HACCP-Prozesse für Coffee Shops</h1>
           <p class="lead">Daily Checks, History & CSV Export — komplett im Browser. Admins pflegen Shops & Items, Worker tragen Messwerte ein.</p>
-          <div class="row">
-            <a class="btn btn-primary" href="#/login">Login</a>
-            <a class="btn btn-ghost" href="#/info">Mehr erfahren</a>
-          </div>
+          <div class="row"><a class="btn btn-primary" href="#/login">Login</a><a class="btn btn-ghost" href="#/info">Mehr erfahren</a></div>
           <div class="spacer"></div>
-          <div class="row">
-            <span class="badge">📦 Lokal gespeichert</span>
-            <span class="badge">💼 Rollenbasiert</span>
-            <span class="badge">🧾 CSV Export</span>
-          </div>
+          <div class="row"><span class="badge">📦 Lokal gespeichert</span><span class="badge">💼 Rollenbasiert</span><span class="badge">🧾 CSV Export</span></div>
         </div>
         <div class="card">
           <div class="h2">Was du bekommst</div>
@@ -158,14 +134,14 @@
     </section>
   </template>
 
-  <!-- LOGIN (no registration here) -->
+  <!-- LOGIN (login only) -->
   <template id="tpl-login">
     <div class="wrap grid-2">
       <div>
         <h1 class="h1">Anmelden</h1>
         <p class="muted">
           Anmeldung für Admins & Mitarbeiter. Benutzer werden ausschließlich vom <strong>Admin im Admin-Bereich</strong> angelegt.
-          Erster Start: <span class="kbd">admin@bunca.de</span> / <span class="kbd">Admin!123</span>
+          Erststart (Fallback): <span class="kbd">admin@bunca.de</span> / <span class="kbd">Admin!123</span>
         </p>
       </div>
       <div class="card" style="max-width:520px">
@@ -174,37 +150,28 @@
           <label><span>Passwort</span><input class="input" name="password" type="password" required placeholder="Passwort" /></label>
           <button class="btn btn-primary" type="submit">Login</button>
         </form>
+        <div class="spacer"></div>
+        <div class="row">
+          <button class="btn btn-ghost hide" id="btnFirstSetup" type="button">Erst-Setup (Admin anlegen)</button>
+          <button class="btn btn-ghost" id="btnHardReset" type="button">Hard Reset (lokale Daten löschen)</button>
+        </div>
+        <p class="muted" style="font-size:12px;margin-top:8px">
+          „Erst-Setup“ erscheint nur beim allerersten Start (oder wenn nur der Fallback-Admin existiert).
+        </p>
       </div>
     </div>
     <div class="wrap grid-2">
-      <div class="card">
-        <div class="h2">Kein Konto?</div>
-        <p class="muted">Bitte wende dich an den Administrator deiner BUNCA-Filiale. Benutzerkonten werden intern vergeben.</p>
-      </div>
-      <div class="card">
-        <div class="h2">Tipps</div>
-        <ul>
-          <li>Admin-Bereich: Shops, Benutzer, Items, Zuweisungen, Ex-/Import.</li>
-          <li>Worker-Bereich: Daily Check für zugewiesene Shops.</li>
-        </ul>
-      </div>
+      <div class="card"><div class="h2">Kein Konto?</div><p class="muted">Bitte wende dich an den Administrator. Konten werden intern vergeben.</p></div>
+      <div class="card"><div class="h2">Tipps</div><ul><li>Admin: Shops, Benutzer, Items, Ex-/Import.</li><li>Worker: Daily Check für zugewiesene Shops.</li></ul></div>
     </div>
   </template>
 
   <template id="tpl-admin">
-    <div class="wrap">
-      <h1 class="h1">Admin</h1>
-      <p class="muted">Voller Zugriff: Shops, Benutzer, Zuweisungen, Check-Items sowie Backup/Restore des gesamten Datensatzes.</p>
-    </div>
-
+    <div class="wrap"><h1 class="h1">Admin</h1><p class="muted">Voller Zugriff: Shops, Benutzer, Zuweisungen, Check-Items sowie Backup/Restore.</p></div>
     <section class="wrap grid-2">
-      <!-- SHOPS -->
       <div class="card">
         <div class="h2">Shops</div>
-        <table class="table" id="tblShops">
-          <thead><tr><th>Name</th><th>Code</th><th>Adresse</th><th>Aktionen</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <table class="table" id="tblShops"><thead><tr><th>Name</th><th>Code</th><th>Adresse</th><th>Aktionen</th></tr></thead><tbody></tbody></table>
         <div class="spacer"></div>
         <form class="form" id="formCreateShop">
           <div class="h2">Neuen Shop anlegen</div>
@@ -214,56 +181,31 @@
           <button class="btn btn-primary">Shop erstellen</button>
         </form>
       </div>
-
-      <!-- USERS -->
       <div class="card">
         <div class="h2">Benutzer</div>
-        <table class="table" id="tblUsers">
-          <thead><tr><th>E-Mail</th><th>Rolle</th><th>Aktiv</th><th>Shops</th><th>Aktionen</th></tr></thead>
-          <tbody></tbody>
-        </table>
+        <table class="table" id="tblUsers"><thead><tr><th>E-Mail</th><th>Rolle</th><th>Aktiv</th><th>Shops</th><th>Aktionen</th></tr></thead><tbody></tbody></table>
         <div class="spacer"></div>
         <form class="form" id="formCreateUser">
           <div class="h2">Benutzer anlegen</div>
           <label><span>E-Mail</span><input class="input" name="email" type="email" required /></label>
           <label><span>Passwort</span><input class="input" name="password" type="password" required /></label>
-          <label><span>Rolle</span>
-            <select name="role" class="input">
-              <option value="worker">worker</option>
-              <option value="admin">admin</option>
-            </select>
-          </label>
+          <label><span>Rolle</span><select name="role" class="input"><option value="worker">worker</option><option value="admin">admin</option></select></label>
           <label><span>Shop-Code (zuweisen)</span><input class="input" name="shopCode" placeholder="CITY" /></label>
           <button class="btn btn-primary">Benutzer erstellen</button>
         </form>
       </div>
     </section>
-
-    <!-- ITEMS -->
     <section class="wrap">
       <div class="card">
         <div class="h2">Check-Items je Shop</div>
-        <form class="row" id="formPickShopForItems">
-          <label><span>Shop</span><select class="input" name="shopId"></select></label>
-          <button class="btn btn-ghost" type="submit">Laden</button>
-        </form>
+        <form class="row" id="formPickShopForItems"><label><span>Shop</span><select class="input" name="shopId"></select></label><button class="btn btn-ghost" type="submit">Laden</button></form>
         <div id="itemsEditor" class="grid-2">
-          <div class="card">
-            <table class="table">
-              <thead><tr><th>#</th><th>Name</th><th>Typ</th><th>Min</th><th>Max</th><th>Einheit</th><th></th></tr></thead>
-              <tbody id="tblItems"></tbody>
-            </table>
-          </div>
+          <div class="card"><table class="table"><thead><tr><th>#</th><th>Name</th><th>Typ</th><th>Min</th><th>Max</th><th>Einheit</th><th></th></tr></thead><tbody id="tblItems"></tbody></table></div>
           <div class="card">
             <form class="form" id="formCreateItem">
               <div class="h2">Neues Item</div>
               <label><span>Name</span><input class="input" name="name" required /></label>
-              <label><span>Typ</span>
-                <select name="type" class="input">
-                  <option value="number" selected>number</option>
-                  <option value="text">text</option>
-                </select>
-              </label>
+              <label><span>Typ</span><select name="type" class="input"><option value="number" selected>number</option><option value="text">text</option></select></label>
               <label><span>Einheit</span><input class="input" name="unit" placeholder="°C" /></label>
               <label><span>Min</span><input class="input" name="min" type="number" step="0.1" /></label>
               <label><span>Max</span><input class="input" name="max" type="number" step="0.1" /></label>
@@ -274,84 +216,44 @@
         </div>
       </div>
     </section>
-
-    <!-- ADMIN TOOLS -->
     <section class="wrap grid-2">
       <div class="card">
         <div class="h2">Werkzeuge</div>
         <div class="row">
           <button class="btn btn-ghost" id="btnExportJson">Daten exportieren (JSON)</button>
-          <label class="btn btn-ghost" style="cursor:pointer">
-            <input type="file" id="inputImportJson" accept="application/json" style="display:none"/>
-            Daten importieren (JSON)
-          </label>
+          <label class="btn btn-ghost" style="cursor:pointer"><input type="file" id="inputImportJson" accept="application/json" style="display:none"/>Daten importieren (JSON)</label>
           <button class="btn btn-danger" id="btnResetAll">Alles zurücksetzen</button>
         </div>
         <p class="muted">Export erzeugt eine JSON-Sicherungsdatei. Import ersetzt den aktuellen Datenbestand. Zurücksetzen löscht alles.</p>
       </div>
-      <div class="card">
-        <div class="h2">Hinweise</div>
-        <ul>
-          <li>„E-Mail ändern“, „PW setzen“, „Shop zuweisen“ findest du bei den Benutzer-Aktionen.</li>
-          <li>Shops lassen sich bearbeiten (Name/Code/Adresse) oder löschen.</li>
-        </ul>
-      </div>
+      <div class="card"><div class="h2">Hinweise</div><ul><li>Benutzer-Aktionen: E-Mail ändern, PW setzen, Shop zuweisen, Aktivieren/Deaktivieren, Löschen.</li><li>Shops: Bearbeiten (Name/Code/Adresse) oder Löschen.</li></ul></div>
     </section>
   </template>
 
   <template id="tpl-worker">
-    <div class="wrap">
-      <h1 class="h1">Daily Check</h1>
-      <p class="muted">Wähle deinen Shop und trage die Werte ein.</p>
-    </div>
+    <div class="wrap"><h1 class="h1">Daily Check</h1><p class="muted">Wähle deinen Shop und trage die Werte ein.</p></div>
     <section class="wrap grid-2">
       <div class="card">
-        <form class="row" id="formPickShopForDaily">
-          <label><span>Shop</span><select class="input" name="shopId"></select></label>
-          <label><span>Datum</span><input class="input" name="date" type="date" /></label>
-          <button class="btn btn-ghost" type="submit">Laden</button>
-        </form>
-        <div class="spacer"></div>
-        <form class="form" id="formDaily"></form>
+        <form class="row" id="formPickShopForDaily"><label><span>Shop</span><select class="input" name="shopId"></select></label><label><span>Datum</span><input class="input" name="date" type="date" /></label><button class="btn btn-ghost" type="submit">Laden</button></form>
+        <div class="spacer"></div><form class="form" id="formDaily"></form>
       </div>
-      <div class="card">
-        <div class="h2">Hinweise</div>
-        <ul>
-          <li>Status ergibt sich automatisch aus den Grenzwerten.</li>
-          <li>Text-Items gelten als <span class="ok">ok</span>, wenn sie nicht leer sind.</li>
-          <li>Alle Eingaben werden lokal gespeichert.</li>
-        </ul>
-      </div>
+      <div class="card"><div class="h2">Hinweise</div><ul><li>Status automatisch anhand Grenzwerte.</li><li>Text-Items sind <span class="ok">ok</span>, wenn nicht leer.</li><li>Alles wird lokal gespeichert.</li></ul></div>
     </section>
   </template>
 
   <template id="tpl-history">
-    <div class="wrap">
-      <h1 class="h1">History</h1>
-      <p class="muted">Filtere Einträge und exportiere als CSV.</p>
-    </div>
+    <div class="wrap"><h1 class="h1">History</h1><p class="muted">Filtere Einträge und exportiere als CSV.</p></div>
     <section class="wrap">
       <form class="row" id="formHistoryFilters">
         <label><span>Shop</span><select class="input" name="shopId"></select></label>
         <label><span>Von</span><input class="input" name="from" type="date" /></label>
         <label><span>Bis</span><input class="input" name="to" type="date" /></label>
-        <label><span>Status</span>
-          <select class="input" name="status">
-            <option value="">Alle</option>
-            <option value="ok">ok</option>
-            <option value="warn">warn</option>
-            <option value="fail">fail</option>
-          </select>
-        </label>
+        <label><span>Status</span><select class="input" name="status"><option value="">Alle</option><option value="ok">ok</option><option value="warn">warn</option><option value="fail">fail</option></select></label>
         <button class="btn btn-ghost" type="submit">Anwenden</button>
         <button class="btn btn-primary" id="btnExportCsv" type="button">CSV export</button>
       </form>
       <div class="spacer"></div>
-      <div class="card">
-        <table class="table"><thead>
-          <tr><th>Datum</th><th>Shop</th><th>Item</th><th>Wert</th><th>Status</th><th>User</th><th>Notiz</th></tr>
-        </thead><tbody id="tblHistoryRows"></tbody></table>
-      </div>
+      <div class="card"><table class="table"><thead><tr><th>Datum</th><th>Shop</th><th>Item</th><th>Wert</th><th>Status</th><th>User</th><th>Notiz</th></tr></thead><tbody id="tblHistoryRows"></tbody></table></div>
     </section>
   </template>
 
@@ -360,50 +262,19 @@
       <div>
         <h1 class="h1">HACCP – kurz erklärt</h1>
         <p class="lead">Hazard Analysis and Critical Control Points. Ziel: Risiken erkennen, steuern und dokumentieren.</p>
-        <div class="card">
-          <div class="h2">Typische Bereiche</div>
-          <ul>
-            <li>Wareneingang & Kühlkette</li>
-            <li>Lagertemperaturen (Kühlschrank, Tiefkühlung)</li>
-            <li>Zubereitung (Espresso, Milch, Ofen)</li>
-            <li>Reinigung & Desinfektion</li>
-            <li>Schulung & Unterweisung</li>
-          </ul>
-        </div>
+        <div class="card"><div class="h2">Typische Bereiche</div><ul><li>Wareneingang & Kühlkette</li><li>Lagertemperaturen (Kühlschrank, Tiefkühlung)</li><li>Zubereitung (Espresso, Milch, Ofen)</li><li>Reinigung & Desinfektion</li><li>Schulung & Unterweisung</li></ul></div>
       </div>
       <div class="card">
         <div class="h2">Wie BUNCA HACCP hilft</div>
-        <ul>
-          <li>Daily Check-Formulare je Shop</li>
-          <li>Individuelle Prüfpositionen (Admin konfiguriert)</li>
-          <li>Automatische Bewertung (ok/warn/fail) anhand Grenzwerte</li>
-          <li>History mit Filtern + CSV-Export</li>
-        </ul>
-        <p class="muted">Diese Seite ist informativ; die Arbeit passiert unter <span class="kbd">Daily Check</span> und <span class="kbd">History</span>.</p>
+        <ul><li>Daily Check-Formulare je Shop</li><li>Individuelle Prüfpositionen</li><li>Automatische Bewertung</li><li>History mit Filtern + CSV-Export</li></ul>
+        <p class="muted">Info-Seite; Arbeit passiert unter Daily Check & History.</p>
       </div>
     </section>
   </template>
 
-  <template id="tpl-legal-impressum">
-    <div class="wrap card">
-      <div class="h2">Impressum</div>
-      <p>BUNCA Coffee GmbH – Musterstraße 1, 60311 Frankfurt.</p>
-    </div>
-  </template>
-
-  <template id="tpl-legal-datenschutz">
-    <div class="wrap card">
-      <div class="h2">Datenschutz</div>
-      <p class="muted">Wir speichern Daten nur lokal im Browser (localStorage). Keine Übermittlung an Server.</p>
-    </div>
-  </template>
-
-  <template id="tpl-404">
-    <div class="wrap card">
-      <div class="h2">404 – Seite nicht gefunden</div>
-      <p><a class="btn btn-ghost" href="#/">Zur Startseite</a></p>
-    </div>
-  </template>
+  <template id="tpl-legal-impressum"><div class="wrap card"><div class="h2">Impressum</div><p>BUNCA Coffee GmbH – Musterstraße 1, 60311 Frankfurt.</p></div></template>
+  <template id="tpl-legal-datenschutz"><div class="wrap card"><div class="h2">Datenschutz</div><p class="muted">Daten nur lokal im Browser. Keine Übermittlung.</p></div></template>
+  <template id="tpl-404"><div class="wrap card"><div class="h2">404 – Seite nicht gefunden</div><p><a class="btn btn-ghost" href="#/">Zur Startseite</a></p></div></template>
 
   <script src="./app.js"></script>
 </body>
