@@ -6,6 +6,12 @@
   <title>BUNCA HACCP · Shop</title>
   <link rel="stylesheet" href="/assets/styles.css"/>
   <meta name="theme-color" content="#10b981"/>
+  <style>
+    .stat-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:#10b981}
+    .stat-dot.warn{background:#f59e0b}
+    .stat-dot.err{background:#ef4444}
+    .equip-table td, .equip-table th { white-space: nowrap; }
+  </style>
 </head>
 <body>
 <header class="header">
@@ -14,19 +20,53 @@
     <button id="menuToggle" class="menu-btn" aria-label="Menu"><span></span></button>
     <nav id="mainNav" class="nav">
       <a href="/">Home</a>
+      <a href="/dashboard">Dashboard</a>
       <a href="/admin">Admin</a>
     </nav>
   </div>
 </header>
 
 <main class="container">
-  <div id="shopView" class="grid cols-2"></div>
+  <section id="hero" class="hero">
+    <h1 id="shopName">Shop</h1>
+    <p class="muted" id="shopMeta">Loading…</p>
+  </section>
+
+  <section class="grid cols-2" id="shopGrid">
+    <!-- left: image + quick actions; right: info -->
+  </section>
+
+  <section class="grid cols-2" style="margin-top:16px">
+    <article class="card" id="todayCard">
+      <h3 class="card-title">Today’s Status</h3>
+      <div id="todayRows" class="row">
+        <div class="muted">Loading…</div>
+      </div>
+      <div class="row" style="margin-top:10px">
+        <a id="toCheckMorning" class="btn">Start Morning Check</a>
+        <a id="toHistory" class="btn">Open History</a>
+      </div>
+    </article>
+
+    <article class="card">
+      <h3 class="card-title">Equipment</h3>
+      <table class="table equip-table" id="eqTable">
+        <thead><tr><th>Name</th><th>Type</th><th>Serial</th></tr></thead>
+        <tbody><tr><td colspan="3">Loading…</td></tr></tbody>
+      </table>
+      <div class="row" style="margin-top:10px">
+        <a id="toAdminEquip" class="btn">Manage in Admin</a>
+      </div>
+    </article>
+  </section>
 </main>
 
+<!-- Floating menu -->
 <button id="fab" class="fab">≡</button>
 <div id="fabMenu" class="fab-menu">
   <a id="fabCheck" href="#">📝 Daily Check</a>
   <a id="fabHist" href="#">📜 History</a>
+  <a id="fabDash" href="#">📊 Dashboard</a>
 </div>
 
 <footer>© BUNCA HACCP</footer>
@@ -34,35 +74,113 @@
 <script src="/assets/helpers.js"></script>
 <script>
   function slug(){ const p=location.pathname.split('/'); return decodeURIComponent(p[p.length-1]); }
-  function view(shop){
-    return `
-      <article class="card" style="grid-column:1/-1">
-        <h1 class="card-title" style="font-size:28px">${shop.name}</h1>
-        <span class="badge ${shop.status==='open'?'':'warn'}">${shop.status}</span>
-      </article>
+  function byId(id){ return document.getElementById(id); }
+  function badge(status){ return '<span class="badge '+(status==='open'?'':'warn')+'">'+status+'</span>'; }
+  function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+  async function loadShop(){
+    const s = slug();
+    const r = await fetch('/api/shops/'+encodeURIComponent(s)); const d = await r.json();
+    if(!d.shop){
+      byId('hero').innerHTML = '<h1>Not found</h1>';
+      return null;
+    }
+    const shop = d.shop;
+
+    // Fill hero
+    byId('shopName').textContent = shop.name;
+    byId('shopMeta').innerHTML = `${badge(shop.status)} · ${shop.slug}${shop.address ? ' • ' + shop.address : ''}`;
+
+    // Cards
+    const grid = byId('shopGrid');
+    grid.innerHTML = `
       <article class="card">
-        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:12px;height:260px;object-fit:cover">` : '<div class="muted">No image</div>'}
+        ${shop.image_url ? `<img src="${shop.image_url}" alt="${shop.name}" style="border-radius:12px;height:280px;object-fit:cover">` : '<div class="muted">No image</div>'}
+        <div class="row cols-2" style="margin-top:10px">
+          <a class="btn primary" id="btnCheck" href="/check/${encodeURIComponent(shop.slug)}">Daily Check</a>
+          <a class="btn" id="btnHistory" href="/history/${encodeURIComponent(shop.slug)}">History</a>
+        </div>
+        <div class="row cols-2" style="margin-top:8px">
+          <a class="btn" id="btnDashboard" href="/dashboard?shop=${encodeURIComponent(shop.slug)}">Dashboard</a>
+          <a class="btn" href="/">All Shops</a>
+        </div>
       </article>
+
       <article class="card">
         <div class="row">
-          <div><strong>Address:</strong><br>${shop.address || '—'}</div>
-          <div><strong>Phone:</strong><br>${shop.phone || '—'}</div>
+          <div><strong>Address</strong><br>${shop.address || '—'}</div>
+          <div><strong>Phone</strong><br>${shop.phone || '—'}</div>
         </div>
         <hr style="margin:12px 0">
         <p>${shop.description || ''}</p>
-        <div class="row cols-2" style="margin-top:12px">
-          <a class="btn primary" href="/check/${encodeURIComponent(shop.slug)}">Daily Check</a>
-          <a class="btn" href="/history/${encodeURIComponent(shop.slug)}">History</a>
-        </div>
-      </article>`;
+      </article>
+    `;
+
+    // FAB links
+    byId('fabCheck').href = '/check/'+encodeURIComponent(shop.slug);
+    byId('fabHist').href  = '/history/'+encodeURIComponent(shop.slug);
+    byId('fabDash').href  = '/dashboard?shop='+encodeURIComponent(shop.slug);
+
+    // Quick links
+    byId('toCheckMorning').href = '/check/'+encodeURIComponent(shop.slug)+'?shift=morning';
+    byId('toHistory').href = '/history/'+encodeURIComponent(shop.slug);
+    byId('toAdminEquip').href = '/admin';
+
+    return shop;
   }
-  (async ()=>{
-    const s = slug();
-    const r = await fetch('/api/shops/'+encodeURIComponent(s)); const d = await r.json();
-    const el = document.getElementById('shopView');
-    el.innerHTML = d.shop ? view(d.shop) : `<div class="card"><h3>Not found.</h3></div>`;
-    document.getElementById('fabCheck').href = '/check/'+encodeURIComponent(s);
-    document.getElementById('fabHist').href  = '/history/'+encodeURIComponent(s);
+
+  async function loadEquipment(shop){
+    const data = await (await fetch('/api/equipment?shop='+encodeURIComponent(shop.slug))).json();
+    const items = data.equipment || [];
+    const tbody = byId('eqTable').querySelector('tbody');
+    tbody.innerHTML = items.length ? items.map(e=>`
+      <tr><td>${e.name}</td><td>${e.type||'—'}</td><td>${e.serial||'—'}</td></tr>
+    `).join('') : '<tr><td colspan="3">No equipment added yet.</td></tr>';
+  }
+
+  // Compute today's status per shift by inspecting today's runs and their answers
+  async function loadToday(shop){
+    const today = todayStr();
+    const list = await (await fetch('/api/check-runs?shop='+encodeURIComponent(shop.slug)+'&from='+today+'&to='+today)).json();
+    const rows = list.runs || [];
+    if(!rows.length){
+      byId('todayRows').innerHTML = `<div class="muted">No submissions today yet.</div>`;
+      return;
+    }
+    // For each run, fetch details to know which shift its answers belong to.
+    const best = {}; // shift -> {created_at, run, ok_count, fail_count}
+    for(const r of rows){
+      const det = await (await fetch('/api/check-runs/'+r.id)).json();
+      const shifts = new Set((det.answers||[]).map(a => (a.shift || 'morning')));
+      shifts.forEach(sh=>{
+        const prev = best[sh];
+        if(!prev || (r.created_at > prev.created_at)){
+          best[sh] = { created_at: r.created_at, run: r, ok_count: r.ok_count||0, fail_count: r.fail_count||0 };
+        }
+      });
+    }
+
+    function rowFor(shift){
+      const rec = best[shift];
+      if(!rec) return `<div class="row"><span class="stat-dot"></span><strong>${cap(shift)}</strong> — none</div>`;
+      const cls = rec.run.status==='signed' ? '' : (rec.fail_count>0 ? 'err' : (rec.run.status==='submitted' ? 'warn' : ''));
+      const label = rec.run.status==='signed' ? 'Signed' : (rec.run.status==='submitted' ? 'Submitted' : 'Draft');
+      return `<div class="row" style="align-items:center;gap:10px">
+        <span class="stat-dot ${cls}"></span>
+        <div style="flex:1"><strong>${cap(shift)}</strong> — ${label} • OK ${rec.ok_count} • Issues ${rec.fail_count}</div>
+        <a class="btn small" href="/history/${encodeURIComponent(shop.slug)}">View</a>
+      </div>`;
+    }
+    function cap(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+    byId('todayRows').innerHTML = rowFor('morning') + rowFor('mid') + rowFor('closing');
+  }
+
+  (async function init(){
+    const shop = await loadShop();
+    if(!shop) return;
+    await loadEquipment(shop);
+    await loadToday(shop);
   })();
 </script>
 </body>
