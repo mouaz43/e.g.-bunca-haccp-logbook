@@ -1,5 +1,25 @@
-// Globale Helfer + Navigation + Toasts + PWA Bootstrap (DE)
+// BUNCA – Helpers (DE)  | Theme + Page-ID + PWA + Queue + Nav
 (function(){
+  // ---------- THEME ----------
+  const THEME_KEY = 'bunca.theme'; // 'roast' | 'espresso'
+  function getTheme(){ return localStorage.getItem(THEME_KEY) || 'roast'; }
+  function applyTheme(t){ document.documentElement.setAttribute('data-theme', t); }
+  function setTheme(t){ localStorage.setItem(THEME_KEY, t); applyTheme(t); }
+  function toggleTheme(){ setTheme(getTheme()==='roast' ? 'espresso' : 'roast'); }
+
+  // ---------- PAGE ID (für seiten-spezifische Hintergründe) ----------
+  function setPageId(){
+    const p = location.pathname;
+    let page = 'home';
+    if (p.startsWith('/dashboard')) page = 'dashboard';
+    else if (p.startsWith('/admin')) page = 'admin';
+    else if (p.startsWith('/shop')) page = 'shop';
+    else if (p.startsWith('/check')) page = 'check';
+    else if (p.startsWith('/history')) page = 'history';
+    else if (p.startsWith('/login')) page = 'login';
+    document.documentElement.setAttribute('data-page', page);
+  }
+
   // ---------- CSRF / Auth ----------
   function csrf(){ return sessionStorage.getItem('csrf') || ''; }
   async function requireSession(role){
@@ -34,7 +54,7 @@
     setTimeout(()=> root.removeChild(el), 3000);
   }
 
-  // ---------- Minimal Offline-Warteschlange ----------
+  // ---------- Offline-Queue ----------
   const QKEY = 'bunca.queue.v1';
   function loadQueue(){ try{ return JSON.parse(localStorage.getItem(QKEY)||'[]'); }catch{ return []; } }
   function saveQueue(arr){ localStorage.setItem(QKEY, JSON.stringify(arr)); }
@@ -54,34 +74,24 @@
           body: job.body ? JSON.stringify(job.body) : undefined
         });
         if(!res.ok) throw new Error('HTTP '+res.status);
-      }catch(e){
-        keep.push(job);
-      }
+      }catch(e){ keep.push(job); }
     }
     saveQueue(keep);
-    if(q.length !== keep.length){
-      toast(`${q.length - keep.length} Element(e) synchronisiert.`);
-    }
+    if(q.length !== keep.length){ toast(`${q.length - keep.length} Element(e) synchronisiert.`); }
   }
   function enqueueIfOffline(url, method, body){
     if(navigator.onLine) return false;
-    addToQueue({ url, method, body });
-    return true;
-    }
+    addToQueue({ url, method, body }); return true;
+  }
 
   // ---------- PWA ----------
   async function registerSW(){
     if(!('serviceWorker' in navigator)) return;
-    try{
-      await navigator.serviceWorker.register('/sw.js');
-      navigator.serviceWorker.ready.then(()=> flushQueue());
-    }catch(e){ /* still */ }
+    try{ await navigator.serviceWorker.register('/sw.js'); navigator.serviceWorker.ready.then(()=> flushQueue()); }catch(e){}
   }
   function ensureManifest(){
     if(document.querySelector('link[rel="manifest"]')) return;
-    const link = document.createElement('link');
-    link.rel = 'manifest'; link.href = '/manifest.webmanifest';
-    document.head.appendChild(link);
+    const link = document.createElement('link'); link.rel='manifest'; link.href='/manifest.webmanifest'; document.head.appendChild(link);
   }
   function handleOnlineStatus(){
     const set = ()=> {
@@ -94,23 +104,22 @@
     set();
   }
 
-  // ---------- Navbar / Mobile / FAB ----------
+  // ---------- Navbar ----------
   function initNav(){
     const btn = document.querySelector('#menuToggle');
     const nav = document.querySelector('#mainNav');
     if(btn && nav){ btn.addEventListener('click', ()=> nav.classList.toggle('open')); }
-
     const links = document.querySelectorAll('#mainNav a');
     const path = location.pathname;
     links.forEach(a=>{ if(a.getAttribute('href') === path) a.classList.add('active'); });
 
-    const fab = document.getElementById('fab');
-    const fabMenu = document.getElementById('fabMenu');
-    if(fab && fabMenu){
-      fab.addEventListener('click', ()=> fabMenu.classList.toggle('open'));
-      document.addEventListener('click', (e)=>{
-        if(!fab.contains(e.target) && !fabMenu.contains(e.target)) fabMenu.classList.remove('open');
-      });
+    // Theme Toggle rechts in der Navi
+    if(nav && !document.getElementById('themeToggle')){
+      const tbtn = document.createElement('button');
+      tbtn.id='themeToggle'; tbtn.type='button'; tbtn.className='btn small invert'; tbtn.title='Theme wechseln';
+      tbtn.innerHTML = '<svg class="icon"><use href="/assets/icons.svg#settings"/></svg><span>Theme</span>';
+      tbtn.addEventListener('click', ()=>{ toggleTheme(); toast(getTheme()==='roast'?'Helles Theme':'Dunkles Theme'); });
+      nav.appendChild(tbtn);
     }
   }
 
@@ -122,7 +131,10 @@
     enqueueIfOffline
   };
 
+  // ---------- Boot ----------
   document.addEventListener('DOMContentLoaded', ()=>{
+    applyTheme(getTheme());
+    setPageId();
     initNav();
     ensureManifest();
     handleOnlineStatus();
